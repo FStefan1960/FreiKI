@@ -16,6 +16,7 @@ const crypto = require('crypto');
 
 const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', 1); // hinter Caddy
 const upload = multer({
   dest: '/tmp/uploads/',
   limits: { fileSize: 50 * 1024 * 1024 },
@@ -598,7 +599,7 @@ app.post('/api/feedback', async (req, res) => {
     event: 'feedback',
     timestamp: req.body.timestamp || new Date().toISOString()
   };
-  console.log(`Feedback: ${payload.type} von ${payload.user}`);
+  console.log(`Feedback: ${payload.type}`);
   await sendToN8n(payload);
   res.json({ ok: true });
 });
@@ -966,7 +967,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
 
     // Web-Suche wenn aktiviert und kein Datei-Upload
     if (useWebSearch && !fileContent && userMessage) {
-      console.log(`Starte Web-Suche für: ${userMessage}`);
+      console.log('Starte Web-Suche...');
       const searchResults = await webSearch(userMessage);
       if (searchResults) {
         userMessage = `${userMessage}\n\n--- Aktuelle Web-Suchergebnisse ---\n${searchResults}\n\nBitte beantworte die Frage auf Basis dieser Ergebnisse.`;
@@ -1340,7 +1341,7 @@ app.post('/api/transcribe', uploadAudio.single('audio'), async (req, res) => {
   // Async Verarbeitung
   (async () => {
     try {
-      console.log(`Transkription gestartet: ${file.originalname} → ${email}`);
+      console.log(`Transkription gestartet: ${file.originalname}`);
 
       // M4A/AAC → WAV konvertieren für maximale Whisper-Kompatibilität
       const { execFile } = require('child_process');
@@ -1426,7 +1427,7 @@ ${transcript}` }
         attachments: [{ filename, content: formattedTranscript, contentType: 'text/plain; charset=utf-8' }]
       });
 
-      console.log(`Transkript gesendet an ${email}`);
+      console.log('Transkript gesendet.');
     } catch (e) {
       console.error('Transkription Fehler:', e.message);
       // Fehler-Mail senden
