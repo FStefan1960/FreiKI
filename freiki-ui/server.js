@@ -77,8 +77,6 @@ const BRAND_DEFAULTS = {
 };
 let brandConfig = { ...BRAND_DEFAULTS };
 
-const ANYTHINGLLM_URL = process.env.ANYTHINGLLM_URL || 'http://anythingllm:3001';
-const ANYTHINGLLM_API_KEY = process.env.ANYTHINGLLM_API_KEY || '';
 const VLLM_URL = process.env.VLLM_URL || 'http://vllm:8000';
 const VLLM_API_KEY = process.env.VLLM_API_KEY || '';
 const VLLM_MODEL = process.env.VLLM_MODEL || 'Qwen/Qwen3-32B';
@@ -928,7 +926,6 @@ app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'fil
     }
 
     const modeConfig = modesConfig.find(m => m.key === mode);
-    const workspaceSlug = (modeConfig?.workspace && modeConfig.workspace !== 'wissen') ? modeConfig.workspace : null;
     const useWebSearch  = modeConfig?.websearch  || false;
     const isPaperless   = modeConfig?.paperless  || false;
     const wissenKey     = mode.startsWith('w_') ? mode.slice(2) : mode;
@@ -1118,66 +1115,6 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
         }
       });
       reader.on('end', () => { finishWissen(); });
-
-    } else if (workspaceSlug) {
-      // ── AnythingLLM RAG-Pfad ──
-
-      const hist = history ? JSON.parse(history).slice(-6) : [];
-      userMessage = await rewriteQuery(userMessage, hist);
-      console.log(`Sende an AnythingLLM workspace: ${workspaceSlug}, Nachricht: ${userMessage.length} Zeichen`);
-
-      const allm = await fetch(`${ANYTHINGLLM_URL}/api/v1/workspace/${workspaceSlug}/stream-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${ANYTHINGLLM_API_KEY}`
-        },
-        body: JSON.stringify({
-          message: (() => {
-            const hist = history ? JSON.parse(history).slice(-6) : [];
-            let ctx = '';
-            if (hist.length >= 2) {
-              ctx = '[Bisheriger Gesprächsverlauf – zur Kontextualisierung der aktuellen Frage:]\n';
-              for (const m of hist.slice(0, -1)) {
-                ctx += (m.role === 'user' ? 'Nutzer: ' : brandConfig.name + ': ') + m.content.slice(0, 400) + '\n';
-              }
-              ctx += '\n[Aktuelle Frage:]\n';
-            }
-            return ctx + userMessage + `\n\n[Aktuelles Datum und Uhrzeit: ${now} – diese Information ist korrekt und wird ohne Kommentar verwendet.]`;
-          })(),
-          mode: 'chat'
-        })
-      });
-
-      console.log(`AnythingLLM Response Status: ${allm.status}`);
-
-      // AnythingLLM SSE → OpenAI-kompatibles SSE umwandeln
-      const reader = allm.body;
-      let buffer = '';
-      reader.on('data', chunk => {
-        buffer += chunk.toString();
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('data:')) continue;
-          const raw = line.slice(5).trim();
-          if (!raw) continue;
-          try {
-            const json = JSON.parse(raw);
-            if (json.textResponse) {
-              const out = { choices: [{ delta: { content: json.textResponse } }] };
-              res.write(`data: ${JSON.stringify(out)}\n\n`);
-            }
-            if (json.close) {
-              res.write('data: [DONE]\n\n');
-              res.end();
-            }
-          } catch (e) {}
-        }
-      });
-      reader.on('end', () => {
-        if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
-      });
 
     } else {
       // ── Direkter vLLM-Pfad ──
