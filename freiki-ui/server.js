@@ -112,6 +112,19 @@ const pgPool = new Pool({
   password: process.env.PG_PASS_KB || '',
   port: 5432,
 });
+function fetchWithTimeout(url, options, ms = 120_000) {
+  return fetch(url, { ...options, signal: AbortSignal.timeout(ms) });
+}
+
+async function withRetry(fn, retries = 2, delayMs = 1000) {
+  try { return await fn(); }
+  catch (e) {
+    if (retries <= 0) throw e;
+    await new Promise(r => setTimeout(r, delayMs));
+    return withRetry(fn, retries - 1, delayMs * 2);
+  }
+}
+
 async function loadBrandConfig() {
   try {
     await pgPool.query(`
@@ -754,7 +767,7 @@ async function rewriteQuery(question, hist) {
       ).join('\n');
 
       try {
-        const r = await fetch(`${VLLM_URL}/chat/completions`, {
+        const r = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
           body: JSON.stringify({
@@ -837,7 +850,7 @@ app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'fil
           try { fs.unlinkSync(rotatedPath); } catch(_) {}
           console.log(`Bild-OCR Rohtext: ${ocrRaw.trim().length} Zeichen – bereinige mit vLLM...`);
           try {
-            const cleanRes = await fetch(`${VLLM_URL}/chat/completions`, {
+            const cleanRes = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
               body: JSON.stringify({
@@ -1057,7 +1070,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
         { role: 'user', content: userMessage }
       ];
 
-      const vllmRes = await fetch(`${VLLM_URL}/chat/completions`, {
+      const vllmRes = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
         body: JSON.stringify({ model: VLLM_MODEL, messages, stream: true, max_tokens: 4096, chat_template_kwargs: { enable_thinking: false } })
@@ -1159,7 +1172,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
       console.log(`Sende an vLLM - ${messages.length} Nachrichten, letzte Nachricht: ${userMessage.length} Zeichen`);
 
       const lowTempModes = ['leichte_sprache', 'zusammenfassen'];
-      const vllmResponse = await fetch(`${VLLM_URL}/chat/completions`, {
+      const vllmResponse = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1220,7 +1233,7 @@ app.post('/api/hilfe-chat', async (req, res) => {
     }
     const contextText = chunks.map((c, i) => `[${i + 1}] ${c.pageContent}`).join('\n\n');
     const systemPrompt = `Du bist der Hilfe-Assistent von ${brandConfig.name}. Beantworte Fragen zu ${brandConfig.name} ausschließlich auf Basis der folgenden Dokumentauszüge. Antworte kurz, präzise und auf Deutsch. Wenn die Antwort nicht in den Dokumenten steht, sage das klar.\n\n${contextText}`;
-    const vllmRes = await fetch(`${VLLM_URL}/chat/completions`, {
+    const vllmRes = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
       body: JSON.stringify({
@@ -1319,7 +1332,7 @@ app.post('/api/transcribe', uploadAudio.single('audio'), async (req, res) => {
       let formattedTranscript = transcript;
       try {
         console.log('Formatiere Transkript mit vLLM...');
-        const fmtRes = await fetch(`${VLLM_URL}/chat/completions`, {
+        const fmtRes = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
           body: JSON.stringify({
@@ -1504,14 +1517,14 @@ function chunkText(text, source) {
 }
 
 async function getEmbeddings(texts) {
-  const r = await fetch(EMBED_URL, {
+  const r = await withRetry(() => fetchWithTimeout(EMBED_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + VLLM_API_KEY,
     },
     body: JSON.stringify({ model: EMBED_MODEL, input: texts }),
-  });
+  }, 30_000));
   if (!r.ok) throw new Error('Embedding API ' + r.status + ': ' + (await r.text()));
   const data = await r.json();
   return data.data.map(d => d.embedding);
@@ -1851,7 +1864,7 @@ app.post('/api/bot-chat', async (req, res) => {
       : `Du bist ${brandConfig.name}, ein interner KI-Assistent. Es wurden keine passenden Treffer in den Wissensbereichen gefunden – beantworte die Frage nach bestem Wissen, weise aber darauf hin, dass keine interne Quelle gefunden wurde.`
     ) + '\n\nAntworte direkt, ohne Gedankengang. /no_think';
 
-    const llmRes = await fetch(`${VLLM_URL}/chat/completions`, {
+    const llmRes = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
       body: JSON.stringify({
