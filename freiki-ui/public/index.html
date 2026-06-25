@@ -477,7 +477,6 @@ async function loadModes() {
     werkzeuge.forEach(m => cw.appendChild(makeModeBtn(m)));
     // Fest eingebaute Panel-Werkzeuge (bei allen Instanzen gleich)
     [
-      { panel: '/picto.html',   icon: '🖼️', title: 'Piktogramme',  desc: 'ARASAAC-Bildsuche' },
       { panel: '/whisper.html', icon: '🎙️', title: 'Transkription', desc: 'Audio → Text per E-Mail' },
     ].forEach(t => {
       const b = document.createElement('button');
