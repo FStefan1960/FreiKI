@@ -17,7 +17,6 @@
 
     .page { max-width: 860px; margin: 0 auto; }
 
-    /* Header */
     .card {
       background: #fff;
       border-radius: 16px;
@@ -36,7 +35,6 @@
     .app-header h1 { font-size: 20px; font-weight: 800; color: #1E3A8A; }
     .app-header p  { font-size: 13px; color: #6b7280; margin-top: 2px; }
 
-    /* Meta-Felder */
     .meta-row {
       display: flex;
       gap: 14px;
@@ -61,13 +59,13 @@
     .meta-field--name { flex: 1; }
     .meta-field--tag  { flex: 0 0 180px; }
 
-    /* Zeilen */
     .row-block {
       border: 2px solid #e5e7eb;
       border-radius: 14px;
       padding: 18px 20px;
       margin-bottom: 14px;
       transition: border-color .2s;
+      position: relative;
     }
     .row-block.active  { border-color: #2B9CD8; background: #f0f9ff; }
     .row-block.done    { border-color: #10b981; background: #f0fdf4; }
@@ -119,7 +117,21 @@
     .search-btn:hover { opacity: 0.88; }
     .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Gewähltes Symbol */
+    .delete-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: #ef4444;
+      border: none;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .delete-btn:hover { background: #fca5a5; }
+
     .selected-preview {
       display: none;
       align-items: center;
@@ -141,7 +153,6 @@
       text-decoration: underline;
     }
 
-    /* Ergebnis-Grid */
     .pic-grid {
       display: none;
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -163,7 +174,6 @@
       box-shadow: 0 2px 10px rgba(43,156,216,0.18);
       transform: translateY(-2px);
     }
-    .pic-card.selected-card { border-color: #10b981; background: #f0fdf4; }
     .pic-card img { width: 72px; height: 72px; object-fit: contain; display: block; margin: 0 auto 6px; }
     .pic-card .label { font-size: 11px; color: #374151; font-weight: 600; line-height: 1.3; word-break: break-word; }
 
@@ -173,7 +183,26 @@
       margin-top: 8px;
     }
 
-    /* Fertig-Bereich */
+    .add-row-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 20px;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .add-row-btn:hover { border-color: #2B9CD8; color: #2B9CD8; background: #f0f9ff; }
+
     .finish-area {
       text-align: center;
       padding: 8px 0 4px;
@@ -195,7 +224,6 @@
     .finish-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
     .finish-hint { font-size: 12px; color: #9ca3af; margin-top: 8px; }
 
-    /* Back link */
     .back-link {
       position: fixed;
       bottom: 24px; right: 24px;
@@ -216,10 +244,7 @@
     }
     .back-link:hover { transform: translateY(-2px); color: #fff; }
 
-    /* ── DRUCK-ANSICHT ── */
-    #print-view {
-      display: none;
-    }
+    #print-view { display: none; }
 
     @media print {
       body { background: #fff; padding: 0; }
@@ -251,9 +276,7 @@
         width: 100%;
         border-collapse: collapse;
       }
-      .print-table tr {
-        page-break-inside: avoid;
-      }
+      .print-table tr { page-break-inside: avoid; }
       .print-table td {
         padding: 5mm 4mm;
         border: 1.5pt solid #d1d5db;
@@ -298,7 +321,6 @@
   })();
 </script>
 
-<!-- Editor -->
 <div id="editor-view" class="page">
 
   <div class="card">
@@ -306,7 +328,7 @@
       <img src="/icons/freiki-mark.svg" alt="FreiKI">
       <div>
         <h1>Tagesplan erstellen</h1>
-        <p>Für jede Zeile ein Stichwort eingeben, Symbole auswählen, dann drucken.</p>
+        <p>Stichwort eingeben, Symbol auswählen – beliebig viele Zeilen, dann drucken.</p>
       </div>
     </div>
 
@@ -331,17 +353,17 @@
     </div>
   </div>
 
-  <!-- 6 Zeilen -->
   <div id="rows-container"></div>
+
+  <button class="add-row-btn" onclick="addRow()">+ Zeile hinzufügen</button>
 
   <div class="card finish-area">
     <button class="finish-btn" id="finish-btn" onclick="buildPrint()" disabled>Tagesplan drucken</button>
-    <div class="finish-hint" id="finish-hint">Bitte alle 6 Zeilen mit einem Symbol belegen.</div>
+    <div class="finish-hint" id="finish-hint">Mindestens eine Zeile mit Symbol belegen.</div>
   </div>
 
 </div>
 
-<!-- Druck-Seite -->
 <div id="print-view">
   <div class="print-page">
     <div class="print-header">
@@ -353,47 +375,66 @@
   </div>
 </div>
 
-<a href="/" class="back-link">← Zurück zu FreiKI</a>
+<button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.top.location.href='/'; }">← Zurück zu FreiKI</button>
 
 <script>
-  const NUM_ROWS = 6;
-  const rows = [];   // { keyword, imageUrl, imageLabel }
+  const START_ROWS = 4;
+  let rows = [];      // { id, keyword, imageUrl, imageLabel }
+  let nextId = 0;
 
-  function buildRows() {
+  function addRow(focus) {
+    const id = nextId++;
+    rows.push({ id, keyword: '', imageUrl: null, imageLabel: '' });
+
     const container = document.getElementById('rows-container');
-    for (let i = 0; i < NUM_ROWS; i++) {
-      rows.push({ keyword: '', imageUrl: null, imageLabel: '' });
+    const block = document.createElement('div');
+    block.className = 'card row-block' + (rows.length === 1 ? ' active' : '');
+    block.id = `row-${id}`;
+    block.innerHTML = `
+      <div class="row-top">
+        <div class="row-num" id="num-${id}">${rows.length}</div>
+        <input type="text" id="kw-${id}" placeholder="Stichwort …"
+               onkeydown="if(event.key==='Enter') searchRow(${id})">
+        <button class="search-btn" id="sbtn-${id}" onclick="searchRow(${id})">Suchen</button>
+        <button class="delete-btn" onclick="deleteRow(${id})" title="Zeile entfernen">×</button>
+      </div>
+      <div class="selected-preview" id="preview-${id}">
+        <img id="preview-img-${id}" src="" alt="">
+        <span class="sel-label" id="preview-label-${id}"></span>
+        <span class="change-link" onclick="clearRow(${id})">ändern</span>
+      </div>
+      <div class="pic-grid" id="grid-${id}"></div>
+      <div class="row-status-msg" id="smsg-${id}"></div>
+    `;
+    container.appendChild(block);
 
-      const block = document.createElement('div');
-      block.className = 'card row-block' + (i === 0 ? ' active' : '');
-      block.id = `row-${i}`;
-      block.innerHTML = `
-        <div class="row-top">
-          <div class="row-num">${i + 1}</div>
-          <input type="text" id="kw-${i}" placeholder="Stichwort für Zeile ${i + 1} …"
-                 onkeydown="if(event.key==='Enter') searchRow(${i})">
-          <button class="search-btn" id="sbtn-${i}" onclick="searchRow(${i})">Suchen</button>
-        </div>
-        <div class="selected-preview" id="preview-${i}">
-          <img id="preview-img-${i}" src="" alt="">
-          <span class="sel-label" id="preview-label-${i}"></span>
-          <span class="change-link" onclick="clearRow(${i})">ändern</span>
-        </div>
-        <div class="pic-grid" id="grid-${i}"></div>
-        <div class="row-status-msg" id="smsg-${i}"></div>
-      `;
-      container.appendChild(block);
-    }
+    if (focus !== false) document.getElementById(`kw-${id}`).focus();
+    updateFinishBtn();
   }
 
-  async function searchRow(i) {
-    const input = document.getElementById(`kw-${i}`);
+  function deleteRow(id) {
+    rows = rows.filter(r => r.id !== id);
+    const block = document.getElementById(`row-${id}`);
+    if (block) block.remove();
+    renumberRows();
+    updateFinishBtn();
+  }
+
+  function renumberRows() {
+    rows.forEach((r, i) => {
+      const el = document.getElementById(`num-${r.id}`);
+      if (el) el.textContent = i + 1;
+    });
+  }
+
+  async function searchRow(id) {
+    const input = document.getElementById(`kw-${id}`);
     const q = input.value.trim();
     if (!q) { input.focus(); return; }
 
-    const btn = document.getElementById(`sbtn-${i}`);
-    const grid = document.getElementById(`grid-${i}`);
-    const smsg = document.getElementById(`smsg-${i}`);
+    const btn  = document.getElementById(`sbtn-${id}`);
+    const grid = document.getElementById(`grid-${id}`);
+    const smsg = document.getElementById(`smsg-${id}`);
 
     btn.disabled = true;
     btn.textContent = '…';
@@ -413,14 +454,15 @@
       }
 
       grid.innerHTML = data.results.map(p => `
-        <div class="pic-card" onclick="selectSymbol(${i}, '${p.url.replace(/'/g,"\\'")}', '${p.keyword.replace(/'/g,"\\'")}')">
+        <div class="pic-card" onclick="selectSymbol(${id}, '${p.url.replace(/'/g,"\\'")}', '${p.keyword.replace(/'/g,"\\'")}')">
           <img src="${p.url}" alt="${p.keyword}" loading="lazy" onerror="this.style.opacity=0.15">
           <div class="label">${p.keyword}</div>
         </div>
       `).join('');
       grid.classList.add('visible');
 
-      setActiveRow(i);
+      const block = document.getElementById(`row-${id}`);
+      if (block && !rows.find(r => r.id === id)?.imageUrl) block.classList.add('active');
     } catch(e) {
       smsg.textContent = 'Fehler: ' + e.message;
     } finally {
@@ -429,66 +471,62 @@
     }
   }
 
-  function selectSymbol(i, url, label) {
-    rows[i].imageUrl   = url;
-    rows[i].imageLabel = label;
-    rows[i].keyword    = document.getElementById(`kw-${i}`).value.trim() || label;
+  function selectSymbol(id, url, label) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    row.imageUrl   = url;
+    row.imageLabel = label;
+    row.keyword    = document.getElementById(`kw-${id}`).value.trim() || label;
 
-    // Vorschau zeigen
-    document.getElementById(`preview-img-${i}`).src = url;
-    document.getElementById(`preview-label-${i}`).textContent = rows[i].keyword;
-    document.getElementById(`preview-${i}`).classList.add('visible');
+    document.getElementById(`preview-img-${id}`).src = url;
+    document.getElementById(`preview-label-${id}`).textContent = row.keyword;
+    document.getElementById(`preview-${id}`).classList.add('visible');
+    document.getElementById(`grid-${id}`).classList.remove('visible');
+    document.getElementById(`smsg-${id}`).textContent = '';
 
-    // Grid ausblenden
-    document.getElementById(`grid-${i}`).classList.remove('visible');
-    document.getElementById(`smsg-${i}`).textContent = '';
-
-    // Block als erledigt markieren
-    const block = document.getElementById(`row-${i}`);
+    const block = document.getElementById(`row-${id}`);
     block.classList.remove('active');
     block.classList.add('done');
 
-    // Nächste Zeile aktivieren
-    if (i + 1 < NUM_ROWS) {
-      setActiveRow(i + 1);
-      document.getElementById(`kw-${i + 1}`).focus();
+    // Nächste leere Zeile aktivieren
+    const next = rows.find(r => !r.imageUrl && r.id !== id);
+    if (next) {
+      const nb = document.getElementById(`row-${next.id}`);
+      if (nb) nb.classList.add('active');
+      document.getElementById(`kw-${next.id}`).focus();
     }
 
     updateFinishBtn();
   }
 
-  function clearRow(i) {
-    rows[i].imageUrl = null;
-    rows[i].imageLabel = '';
-    document.getElementById(`preview-${i}`).classList.remove('visible');
-    document.getElementById(`grid-${i}`).classList.remove('visible');
-    const block = document.getElementById(`row-${i}`);
+  function clearRow(id) {
+    const row = rows.find(r => r.id === id);
+    if (!row) return;
+    row.imageUrl = null;
+    row.imageLabel = '';
+    document.getElementById(`preview-${id}`).classList.remove('visible');
+    document.getElementById(`grid-${id}`).classList.remove('visible');
+    const block = document.getElementById(`row-${id}`);
     block.classList.remove('done');
     block.classList.add('active');
-    document.getElementById(`kw-${i}`).focus();
+    document.getElementById(`kw-${id}`).focus();
     updateFinishBtn();
-  }
-
-  function setActiveRow(i) {
-    for (let j = 0; j < NUM_ROWS; j++) {
-      const b = document.getElementById(`row-${j}`);
-      if (!rows[j].imageUrl) b.classList.remove('active');
-    }
-    const block = document.getElementById(`row-${i}`);
-    if (!rows[i].imageUrl) block.classList.add('active');
   }
 
   function updateFinishBtn() {
-    const done  = rows.filter(r => r.imageUrl).length;
-    const btn   = document.getElementById('finish-btn');
-    const hint  = document.getElementById('finish-hint');
-    btn.disabled = done < NUM_ROWS;
-    if (done === NUM_ROWS) {
-      hint.textContent = 'Alle Zeilen belegt – bereit zum Drucken!';
-      hint.style.color = '#10b981';
-    } else {
-      hint.textContent = `Noch ${NUM_ROWS - done} Zeile${NUM_ROWS - done !== 1 ? 'n' : ''} offen.`;
+    const done = rows.filter(r => r.imageUrl).length;
+    const btn  = document.getElementById('finish-btn');
+    const hint = document.getElementById('finish-hint');
+    btn.disabled = done === 0;
+    if (done === 0) {
+      hint.textContent = 'Mindestens eine Zeile mit Symbol belegen.';
       hint.style.color = '#9ca3af';
+    } else {
+      const open = rows.filter(r => !r.imageUrl).length;
+      hint.textContent = open > 0
+        ? `${done} Zeile${done !== 1 ? 'n' : ''} bereit, ${open} noch offen – oder jetzt drucken.`
+        : `Alle ${done} Zeilen belegt – bereit zum Drucken!`;
+      hint.style.color = open > 0 ? '#f59e0b' : '#10b981';
     }
   }
 
@@ -501,8 +539,8 @@
     document.getElementById('print-title').textContent = title;
     document.getElementById('print-sub').textContent = day || '';
 
-    const tbody = document.getElementById('print-table');
-    tbody.innerHTML = rows.map(r => `
+    const filled = rows.filter(r => r.imageUrl);
+    document.getElementById('print-table').innerHTML = filled.map(r => `
       <tr>
         <td class="sym-cell"><img src="${r.imageUrl}" alt="${r.imageLabel}"></td>
         <td class="label-cell">${r.keyword}</td>
@@ -512,7 +550,8 @@
     window.print();
   }
 
-  buildRows();
+  // Startzeilen anlegen
+  for (let i = 0; i < START_ROWS; i++) addRow(i === 0);
 </script>
 
 </body>
