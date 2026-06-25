@@ -21,7 +21,7 @@ echo "-> PostgreSQL Dump..."
 docker exec PostgreSQL pg_dumpall -U freiki_user | gzip > "${BACKUP_DIR}/postgres-dumpall.sql.gz"
 
 echo "-> Volumes sichern..."
-for VOLUME in freiki-package_n8n_storage freiki-package_postgres_data freiki-package_mail_data freiki-package_mail_state freiki-package_mail_config freiki-package_portainer_data freiki-package_caddy_config freiki-package_caddy_data freiki-package_whisper_cache freiki-package_paperless_data freiki-package_paperless_media freiki-package_paperless_export freiki-package_paperless_consume freiki-package_paperless_redis freiki-package_kuma_data freiki-package_mattermost_data freiki-package_mattermost_logs freiki-package_mattermost_config freiki-package_mattermost_plugins freiki-package_mattermost_client_plugins; do
+for VOLUME in freiki-package_n8n_storage freiki-package_postgres_data freiki-package_mail_data freiki-package_mail_state freiki-package_mail_logs freiki-package_mail_config freiki-package_portainer_data freiki-package_caddy_config freiki-package_caddy_data freiki-package_paperless_data freiki-package_paperless_media freiki-package_paperless_export freiki-package_paperless_consume freiki-package_paperless_redis freiki-package_kuma_data freiki-package_mattermost_data freiki-package_mattermost_logs freiki-package_mattermost_config freiki-package_mattermost_plugins freiki-package_mattermost_client_plugins; do
     echo "   ${VOLUME}..."
     docker run --rm \
         -v ${VOLUME}:/data \

@@ -22,6 +22,20 @@
   <meta name="apple-mobile-web-app-title" content="{{APP_NAME}}">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
   <link rel="icon" type="image/png" href="/favicon-32.png?v=3">
+  <style>
+    .admin-stats-widget {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--fk-text-muted);
+      background: var(--fk-tint);
+      border: 1px solid var(--fk-border-strong);
+      border-radius: 6px;
+      padding: 3px 8px;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      cursor: default;
+    }
+  </style>
 </head>
 <body>
 
@@ -131,6 +145,9 @@
               <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
             <span>DSGVO · DSG-EKD · EU · Open Source</span>
+          </div>
+          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute">
+            <span id="stats-text">– / –</span>
           </div>
           <div class="header-icon-group">
             <a href="{{MATTERMOST_URL}}" target="_blank" id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;">💬 <span class="hilfe-label">Teamchat</span></a>
@@ -1187,7 +1204,7 @@ async function sendMessage() {
     }
     removeFile();
 
-    const response = await fetch('/api/chat', { method: 'POST', body: formData });
+    const response = await fetch('/api/chat', { method: 'POST', body: formData, headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {} });
     if (response.status === 401) { forceLogout(); return; }
     document.getElementById('typing')?.remove();
 
@@ -1396,5 +1413,25 @@ async function sendHilfeFrage() {
   </div>
 </div>
 
+  <script>
+    (function() {
+      async function loadAdminStats() {
+        const token = localStorage.getItem('freiki_token') || localStorage.getItem('korki_token');
+        if (!token) return;
+        try {
+          const r = await fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } });
+          if (!r.ok) return;
+          const d = await r.json();
+          const el = document.getElementById('stats-text');
+          if (el) el.textContent = d.requests + ' / ' + d.users;
+        } catch(_) {}
+      }
+      window.addEventListener('load', () => {
+        loadAdminStats();
+        setInterval(loadAdminStats, 60000);
+      });
+      window.freikiStatsLoad = loadAdminStats;
+    })();
+  </script>
 </body>
 </html>

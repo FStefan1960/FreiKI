@@ -147,6 +147,14 @@ async function loadBrandConfig() {
         value TEXT NOT NULL
       )
     `);
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS chat_log (
+        ts      TIMESTAMPTZ NOT NULL DEFAULT now(),
+        user_id INT         NOT NULL
+      )
+    `);
+    await pgPool.query(`CREATE INDEX IF NOT EXISTS chat_log_ts_idx ON chat_log (ts)`);
+    await pgPool.query(`DELETE FROM chat_log WHERE ts < now() - INTERVAL '90 days'`);
     const { rows } = await pgPool.query('SELECT key, value FROM app_config');
     const db = Object.fromEntries(rows.map(r => [r.key, r.value]));
     brandConfig = {
@@ -855,6 +863,7 @@ app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'fil
   const files = req.files?.['files'] || [];
 
   console.log(`Chat request - mode: ${mode}, file: ${file ? file.originalname : 'none'}, files: ${files.length}, task: ${multidoc_task || 'none'}`);
+  trackChatRequest(getSession(req)?.uid);
 
   try {
     let fileContent = '';
@@ -2115,6 +2124,28 @@ app.get('/api/v4/user', (req, res) => {
     });
   } catch (e) {
     res.status(401).json({ message: '401 Unauthorized' });
+  }
+});
+
+// ── Tages-Statistiken (Admin-Widget) ─────────────────────────
+function trackChatRequest(userId) {
+  if (userId) pgPool.query('INSERT INTO chat_log (user_id) VALUES ($1)', [userId]).catch(() => {});
+}
+
+app.get('/api/admin/stats', async (req, res) => {
+  const s = getSession(req);
+  if (!s || s.role !== 'admin') return res.status(403).json({ error: 'Kein Zugriff' });
+  try {
+    const { rows } = await pgPool.query(`
+      SELECT COUNT(*) AS requests, COUNT(DISTINCT user_id) AS users
+      FROM chat_log WHERE ts >= date_trunc('day', now() AT TIME ZONE 'Europe/Berlin') AT TIME ZONE 'Europe/Berlin'
+    `);
+    res.json({
+      requests: parseInt(rows[0].requests),
+      users: parseInt(rows[0].users),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'DB-Fehler' });
   }
 });
 
