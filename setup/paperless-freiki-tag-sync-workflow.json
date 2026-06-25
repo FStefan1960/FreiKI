@@ -1,0 +1,115 @@
+{
+  "name": "FreiKI Paperless Tags synchronisieren",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "hours", "hoursInterval": 24 }
+          ]
+        }
+      },
+      "id": "schedule-trigger-tagsync",
+      "name": "Täglich",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-500, 80]
+    },
+    {
+      "parameters": {
+        "url": "http://freiki-ui:3000/api/kb-areas",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "REDACTED-ROTATED-KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-get-areas",
+      "name": "KB-Bereiche holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 80]
+    },
+    {
+      "parameters": {
+        "url": "http://paperless:8000/api/tags/?page_size=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token REDACTED-ROTATED-TOKEN"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-get-tags",
+      "name": "Paperless Tags holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-60, 80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const areas = $('KB-Bereiche holen').first().json.areas || [];\nconst existingTags = $input.first().json.results || [];\nconst existingNames = existingTags.map(t => t.name.toLowerCase());\n\nconst missing = areas.filter(a => !existingNames.includes(a));\nreturn missing.map(name => ({ json: { name } }));"
+      },
+      "id": "code-find-missing",
+      "name": "Fehlende Tags ermitteln",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [160, 80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://paperless:8000/api/tags/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token REDACTED-ROTATED-TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { name: $json.name } }}",
+        "options": {}
+      },
+      "id": "http-create-tag",
+      "name": "Tag in Paperless anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [380, 80]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Täglich": {
+      "main": [[{ "node": "KB-Bereiche holen", "type": "main", "index": 0 }]]
+    },
+    "KB-Bereiche holen": {
+      "main": [[{ "node": "Paperless Tags holen", "type": "main", "index": 0 }]]
+    },
+    "Paperless Tags holen": {
+      "main": [[{ "node": "Fehlende Tags ermitteln", "type": "main", "index": 0 }]]
+    },
+    "Fehlende Tags ermitteln": {
+      "main": [[{ "node": "Tag in Paperless anlegen", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

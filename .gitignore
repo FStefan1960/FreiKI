@@ -1,0 +1,28 @@
+# Secrets
+.env
+*.env
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Piper Stimmmodelle (große Binärdateien, separat herunterladen)
+piper/voices/*.onnx
+piper/voices/*.json
+
+# Whisper Modelle
+whisper/models/
+
+# Docker persistente Daten / Volumes
+postgres-data/
+flowise-data/
+n8n-data/
+caddy-data/
+caddy-config/
+
+# macOS
+.DS_Store
+
+# Build-Artefakte
+dist/
+*.log

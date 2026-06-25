@@ -1,0 +1,75 @@
+{
+  "name": "FreiKI @mention Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "freiki-bot-mention",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Mattermost Outgoing Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://freiki-ui:3000/api/bot-chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-API-Key", "value": "REDACTED-ROTATED-TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.text.replace(/@freiki\\s*/i, '').trim()) }},\n  \"username\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.user_name) }}\n}",
+        "options": {}
+      },
+      "id": "node-botchat",
+      "name": "FreiKI Bot-Chat aufrufen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.freiki.com/api/v4/posts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer REDACTED-ROTATED-TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"channel_id\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.channel_id) }},\n  \"message\": {{ JSON.stringify($json.answer) }}\n}",
+        "options": {}
+      },
+      "id": "node-post",
+      "name": "Antwort in Thread posten",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Mattermost Outgoing Webhook": {
+      "main": [
+        [{ "node": "FreiKI Bot-Chat aufrufen", "type": "main", "index": 0 }]
+      ]
+    },
+    "FreiKI Bot-Chat aufrufen": {
+      "main": [
+        [{ "node": "Antwort in Thread posten", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

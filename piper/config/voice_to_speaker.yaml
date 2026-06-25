@@ -1,0 +1,14 @@
+tts-1:
+  thorsten:
+    model: voices/de_DE-thorsten-high.onnx
+    speaker:
+  thorsten-medium:
+    model: voices/de_DE-thorsten-medium.onnx
+    speaker:
+  alloy:
+    model: voices/de_DE-thorsten-high.onnx
+    speaker:
+tts-1-hd:
+  thorsten:
+    model: voices/de_DE-thorsten-high.onnx
+    speaker:

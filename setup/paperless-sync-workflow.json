@@ -1,0 +1,178 @@
+{
+  "name": "Paperless -> FreiKI Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "a7906ab8-ea5d-4dfb-978c-fe8dfb24d3a1",
+      "name": "Alle 15 Minuten",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://paperless.freiki.com/api/documents/?tags__id__all=2&tags__id__none=1&page_size=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token REDACTED-ROTATED-TOKEN"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "105472e9-c322-4460-9ab9-19815e15b64c",
+      "name": "Neue Dokumente holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -48,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.first().json.results || [];\nconst tagMap = { 2: 'stvo' };\nconst out = [];\nfor (const doc of results) {\n  const bereichTagId = doc.tags.find(t => tagMap[t]);\n  if (!bereichTagId) continue;\n  out.push({\n    json: {\n      id: doc.id,\n      bereich: tagMap[bereichTagId],\n      text: doc.content || '',\n      source: doc.title,\n      source_url: `https://paperless.freiki.com/documents/${doc.id}/details`,\n      newTags: [...doc.tags, 1]\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "53d33508-762d-45c4-ab32-893c4a8fbe66",
+      "name": "Bereich ableiten & filtern",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.freiki.com/api/kb-ingest-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "REDACTED-ROTATED-KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { bereich: $json.bereich, text: $json.text, source: $json.source, source_url: $json.source_url } }}",
+        "options": {}
+      },
+      "id": "a9d05c87-b1a5-4990-9a4f-1a355071b9e2",
+      "name": "An FreiKI schicken",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ \"https://paperless.freiki.com/api/documents/\" + $('Bereich ableiten & filtern').item.json.id + \"/\" }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { tags: $('Bereich ableiten & filtern').item.json.newTags } }}",
+        "options": {}
+      },
+      "id": "df60de16-c2fb-47b4-9194-c16183a9fef4",
+      "name": "In Paperless als synced markieren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "g7Cu0laX8Jzz80V8",
+          "name": "Header Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Alle 15 Minuten": {
+      "main": [
+        [
+          {
+            "node": "Neue Dokumente holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Neue Dokumente holen": {
+      "main": [
+        [
+          {
+            "node": "Bereich ableiten & filtern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereich ableiten & filtern": {
+      "main": [
+        [
+          {
+            "node": "An FreiKI schicken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "An FreiKI schicken": {
+      "main": [
+        [
+          {
+            "node": "In Paperless als synced markieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "91afe144-6392-4220-ab0b-28733a54a392",
+  "meta": {
+    "instanceId": "c63e4d784595f811886bacc7b78d5744b36eb515aeacf0021244dcbdc68486cb"
+  },
+  "nodeGroups": [],
+  "id": "4MuxE0lNaZ9CaBfV",
+  "tags": []
+}

@@ -1,0 +1,978 @@
+{
+  "nodes": [
+    {
+      "id": "openAIEmbeddingsCustom_0",
+      "position": {
+        "x": -299.2738136951884,
+        "y": 40.46562752228215
+      },
+      "type": "customNode",
+      "data": {
+        "label": "OpenAI Custom Embedding",
+        "name": "openAIEmbeddingsCustom",
+        "version": 3,
+        "type": "OpenAIEmbeddingsCustom",
+        "icon": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/embeddings/OpenAIEmbeddingCustom/openai.svg",
+        "category": "Embeddings",
+        "description": "OpenAI API to generate embeddings for a given text",
+        "baseClasses": [
+          "OpenAIEmbeddingsCustom",
+          "Embeddings"
+        ],
+        "credential": "0ea9b866-6b06-4e8e-9157-63b014aa907b",
+        "inputs": {
+          "stripNewLines": "",
+          "batchSize": "",
+          "timeout": "",
+          "basepath": "https://api.deepinfra.com/v1/openai",
+          "baseOptions": "",
+          "modelName": "BAAI/bge-m3",
+          "dimensions": "",
+          "encodingFormat": ""
+        },
+        "filePath": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/embeddings/OpenAIEmbeddingCustom/OpenAIEmbeddingCustom.js",
+        "inputAnchors": [],
+        "inputParams": [
+          {
+            "label": "Connect Credential",
+            "name": "credential",
+            "type": "credential",
+            "credentialNames": [
+              "openAIApi"
+            ],
+            "id": "openAIEmbeddingsCustom_0-input-credential-credential",
+            "display": true
+          },
+          {
+            "label": "Strip New Lines",
+            "name": "stripNewLines",
+            "type": "boolean",
+            "optional": true,
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-stripNewLines-boolean",
+            "display": true
+          },
+          {
+            "label": "Batch Size",
+            "name": "batchSize",
+            "type": "number",
+            "optional": true,
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-batchSize-number",
+            "display": true
+          },
+          {
+            "label": "Timeout",
+            "name": "timeout",
+            "type": "number",
+            "optional": true,
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-timeout-number",
+            "display": true
+          },
+          {
+            "label": "Base Path",
+            "name": "basepath",
+            "type": "string",
+            "optional": true,
+            "description": "Override the default base URL for the API, e.g., \"https://api.example.com/v2/",
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-basepath-string",
+            "display": true
+          },
+          {
+            "label": "Base Options",
+            "name": "baseOptions",
+            "type": "json",
+            "optional": true,
+            "description": "Default headers to include with every request to the API.",
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-baseOptions-json",
+            "display": true
+          },
+          {
+            "label": "Model Name",
+            "name": "modelName",
+            "type": "string",
+            "optional": true,
+            "id": "openAIEmbeddingsCustom_0-input-modelName-string",
+            "display": true
+          },
+          {
+            "label": "Dimensions",
+            "name": "dimensions",
+            "type": "number",
+            "optional": true,
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-dimensions-number",
+            "display": true
+          },
+          {
+            "label": "Encoding Format",
+            "name": "encodingFormat",
+            "type": "options",
+            "options": [
+              {
+                "label": "float",
+                "name": "float"
+              },
+              {
+                "label": "base64",
+                "name": "base64"
+              }
+            ],
+            "optional": true,
+            "additionalParams": true,
+            "id": "openAIEmbeddingsCustom_0-input-encodingFormat-options",
+            "display": true
+          }
+        ],
+        "outputs": {},
+        "outputAnchors": [
+          {
+            "id": "openAIEmbeddingsCustom_0-output-openAIEmbeddingsCustom-OpenAIEmbeddingsCustom|Embeddings",
+            "name": "openAIEmbeddingsCustom",
+            "label": "OpenAIEmbeddingsCustom",
+            "description": "OpenAI API to generate embeddings for a given text",
+            "type": "OpenAIEmbeddingsCustom | Embeddings"
+          }
+        ],
+        "id": "openAIEmbeddingsCustom_0",
+        "selected": false
+      },
+      "width": 300,
+      "height": 433,
+      "selected": false,
+      "dragging": false,
+      "positionAbsolute": {
+        "x": -299.2738136951884,
+        "y": 40.46562752228215
+      }
+    },
+    {
+      "id": "postgres_0",
+      "position": {
+        "x": 609.587184742557,
+        "y": 192.78736885511307
+      },
+      "type": "customNode",
+      "data": {
+        "vectorStoreMethods": {},
+        "label": "Postgres",
+        "name": "postgres",
+        "version": 7.1,
+        "type": "Postgres",
+        "icon": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/vectorstores/Postgres/postgres.svg",
+        "category": "Vector Stores",
+        "description": "Upsert embedded data and perform similarity search upon query using pgvector on Postgres",
+        "baseClasses": [
+          "Postgres",
+          "VectorStoreRetriever",
+          "BaseRetriever"
+        ],
+        "credential": "0552cd17-1066-4769-961a-c08be0acac48",
+        "inputs": {
+          "document": [
+            "{{docxFile_0.data.instance}}",
+            "{{plainText_0.data.instance}}",
+            "{{plainText_0.data.instance}}"
+          ],
+          "embeddings": "{{openAIEmbeddingsCustom_0.data.instance}}",
+          "recordManager": "",
+          "host": "PostgreSQL",
+          "database": "freiki",
+          "port": "5432",
+          "ssl": "",
+          "tableName": "kb_sgb9",
+          "distanceStrategy": "cosine",
+          "fileUpload": false,
+          "batchSize": "",
+          "additionalConfig": "",
+          "topK": "",
+          "pgMetadataFilter": "",
+          "contentColumnName": ""
+        },
+        "outputs": {
+          "output": "retriever"
+        },
+        "filePath": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/vectorstores/Postgres/Postgres.js",
+        "inputAnchors": [
+          {
+            "label": "Document",
+            "name": "document",
+            "type": "Document",
+            "list": true,
+            "optional": true,
+            "id": "postgres_0-input-document-Document",
+            "display": true
+          },
+          {
+            "label": "Embeddings",
+            "name": "embeddings",
+            "type": "Embeddings",
+            "id": "postgres_0-input-embeddings-Embeddings",
+            "display": true
+          },
+          {
+            "label": "Record Manager",
+            "name": "recordManager",
+            "type": "RecordManager",
+            "description": "Keep track of the record to prevent duplication",
+            "optional": true,
+            "id": "postgres_0-input-recordManager-RecordManager",
+            "display": true
+          }
+        ],
+        "inputParams": [
+          {
+            "label": "Connect Credential",
+            "name": "credential",
+            "type": "credential",
+            "credentialNames": [
+              "PostgresApi"
+            ],
+            "optional": false,
+            "id": "postgres_0-input-credential-credential",
+            "display": true
+          },
+          {
+            "label": "Host",
+            "name": "host",
+            "type": "string",
+            "optional": false,
+            "id": "postgres_0-input-host-string",
+            "display": true
+          },
+          {
+            "label": "Database",
+            "name": "database",
+            "type": "string",
+            "optional": false,
+            "id": "postgres_0-input-database-string",
+            "display": true
+          },
+          {
+            "label": "Port",
+            "name": "port",
+            "type": "number",
+            "placeholder": "5432",
+            "optional": true,
+            "id": "postgres_0-input-port-number",
+            "display": true
+          },
+          {
+            "label": "SSL",
+            "name": "ssl",
+            "description": "Use SSL to connect to Postgres",
+            "type": "boolean",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-ssl-boolean",
+            "display": true
+          },
+          {
+            "label": "Table Name",
+            "name": "tableName",
+            "type": "string",
+            "placeholder": "documents",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-tableName-string",
+            "display": true
+          },
+          {
+            "label": "Distance Strategy",
+            "name": "distanceStrategy",
+            "description": "Strategy for calculating distances between vectors",
+            "type": "options",
+            "options": [
+              {
+                "label": "Cosine",
+                "name": "cosine"
+              },
+              {
+                "label": "Euclidean",
+                "name": "euclidean"
+              },
+              {
+                "label": "Inner Product",
+                "name": "innerProduct"
+              }
+            ],
+            "additionalParams": true,
+            "default": "cosine",
+            "optional": true,
+            "id": "postgres_0-input-distanceStrategy-options",
+            "display": true
+          },
+          {
+            "label": "File Upload",
+            "name": "fileUpload",
+            "description": "Allow file upload on the chat",
+            "hint": {
+              "label": "How to use",
+              "value": "\n**File Upload**\n\nThis allows file upload on the chat. Uploaded files will be upserted on the fly to the vector store.\n\n**Note:**\n- You can only turn on file upload for one vector store at a time.\n- At least one Document Loader node should be connected to the document input.\n- Document Loader should be file types like PDF, DOCX, TXT, etc.\n\n**How it works**\n- Uploaded files will have the metadata updated with the chatId.\n- This will allow the file to be associated with the chatId.\n- When querying, metadata will be filtered by chatId to retrieve files associated with the chatId.\n"
+            },
+            "type": "boolean",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-fileUpload-boolean",
+            "display": true
+          },
+          {
+            "label": "Upsert Batch Size",
+            "name": "batchSize",
+            "type": "number",
+            "step": 1,
+            "description": "Upsert in batches of size N",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-batchSize-number",
+            "display": true
+          },
+          {
+            "label": "Additional Configuration",
+            "name": "additionalConfig",
+            "type": "json",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-additionalConfig-json",
+            "display": true
+          },
+          {
+            "label": "Top K",
+            "name": "topK",
+            "description": "Number of top results to fetch. Default to 4",
+            "placeholder": "4",
+            "type": "number",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-topK-number",
+            "display": true
+          },
+          {
+            "label": "Postgres Metadata Filter",
+            "name": "pgMetadataFilter",
+            "type": "json",
+            "additionalParams": true,
+            "optional": true,
+            "acceptVariable": true,
+            "id": "postgres_0-input-pgMetadataFilter-json",
+            "display": true
+          },
+          {
+            "label": "Content Column Name",
+            "name": "contentColumnName",
+            "description": "Column name to store the text content (PGVector Driver only, others use pageContent)",
+            "type": "string",
+            "placeholder": "pageContent",
+            "additionalParams": true,
+            "optional": true,
+            "id": "postgres_0-input-contentColumnName-string",
+            "display": true
+          }
+        ],
+        "outputAnchors": [
+          {
+            "name": "output",
+            "label": "Output",
+            "type": "options",
+            "description": "",
+            "options": [
+              {
+                "id": "postgres_0-output-retriever-Postgres|VectorStoreRetriever|BaseRetriever",
+                "name": "retriever",
+                "label": "Postgres Retriever",
+                "description": "",
+                "type": "Postgres | VectorStoreRetriever | BaseRetriever"
+              },
+              {
+                "id": "postgres_0-output-vectorStore-Postgres|VectorStore",
+                "name": "vectorStore",
+                "label": "Postgres Vector Store",
+                "description": "",
+                "type": "Postgres | VectorStore"
+              }
+            ],
+            "default": "retriever"
+          }
+        ],
+        "id": "postgres_0",
+        "selected": false
+      },
+      "width": 300,
+      "height": 809,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 609.587184742557,
+        "y": 192.78736885511307
+      },
+      "dragging": false
+    },
+    {
+      "id": "chatOpenAICustom_0",
+      "position": {
+        "x": 1006.9122833799919,
+        "y": 339.51405866814497
+      },
+      "type": "customNode",
+      "data": {
+        "label": "OpenAI Custom Model",
+        "name": "chatOpenAICustom",
+        "version": 4,
+        "type": "ChatOpenAI-Custom",
+        "icon": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/chatmodels/ChatOpenAICustom/openai.svg",
+        "category": "Chat Models",
+        "description": "Custom/FineTuned model using OpenAI Chat compatible API",
+        "baseClasses": [
+          "ChatOpenAI-Custom",
+          "BaseChatOpenAI",
+          "BaseChatModel",
+          "BaseLanguageModel",
+          "Runnable"
+        ],
+        "credential": "8577ec21-228d-4fad-b12d-97d8b805c828",
+        "inputs": {
+          "cache": "",
+          "modelName": "Qwen/Qwen3-32B",
+          "temperature": "0.4",
+          "streaming": true,
+          "maxTokens": "1000",
+          "topP": "",
+          "frequencyPenalty": "",
+          "presencePenalty": "",
+          "timeout": "",
+          "basepath": "https://api.deepinfra.com/v1/openai",
+          "baseOptions": ""
+        },
+        "filePath": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/chatmodels/ChatOpenAICustom/ChatOpenAICustom.js",
+        "inputAnchors": [
+          {
+            "label": "Cache",
+            "name": "cache",
+            "type": "BaseCache",
+            "optional": true,
+            "id": "chatOpenAICustom_0-input-cache-BaseCache",
+            "display": true
+          }
+        ],
+        "inputParams": [
+          {
+            "label": "Connect Credential",
+            "name": "credential",
+            "type": "credential",
+            "credentialNames": [
+              "openAIApi"
+            ],
+            "optional": true,
+            "id": "chatOpenAICustom_0-input-credential-credential",
+            "display": true
+          },
+          {
+            "label": "Model Name",
+            "name": "modelName",
+            "type": "string",
+            "placeholder": "ft:gpt-3.5-turbo:my-org:custom_suffix:id",
+            "id": "chatOpenAICustom_0-input-modelName-string",
+            "display": true
+          },
+          {
+            "label": "Temperature",
+            "name": "temperature",
+            "type": "number",
+            "step": 0.1,
+            "default": 0.9,
+            "optional": true,
+            "id": "chatOpenAICustom_0-input-temperature-number",
+            "display": true
+          },
+          {
+            "label": "Streaming",
+            "name": "streaming",
+            "type": "boolean",
+            "default": true,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-streaming-boolean",
+            "display": true
+          },
+          {
+            "label": "Max Tokens",
+            "name": "maxTokens",
+            "type": "number",
+            "step": 1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-maxTokens-number",
+            "display": true
+          },
+          {
+            "label": "Top Probability",
+            "name": "topP",
+            "type": "number",
+            "step": 0.1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-topP-number",
+            "display": true
+          },
+          {
+            "label": "Frequency Penalty",
+            "name": "frequencyPenalty",
+            "type": "number",
+            "step": 0.1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-frequencyPenalty-number",
+            "display": true
+          },
+          {
+            "label": "Presence Penalty",
+            "name": "presencePenalty",
+            "type": "number",
+            "step": 0.1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-presencePenalty-number",
+            "display": true
+          },
+          {
+            "label": "Timeout",
+            "name": "timeout",
+            "type": "number",
+            "step": 1,
+            "optional": true,
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-timeout-number",
+            "display": true
+          },
+          {
+            "label": "Base Path",
+            "name": "basepath",
+            "type": "string",
+            "optional": true,
+            "description": "Override the default base URL for the API, e.g., \"https://api.example.com/v2/",
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-basepath-string",
+            "display": true
+          },
+          {
+            "label": "Base Options",
+            "name": "baseOptions",
+            "type": "json",
+            "optional": true,
+            "description": "Default headers to include with every request to the API.",
+            "additionalParams": true,
+            "id": "chatOpenAICustom_0-input-baseOptions-json",
+            "display": true
+          }
+        ],
+        "outputs": {},
+        "outputAnchors": [
+          {
+            "id": "chatOpenAICustom_0-output-chatOpenAICustom-ChatOpenAI-Custom|BaseChatOpenAI|BaseChatModel|BaseLanguageModel|Runnable",
+            "name": "chatOpenAICustom",
+            "label": "ChatOpenAI-Custom",
+            "description": "Custom/FineTuned model using OpenAI Chat compatible API",
+            "type": "ChatOpenAI-Custom | BaseChatOpenAI | BaseChatModel | BaseLanguageModel | Runnable"
+          }
+        ],
+        "id": "chatOpenAICustom_0",
+        "selected": false
+      },
+      "width": 300,
+      "height": 583,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 1006.9122833799919,
+        "y": 339.51405866814497
+      },
+      "dragging": false
+    },
+    {
+      "id": "conversationalRetrievalQAChain_0",
+      "position": {
+        "x": 1431.043239059986,
+        "y": 791.5773798909258
+      },
+      "type": "customNode",
+      "data": {
+        "label": "Conversational Retrieval QA Chain",
+        "name": "conversationalRetrievalQAChain",
+        "version": 3,
+        "type": "ConversationalRetrievalQAChain",
+        "icon": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/chains/ConversationalRetrievalQAChain/qa.svg",
+        "category": "Chains",
+        "description": "Document QA - built on RetrievalQAChain to provide a chat history component",
+        "baseClasses": [
+          "ConversationalRetrievalQAChain",
+          "BaseChain",
+          "Runnable"
+        ],
+        "inputs": {
+          "model": "{{chatOpenAICustom_0.data.instance}}",
+          "vectorStoreRetriever": "{{postgres_0.data.instance}}",
+          "memory": "",
+          "returnSourceDocuments": "",
+          "rephrasePrompt": "Gegeben die folgende Konversation und eine Folgefrage, formuliere die Folgefrage so um, dass sie ohne den Gesprächsverlauf verständlich ist. Gib nur die umformulierte Frage aus, ohne Erklärung.\n\nVerlauf:\n{chat_history}\n\nFolgefrage: {question}\nUmformulierte Frage:",
+          "responsePrompt": "Du beantwortest Fragen zum SGB IX (Rehabilitation und Teilhabe von Menschen mit Behinderungen) ausschließlich auf Basis der bereitgestellten Wissensdatenbank.\n\nRegeln:\n- Beantworte Fragen ausschließlich auf Basis der bereitgestellten Dokumente.\n- Gib keine allgemeinen Antworten – nur aus den Dokumenten.\n- Antworte immer auf Deutsch.\n- Wenn die Antwort nicht in den Dokumenten steht, sage das klar.\n- Antworte präzise und strukturiert.\n- Vermeide unnötige Füllsätze.\n- Lass Dokument-IDs weg\n- Wenn du den Paragraphen kennst, nenne ihn\n\nKontext:\n{context}\n\nVerlauf:\n{chat_history}\n\nFrage: {question}\nAntwort: /no_think",
+          "inputModeration": ""
+        },
+        "filePath": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/chains/ConversationalRetrievalQAChain/ConversationalRetrievalQAChain.js",
+        "inputAnchors": [
+          {
+            "label": "Chat Model",
+            "name": "model",
+            "type": "BaseChatModel",
+            "id": "conversationalRetrievalQAChain_0-input-model-BaseChatModel",
+            "display": true
+          },
+          {
+            "label": "Vector Store Retriever",
+            "name": "vectorStoreRetriever",
+            "type": "BaseRetriever",
+            "id": "conversationalRetrievalQAChain_0-input-vectorStoreRetriever-BaseRetriever",
+            "display": true
+          },
+          {
+            "label": "Memory",
+            "name": "memory",
+            "type": "BaseMemory",
+            "optional": true,
+            "description": "If left empty, a default BufferMemory will be used",
+            "id": "conversationalRetrievalQAChain_0-input-memory-BaseMemory",
+            "display": true
+          },
+          {
+            "label": "Input Moderation",
+            "description": "Detect text that could generate harmful output and prevent it from being sent to the language model",
+            "name": "inputModeration",
+            "type": "Moderation",
+            "optional": true,
+            "list": true,
+            "id": "conversationalRetrievalQAChain_0-input-inputModeration-Moderation",
+            "display": true
+          }
+        ],
+        "inputParams": [
+          {
+            "label": "Return Source Documents",
+            "name": "returnSourceDocuments",
+            "type": "boolean",
+            "optional": true,
+            "id": "conversationalRetrievalQAChain_0-input-returnSourceDocuments-boolean",
+            "display": true
+          },
+          {
+            "label": "Rephrase Prompt",
+            "name": "rephrasePrompt",
+            "type": "string",
+            "description": "Using previous chat history, rephrase question into a standalone question",
+            "warning": "Prompt must include input variables: {chat_history} and {question}",
+            "rows": 4,
+            "additionalParams": true,
+            "optional": true,
+            "default": "Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.\n\nChat History:\n{chat_history}\nFollow Up Input: {question}\nStandalone Question:",
+            "id": "conversationalRetrievalQAChain_0-input-rephrasePrompt-string",
+            "display": true
+          },
+          {
+            "label": "Response Prompt",
+            "name": "responsePrompt",
+            "type": "string",
+            "description": "Taking the rephrased question, search for answer from the provided context",
+            "warning": "Prompt must include input variable: {context}",
+            "rows": 4,
+            "additionalParams": true,
+            "optional": true,
+            "default": "I want you to act as a document that I am having a conversation with. Your name is \"AI Assistant\". Using the provided context, answer the user's question to the best of your ability using the resources provided.\nIf there is nothing in the context relevant to the question at hand, just say \"Hmm, I'm not sure\" and stop after that. Refuse to answer any question not about the info. Never break character.\n------------\n{context}\n------------\nREMEMBER: If there is no relevant information within the context, just say \"Hmm, I'm not sure\". Don't try to make up an answer. Never break character.",
+            "id": "conversationalRetrievalQAChain_0-input-responsePrompt-string",
+            "display": true
+          }
+        ],
+        "outputs": {},
+        "outputAnchors": [
+          {
+            "id": "conversationalRetrievalQAChain_0-output-conversationalRetrievalQAChain-ConversationalRetrievalQAChain|BaseChain|Runnable",
+            "name": "conversationalRetrievalQAChain",
+            "label": "ConversationalRetrievalQAChain",
+            "description": "Document QA - built on RetrievalQAChain to provide a chat history component",
+            "type": "ConversationalRetrievalQAChain | BaseChain | Runnable"
+          }
+        ],
+        "id": "conversationalRetrievalQAChain_0",
+        "selected": false
+      },
+      "width": 300,
+      "height": 538,
+      "selected": true,
+      "positionAbsolute": {
+        "x": 1431.043239059986,
+        "y": 791.5773798909258
+      },
+      "dragging": false
+    },
+    {
+      "id": "docxFile_0",
+      "position": {
+        "x": 72.55164751443189,
+        "y": -149.7977456941718
+      },
+      "type": "customNode",
+      "data": {
+        "label": "Docx File",
+        "name": "docxFile",
+        "version": 2,
+        "type": "Document",
+        "icon": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/documentloaders/Docx/docx.svg",
+        "category": "Document Loaders",
+        "description": "Load data from DOCX files",
+        "baseClasses": [
+          "Document"
+        ],
+        "inputs": {
+          "docxFile": "FILE-STORAGE::[\"KorKI-Systeminfo.docx\",\"KorKI_ist_PWA.docx\",\"KorKI-Produktinformation_1.docx\",\"KorKI-Datenschutz-Dokumentation.docx\",\"KorKI-Produktinformation.docx\"]",
+          "textSplitter": "",
+          "metadata": "",
+          "omitMetadataKeys": ""
+        },
+        "outputs": {
+          "output": "document"
+        },
+        "filePath": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/documentloaders/Docx/Docx.js",
+        "inputAnchors": [
+          {
+            "label": "Text Splitter",
+            "name": "textSplitter",
+            "type": "TextSplitter",
+            "optional": true,
+            "id": "docxFile_0-input-textSplitter-TextSplitter",
+            "display": true
+          }
+        ],
+        "inputParams": [
+          {
+            "label": "Docx File",
+            "name": "docxFile",
+            "type": "file",
+            "fileType": ".docx",
+            "id": "docxFile_0-input-docxFile-file",
+            "display": true
+          },
+          {
+            "label": "Additional Metadata",
+            "name": "metadata",
+            "type": "json",
+            "description": "Additional metadata to be added to the extracted documents",
+            "optional": true,
+            "additionalParams": true,
+            "id": "docxFile_0-input-metadata-json",
+            "display": true
+          },
+          {
+            "label": "Omit Metadata Keys",
+            "name": "omitMetadataKeys",
+            "type": "string",
+            "rows": 4,
+            "description": "Each document loader comes with a default set of metadata keys that are extracted from the document. You can use this field to omit some of the default metadata keys. The value should be a list of keys, seperated by comma. Use * to omit all metadata keys execept the ones you specify in the Additional Metadata field",
+            "placeholder": "key1, key2, key3.nestedKey1",
+            "optional": true,
+            "additionalParams": true,
+            "id": "docxFile_0-input-omitMetadataKeys-string",
+            "display": true
+          }
+        ],
+        "outputAnchors": [
+          {
+            "name": "output",
+            "label": "Output",
+            "type": "options",
+            "description": "Array of document objects containing metadata and pageContent",
+            "options": [
+              {
+                "id": "docxFile_0-output-document-Document|json",
+                "name": "document",
+                "label": "Document",
+                "description": "Array of document objects containing metadata and pageContent",
+                "type": "Document | json"
+              },
+              {
+                "id": "docxFile_0-output-text-string|json",
+                "name": "text",
+                "label": "Text",
+                "description": "Concatenated string from pageContent of documents",
+                "type": "string | json"
+              }
+            ],
+            "default": "document"
+          }
+        ],
+        "id": "docxFile_0",
+        "selected": false
+      },
+      "width": 300,
+      "height": 520,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 72.55164751443189,
+        "y": -149.7977456941718
+      },
+      "dragging": false
+    },
+    {
+      "id": "plainText_0",
+      "position": {
+        "x": 391.13828997295786,
+        "y": -338.56999822013506
+      },
+      "type": "customNode",
+      "data": {
+        "label": "Plain Text",
+        "name": "plainText",
+        "version": 2,
+        "type": "Document",
+        "icon": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/documentloaders/PlainText/plaintext.svg",
+        "category": "Document Loaders",
+        "description": "Load data from plain text",
+        "baseClasses": [
+          "Document"
+        ],
+        "inputs": {
+          "text": "Wenn Sie Dokumente hochladen, werden sie im Rahmen Ihrer Anfrage bearbeitet, landen aber nicht im Gedächtnis oder Wissen von KorKI.\n\n---\n\n## Piktogramm-Suche (ARASAAC)\n\nKorKI bietet eine integrierte Bildsuche für Piktogramme, die in der Unterstützten Kommunikation (UK) sowie in der Arbeit mit Menschen mit kognitiven Einschränkungen eingesetzt werden können.\n\n### Was ist das?\n\nDie Piktogramm-Suche ist über die KorKI-Seitenleiste erreichbar (Schaltfläche „🖼️ Piktogramme\"). Sie durchsucht die Datenbank von **ARASAAC** (Aragonese Portal of Augmentative and Alternative Communication) – einer der weltweit größten frei zugänglichen Sammlungen von AAC-Piktogrammen.\n\n### Welche Daten stehen zur Verfügung?\n\n- Über **12.000 Piktogramme** in einfachem, klarem Stil\n- Suche auf Deutsch, Englisch, Französisch, Spanisch, Arabisch und Ukrainisch\n- Jede Suche liefert bis zu 40 passende Treffer\n- Die Bilder werden als PNG in der Auflösung 300 × 300 Pixel bereitgestellt\n\n### Wie funktioniert die Suche?\n\n1. Suchbegriff eingeben (z. B. *essen*, *Arzt*, *schlafen*, *traurig*)\n2. Sprache auswählen (Standard: Deutsch)\n3. Auf „Suchen\" klicken oder Enter drücken\n4. Gewünschtes Piktogramm anklicken – es öffnet sich in einem neuen Fenster, von wo es heruntergeladen oder gedruckt werden kann\n\n### Nutzungsbedingungen\n\nDie ARASAAC-Piktogramme stehen unter der Lizenz **Creative Commons BY-NC-SA 4.0**. Das bedeutet:\n\n- ✅ **Erlaubt:** Nutzung für interne Zwecke, Patientenversorgung, Therapie, Bildung, Kommunikationshilfen, Drucken, Weitergabe innerhalb der Einrichtung\n- ✅ **Erlaubt:** Bearbeitung und Anpassung der Bilder (z. B. Zuschneiden, Einfügen in Dokumente)\n- ❌ **Nicht erlaubt:** Kommerzielle Nutzung (Verkauf, kostenpflichtige Produkte)\n- ❌ **Nicht erlaubt:** Weitergabe unter einer anderen Lizenz\n\nBei Veröffentlichungen (z. B. gedruckte Materialien, die nach außen gehen) ist folgende Quellenangabe erforderlich:\n\n> *Piktogramme: Sergio Palao, ARASAAC (https://arasaac.org), Lizenz CC BY-NC-SA 4.0, Aragonesische Regierung (Spanien)*\n\nFür die interne Nutzung innerhalb der Diakonie Kork – etwa in Kommunikationshilfen, Tagesplänen oder Therapiematerialien – ist eine solche Angabe nicht zwingend, aber empfehlenswert.",
+          "textSplitter": "",
+          "metadata": "",
+          "omitMetadataKeys": ""
+        },
+        "outputs": {
+          "output": "document"
+        },
+        "filePath": "/usr/local/lib/node_modules/flowise/node_modules/flowise-components/dist/nodes/documentloaders/PlainText/PlainText.js",
+        "inputAnchors": [
+          {
+            "label": "Text Splitter",
+            "name": "textSplitter",
+            "type": "TextSplitter",
+            "optional": true,
+            "id": "plainText_0-input-textSplitter-TextSplitter",
+            "display": true
+          }
+        ],
+        "inputParams": [
+          {
+            "label": "Text",
+            "name": "text",
+            "type": "string",
+            "rows": 4,
+            "placeholder": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...",
+            "id": "plainText_0-input-text-string",
+            "display": true
+          },
+          {
+            "label": "Additional Metadata",
+            "name": "metadata",
+            "type": "json",
+            "description": "Additional metadata to be added to the extracted documents",
+            "optional": true,
+            "additionalParams": true,
+            "id": "plainText_0-input-metadata-json",
+            "display": true
+          },
+          {
+            "label": "Omit Metadata Keys",
+            "name": "omitMetadataKeys",
+            "type": "string",
+            "rows": 4,
+            "description": "Each document loader comes with a default set of metadata keys that are extracted from the document. You can use this field to omit some of the default metadata keys. The value should be a list of keys, seperated by comma. Use * to omit all metadata keys execept the ones you specify in the Additional Metadata field",
+            "placeholder": "key1, key2, key3.nestedKey1",
+            "optional": true,
+            "additionalParams": true,
+            "id": "plainText_0-input-omitMetadataKeys-string",
+            "display": true
+          }
+        ],
+        "outputAnchors": [
+          {
+            "name": "output",
+            "label": "Output",
+            "type": "options",
+            "description": "Array of document objects containing metadata and pageContent",
+            "options": [
+              {
+                "id": "plainText_0-output-document-Document|json",
+                "name": "document",
+                "label": "Document",
+                "description": "Array of document objects containing metadata and pageContent",
+                "type": "Document | json"
+              },
+              {
+                "id": "plainText_0-output-text-string|json",
+                "name": "text",
+                "label": "Text",
+                "description": "Concatenated string from pageContent of documents",
+                "type": "string | json"
+              }
+            ],
+            "default": "document"
+          }
+        ],
+        "id": "plainText_0",
+        "selected": false
+      },
+      "width": 300,
+      "height": 493,
+      "selected": false,
+      "positionAbsolute": {
+        "x": 391.13828997295786,
+        "y": -338.56999822013506
+      },
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "openAIEmbeddingsCustom_0",
+      "sourceHandle": "openAIEmbeddingsCustom_0-output-openAIEmbeddingsCustom-OpenAIEmbeddingsCustom|Embeddings",
+      "target": "postgres_0",
+      "targetHandle": "postgres_0-input-embeddings-Embeddings",
+      "type": "buttonedge",
+      "id": "openAIEmbeddingsCustom_0-openAIEmbeddingsCustom_0-output-openAIEmbeddingsCustom-OpenAIEmbeddingsCustom|Embeddings-postgres_0-postgres_0-input-embeddings-Embeddings"
+    },
+    {
+      "source": "chatOpenAICustom_0",
+      "sourceHandle": "chatOpenAICustom_0-output-chatOpenAICustom-ChatOpenAI-Custom|BaseChatOpenAI|BaseChatModel|BaseLanguageModel|Runnable",
+      "target": "conversationalRetrievalQAChain_0",
+      "targetHandle": "conversationalRetrievalQAChain_0-input-model-BaseChatModel",
+      "type": "buttonedge",
+      "id": "chatOpenAICustom_0-chatOpenAICustom_0-output-chatOpenAICustom-ChatOpenAI-Custom|BaseChatOpenAI|BaseChatModel|BaseLanguageModel|Runnable-conversationalRetrievalQAChain_0-conversationalRetrievalQAChain_0-input-model-BaseChatModel"
+    },
+    {
+      "source": "postgres_0",
+      "sourceHandle": "postgres_0-output-retriever-Postgres|VectorStoreRetriever|BaseRetriever",
+      "target": "conversationalRetrievalQAChain_0",
+      "targetHandle": "conversationalRetrievalQAChain_0-input-vectorStoreRetriever-BaseRetriever",
+      "type": "buttonedge",
+      "id": "postgres_0-postgres_0-output-retriever-Postgres|VectorStoreRetriever|BaseRetriever-conversationalRetrievalQAChain_0-conversationalRetrievalQAChain_0-input-vectorStoreRetriever-BaseRetriever"
+    },
+    {
+      "source": "docxFile_0",
+      "sourceHandle": "docxFile_0-output-document-Document|json",
+      "target": "postgres_0",
+      "targetHandle": "postgres_0-input-document-Document",
+      "type": "buttonedge",
+      "id": "docxFile_0-docxFile_0-output-document-Document|json-postgres_0-postgres_0-input-document-Document"
+    },
+    {
+      "source": "plainText_0",
+      "sourceHandle": "plainText_0-output-document-Document|json",
+      "target": "postgres_0",
+      "targetHandle": "postgres_0-input-document-Document",
+      "type": "buttonedge",
+      "id": "plainText_0-plainText_0-output-document-Document|json-postgres_0-postgres_0-input-document-Document"
+    }
+  ],
+  "viewport": {
+    "x": -207.11841423504325,
+    "y": -253.94496570485717,
+    "zoom": 0.7746192135002943
+  }
+}

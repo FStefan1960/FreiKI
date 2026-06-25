@@ -1,0 +1,87 @@
+{
+  "name": "FreiKI Mattermost Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "freiki-bot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Mattermost Slash-Command Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-200, 300],
+      "id": "1a2b3c4d-0001-4000-8000-000000000001",
+      "webhookId": "freiki-bot-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response_type\": \"ephemeral\",\n  \"text\": \"FreiKI denkt nach …\"\n}",
+        "options": {}
+      },
+      "name": "Sofortige Bestätigung",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [100, 140],
+      "id": "1a2b3c4d-0002-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://freiki-ui:3000/api/bot-chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-API-Key", "value": "BITTE_HIER_BOT_API_KEY_EINTRAGEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {{ JSON.stringify($json.body.text) }},\n  \"username\": {{ JSON.stringify($json.body.user_name) }}\n}",
+        "options": {}
+      },
+      "name": "FreiKI Bot-Chat aufrufen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [100, 420],
+      "id": "1a2b3c4d-0003-4000-8000-000000000003"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Mattermost Slash-Command Webhook').item.json.body.response_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"response_type\": \"in_channel\",\n  \"text\": {{ JSON.stringify($json.answer) }}\n}",
+        "options": {}
+      },
+      "name": "Antwort an Mattermost-Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [380, 420],
+      "id": "1a2b3c4d-0004-4000-8000-000000000004"
+    }
+  ],
+  "connections": {
+    "Mattermost Slash-Command Webhook": {
+      "main": [
+        [
+          { "node": "Sofortige Bestätigung", "type": "main", "index": 0 },
+          { "node": "FreiKI Bot-Chat aufrufen", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "FreiKI Bot-Chat aufrufen": {
+      "main": [
+        [
+          { "node": "Antwort an Mattermost-Channel", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

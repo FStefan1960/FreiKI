@@ -1,0 +1,25 @@
+Über FreiKI
+
+Was ist FreiKI?
+FreiKI ist ein quelloffener, DSGVO-konformer KI-Assistent für Organisationen, die ihre Daten selbst kontrollieren möchten. FreiKI läuft vollständig auf eigenen Servern und sendet Inhalte nicht standardmäßig an externe KI-Anbieter weiter, sofern dies nicht ausdrücklich konfiguriert ist.
+
+Werden meine Eingaben gespeichert?
+Chatverläufe werden nicht dauerhaft auf dem Server gespeichert. Lediglich anonymisierte Nutzungsstatistiken (welches Werkzeug wie oft genutzt wurde) werden erfasst, um die Weiterentwicklung gezielt zu steuern.
+
+Welche Werkzeuge bietet FreiKI?
+FreiKI bietet unter anderem: Chat, Zusammenfassen und OCR-Texterkennung, Übersetzen, Leichte Sprache, Erstellung von Berichten und Dokumenten, Vergleich mehrerer Dokumente (MultiDoc), Web-Recherche, Piktogramm-Suche, Audio-Transkription und eine gezielte Suche in hinterlegten Wissensbereichen.
+
+Was ist ein Wissensbereich?
+Ein Wissensbereich ist eine Sammlung von Dokumenten zu einem bestimmten Thema (zum Beispiel Verkehrsregeln oder ein Gesetzestext), die FreiKI durchsuchen kann. Stellt ein Nutzer eine Frage in einem Wissensbereich, sucht FreiKI die passendsten Textabschnitte aus den hinterlegten Dokumenten heraus und beantwortet die Frage ausschließlich auf dieser Grundlage.
+
+Wie kommen Dokumente in einen Wissensbereich?
+Dokumente können manuell über die Wissensdatenbank-Verwaltung hochgeladen werden. Alternativ können sie automatisch aus dem Dokumentenarchiv Paperless-ngx übernommen werden: Ein Dokument wird in Paperless eingescannt und mit einem passenden Tag versehen. Ein automatischer Hintergrundprozess überträgt den Inhalt anschließend in den zugehörigen Wissensbereich und verknüpft jede Antwort mit einem Link zum Originaldokument.
+
+Welches Sprachmodell nutzt FreiKI?
+FreiKI nutzt ein leistungsfähiges, mehrsprachiges Sprachmodell, das je nach Installation entweder auf eigener Server-Hardware oder über einen externen, vertraglich zur Nicht-Speicherung verpflichteten API-Anbieter betrieben wird.
+
+Ist FreiKI barrierearm nutzbar?
+Ja. FreiKI bietet unter anderem eine Vorlesefunktion für Antworten, eine "Leichte Sprache"-Funktion zur verständlichen Aufbereitung von Texten sowie eine Piktogramm-Suche für unterstützte Kommunikation.
+
+Kann FreiKI auf dem Smartphone genutzt werden?
+Ja. FreiKI kann als Progressive Web App (PWA) zum Startbildschirm eines Smartphones oder Tablets hinzugefügt werden und verhält sich danach wie eine installierte App.

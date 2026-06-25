@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FreiKI Transkription</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 40px;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .header img { width: 48px; height: 48px; border-radius: 10px; }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1E3A8A;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #bfdbfe;
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #2B9CD8;
+      background: #f0f9ff;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon { font-size: 36px; margin-bottom: 10px; }
+
+    .drop-text {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    .drop-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .file-selected {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: #f0f9ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #1E3A8A;
+    }
+
+    .file-selected.visible { display: flex; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .email-row {
+      display: flex;
+      align-items: center;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      transition: border-color 0.2s;
+      background: #fff;
+    }
+
+    .email-row:focus-within { border-color: #2B9CD8; }
+
+    .email-row input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      font-family: inherit;
+      min-width: 0;
+    }
+
+    .email-suffix {
+      padding: 10px 12px;
+      background: #f3f4f6;
+      color: #6b7280;
+      font-size: 14px;
+      font-family: inherit;
+      white-space: nowrap;
+      border-left: 1px solid #d1d5db;
+      user-select: none;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: -14px;
+      margin-bottom: 20px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+    button[type="submit"]:hover:not(:disabled) { opacity: 0.9; }
+
+    .status {
+      display: none;
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status.success {
+      display: block;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+
+    .status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .back-link {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(30,58,138,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .back-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(30,58,138,0.45);
+      color: #fff;
+    }
+    .embedded .back-link { display: none !important; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+
+<div class="card">
+  <div class="header">
+    <img src="/icons/icon-192.png" alt="FreiKI">
+    <div>
+      <h1>FreiKI Transkription</h1>
+      <p>Audiodatei hochladen → Transkript per E-Mail</p>
+    </div>
+  </div>
+
+  <form id="transcribe-form">
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="audio-file" name="audio" accept=".m4a,.mp3,.wav,.mp4,.ogg,.webm,.aac">
+      <div class="drop-icon">🎙️</div>
+      <div class="drop-text">Audiodatei hier ablegen oder klicken</div>
+      <div class="drop-sub">M4A, MP3, WAV, MP4 · max. 200 MB</div>
+    </div>
+
+    <div class="file-selected" id="file-selected">
+      🎵 <span id="file-name"></span>
+    </div>
+
+    <div class="hint" id="mail-hint">Das Transkript wird an Ihre hinterlegte E-Mail-Adresse gesendet.</div>
+
+    <button type="submit" id="submit-btn">Transkription starten</button>
+
+  </form>
+
+  <div class="status" id="status"></div>
+
+  <a href="/" class="back-link">← Zurück zu FreiKI</a>
+</div>
+
+<script>
+  // Auth-Guard + hinterlegte E-Mail-Adresse anzeigen
+  (async function() {
+    const token = localStorage.getItem('korki_token');
+    const expiry = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
+    if (!token || Date.now() >= expiry) {
+      localStorage.removeItem('korki_token');
+      localStorage.removeItem('korki_token_expiry');
+      (window.top || window).location.href = '/';
+      return;
+    }
+    try {
+      const r = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (r.ok) {
+        const me = await r.json();
+        const hint = document.getElementById('mail-hint');
+        if (me.email) {
+          hint.innerHTML = 'Das Transkript wird an <strong>' + me.email + '</strong> gesendet.';
+        } else {
+          hint.innerHTML = '⚠️ Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.';
+          document.getElementById('submit-btn').disabled = true;
+        }
+      }
+    } catch (e) { /* Anzeige optional – Versand nutzt serverseitig die DB-Adresse */ }
+  })();
+
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('audio-file');
+  const fileSelected = document.getElementById('file-selected');
+  const fileName = document.getElementById('file-name');
+  const form = document.getElementById('transcribe-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const status = document.getElementById('status');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) showFile(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) { fileInput.files = e.dataTransfer.files; showFile(f); }
+  });
+
+  function showFile(f) {
+    const mb = (f.size / 1024 / 1024).toFixed(1);
+    fileName.textContent = `${f.name} (${mb} MB)`;
+    fileSelected.classList.add('visible');
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    if (!file) { showStatus('error', 'Bitte eine Audiodatei auswählen.'); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>Wird hochgeladen…';
+    status.className = 'status';
+
+    const formData = new FormData();
+    formData.append('audio', file);
+
+    try {
+      const token = localStorage.getItem('korki_token') || '';
+    const expiry = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
+    if (!token || Date.now() >= expiry) { localStorage.removeItem('korki_token'); localStorage.removeItem('korki_token_expiry'); (window.top || window).location.href = '/'; return; }
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        showStatus('success', `✅ Datei empfangen!\n\nDas Transkript wird per E-Mail an Ihre hinterlegte Adresse gesendet. Je nach Länge der Aufnahme kann das 15–30 Minuten dauern.`);
+        form.reset();
+        fileSelected.classList.remove('visible');
+      } else {
+        showStatus('error', data.error || 'Unbekannter Fehler');
+      }
+    } catch (err) {
+      showStatus('error', 'Verbindungsfehler: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Transkription starten';
+    }
+  });
+
+  function showStatus(type, msg) {
+    status.className = `status ${type}`;
+    status.style.whiteSpace = 'pre-line';
+    status.textContent = msg;
+  }
+</script>
+
+</body>
+</html>

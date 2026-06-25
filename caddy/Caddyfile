@@ -1,0 +1,80 @@
+# Caddy holt automatisch ein Let's-Encrypt-Zertifikat für die angegebenen Domains
+# (DNS-A-Records müssen vorher auf den Server zeigen, sonst schlägt die Zertifikatsausstellung fehl).
+
+# Globale Sicherheitsheader – werden per "import security_headers" eingebunden.
+# CSP wird pro Site gesetzt, da die Anforderungen sich unterscheiden.
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+        -Server
+    }
+}
+
+# freiki.com - schlanke statische Landingpage (von Caddy selbst ausgeliefert, kein eigener Container nötig)
+freiki.com {
+    import security_headers
+    header Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; font-src cdn.jsdelivr.net; img-src 'self' data:; script-src 'none'; base-uri 'self'; object-src 'none'"
+    root * /srv/landing
+    file_server
+}
+
+# app.freiki.com - die eigentliche FreiKI-App
+app.freiki.com {
+    import security_headers
+    reverse_proxy freiki-ui:3000
+    log {
+        output file /var/log/caddy/app-access.log
+        format json
+    }
+}
+
+# n8n - NUR Webhooks öffentlich, Editor bleibt privat
+# WICHTIG: braucht einen expliziten "route"-Block – ohne ihn sortiert Caddy
+# "respond" automatisch VOR "reverse_proxy" (eigene Direktiven-Reihenfolge,
+# unabhängig von der Schreibreihenfolge im File) und blockt dann ALLES,
+# auch /webhook/*. Mit "route" bleibt die geschriebene Reihenfolge verbindlich.
+n8n.freiki.com {
+    route {
+        @webhooks path /webhook/* /webhook-test/*
+        reverse_proxy @webhooks n8n:5678
+        respond "Access denied" 403
+    }
+}
+
+# paperless.freiki.com – nur intern via Tailscale erreichbar, kein öffentlicher Zugang
+# paperless.freiki.com {
+#     header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+#     header Referrer-Policy "strict-origin-when-cross-origin"
+#     header -Server
+#     reverse_proxy paperless:8000
+#     log {
+#         output file /var/log/caddy/paperless-access.log
+#         format json
+#     }
+# }
+
+# chat.freiki.com - Mattermost Team-Chat (WebSocket wird von Caddy automatisch durchgereicht)
+# Mattermost setzt eigene Header – nur HSTS ergänzen.
+chat.freiki.com {
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    header -Server
+    reverse_proxy mattermost:8065 {
+        flush_interval -1
+        transport http {
+            versions 1.1
+        }
+    }
+    log {
+        output file /var/log/caddy/chat-access.log
+        format json
+    }
+}
+
+# mail.freiki.com - Nur für TLS-Zertifikat; SMTP/IMAP laufen direkt über den Mailserver-Container
+mail.freiki.com {
+    respond "Mail server" 200
+}

@@ -1,0 +1,414 @@
+networks:
+  ai_network:
+    driver: bridge
+  public_network:
+    driver: bridge
+
+volumes:
+  n8n_storage:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+  flowise_data:
+  whisper_cache:
+  paperless_redis:
+  paperless_data:
+  paperless_media:
+  paperless_export:
+  paperless_consume:
+  kuma_data:
+  mattermost_data:
+  mattermost_logs:
+  mattermost_config:
+  mattermost_plugins:
+  mattermost_client_plugins:
+  mail_data:
+  mail_state:
+  mail_logs:
+  mail_config:
+  portainer_data:
+
+services:
+
+  # ── DATENBANK ────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: PostgreSQL
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── AUTOMATISIERUNG ──────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:2.25.6
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_HOST=${N8N_HOST}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - n8n_storage:/home/node/.n8n
+    networks:
+      - ai_network
+      - public_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── REVERSE PROXY ────────────────────────────────────────────
+  caddy:
+    image: caddy:2.9.1
+    container_name: Caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./landing:/srv/landing
+      - caddy_data:/data
+      - caddy_config:/config
+      - /var/log/caddy:/var/log/caddy
+    networks:
+      - public_network
+      - ai_network
+
+  # ── FREIKI UI ─────────────────────────────────────────────────
+  freiki-ui:
+    build: ./freiki-ui
+    image: freiki-ui:latest
+    container_name: FreiKI
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./freiki-ui/server.js:/app/server.js
+      - ./freiki-ui/public:/app/public
+      - ./freiki-ui/prompts:/app/prompts
+      - ./freiki-ui/welcome.md:/app/welcome.md
+      - ./freiki-ui/tips.md:/app/tips.md
+      - ./freiki-ui/areas.json:/app/areas.json
+    dns:
+      - 1.1.1.1
+    environment:
+      # LLM-Backend – auf einen OpenAI-kompatiblen API-Anbieter zeigen (kein eigenes vLLM nötig)
+      - VLLM_URL=${VLLM_URL}
+      - VLLM_API_KEY=${VLLM_API_KEY}
+      - VLLM_EMBED_URL=${VLLM_EMBED_URL}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - FLOWISE_CHATFLOW_ID=${FLOWISE_CHATFLOW_ID}
+      - HILFE_KB_TABLE=${HILFE_KB_TABLE}
+      - FLOWISE_URL=http://Flowise:3000
+      - PG_HOST=PostgreSQL
+      - PG_DB=${POSTGRES_DB}
+      - PG_USER_KB=${POSTGRES_USER}
+      - PG_PASS_KB=${POSTGRES_PASSWORD}
+      - WHISPER_URL=http://whisper:9000
+      - PIPER_URL=http://piper:8000
+      - TTS_VOICE=thorsten
+      - SEARXNG_URL=http://searxng:8080
+      - KB_INGEST_API_KEY=${KB_INGEST_API_KEY}
+      - BOT_API_KEY=${BOT_API_KEY}
+      - MATTERMOST_OIDC_CLIENT_ID=${MATTERMOST_OIDC_CLIENT_ID}
+      - MATTERMOST_OIDC_CLIENT_SECRET=${MATTERMOST_OIDC_CLIENT_SECRET}
+      - MATTERMOST_OIDC_REDIRECT_URI=${MATTERMOST_OIDC_REDIRECT_URI}
+      - APP_URL=${APP_URL}
+      - PAPERLESS_URL=${PAPERLESS_URL}
+      - PAPERLESS_INTERNAL_URL=${PAPERLESS_INTERNAL_URL:-http://paperless:8000}
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
+      - MATTERMOST_URL=${MATTERMOST_URL}
+      - APP_NAME=${APP_NAME}
+      - APP_COLOR=${APP_COLOR}
+      - APP_COLOR_HOVER=${APP_COLOR_HOVER}
+      - APP_COLOR_ACTIVE=${APP_COLOR_ACTIVE}
+      - APP_NAVY=${APP_NAVY}
+      - APP_LOGO=${APP_LOGO}
+      - APP_LOGO_SIDEBAR=${APP_LOGO_SIDEBAR}
+      - APP_TAGLINE=${APP_TAGLINE}
+      - APP_SW_VERSION=${APP_SW_VERSION}
+      - APP_DEMO_MODE=${APP_DEMO_MODE}
+      - APP_FOOTER_NOTE=${APP_FOOTER_NOTE}
+      - KORKI_JWT_SECRET=${KORKI_JWT_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    networks:
+      - ai_network
+
+  # ── FLOWISE (deaktiviert – nicht mehr in Betrieb) ────────────────
+  # flowise:
+  #   image: flowiseai/flowise:3.1.2
+  #   container_name: Flowise
+  #   restart: always
+  #   volumes:
+  #     - flowise_data:/root/.flowise
+  #   ports:
+  #     - "3004:3000"
+  #   environment:
+  #     - PORT=3000
+  #     - DATABASE_TYPE=postgres
+  #     - DATABASE_HOST=postgres
+  #     - DATABASE_PORT=5432
+  #     - DATABASE_NAME=${POSTGRES_DB}
+  #     - DATABASE_USER=${POSTGRES_USER}
+  #     - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+  #     - FLOWISE_USERNAME=${FLOWISE_USERNAME}
+  #     - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
+  #   networks:
+  #     - ai_network
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # ── TRANSKRIPTION (CPU – kleineres Modell als auf GPU-Servern) ─
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:v1.9.1
+    container_name: Whisper
+    restart: unless-stopped
+    environment:
+      - ASR_MODEL=${WHISPER_MODEL}
+      - ASR_ENGINE=faster_whisper
+    volumes:
+      - whisper_cache:/root/.cache/whisper
+    networks:
+      - ai_network
+
+  # ── SPRACHAUSGABE (Piper TTS, CPU-only) ───────────────────────
+  piper:
+    image: ghcr.io/matatonic/openedai-speech-min:latest
+    container_name: Piper-TTS
+    restart: unless-stopped
+    command: python speech.py --xtts_device none -L WARNING
+    volumes:
+      - ./piper/voices:/app/voices
+      - ./piper/config:/app/config
+    networks:
+      - ai_network
+
+  # ── WEBSUCHE ────────────────────────────────────────────────
+  searxng:
+    image: searxng/searxng:2026.6.10-de03f4eb1
+    container_name: SearXNG
+    restart: unless-stopped
+    volumes:
+      - ./searxng:/etc/searxng
+    dns:
+      - 1.1.1.1
+    networks:
+      - ai_network
+    environment:
+      - SEARXNG_BASE_URL=http://searxng:8080
+
+  # ── DOKUMENTENARCHIV (Paperless-ngx) ──────────────────────────
+  paperless-redis:
+    image: redis:7
+    container_name: Paperless-Redis
+    restart: unless-stopped
+    volumes:
+      - paperless_redis:/data
+    networks:
+      - ai_network
+
+  # Wandelt Office-Dokumente (docx, odt, xlsx, ...) serverseitig in PDF um,
+  # damit Paperless sie wie jedes andere PDF einlesen/OCRen kann.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: Gotenberg
+    restart: unless-stopped
+    command:
+      - "gotenberg"
+      - "--chromium-disable-routes=true"
+    networks:
+      - ai_network
+
+  # Extrahiert Metadaten/Text aus Office-Dokumenten für die Vorschau/Indizierung.
+  tika:
+    image: apache/tika:latest
+    container_name: Tika
+    restart: unless-stopped
+    networks:
+      - ai_network
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: Paperless
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - paperless-redis
+      - gotenberg
+      - tika
+    ports:
+      - "3005:8000"
+    environment:
+      - PAPERLESS_DBENGINE=django.db.backends.postgresql
+      - PAPERLESS_DBHOST=postgres
+      - PAPERLESS_DBPORT=5432
+      - PAPERLESS_DBNAME=paperless
+      - PAPERLESS_DBUSER=${POSTGRES_USER}
+      - PAPERLESS_DBPASS=${POSTGRES_PASSWORD}
+      - PAPERLESS_REDIS=redis://paperless-redis:6379
+      - PAPERLESS_URL=${PAPERLESS_URL}
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY}
+      - PAPERLESS_APP_TITLE=FreiKI Dokumente
+      - PAPERLESS_TIME_ZONE=Europe/Berlin
+      - PAPERLESS_OCR_LANGUAGE=deu
+      - PAPERLESS_ADMIN_USER=${PAPERLESS_ADMIN_USER}
+      - PAPERLESS_ADMIN_PASSWORD=${PAPERLESS_ADMIN_PASSWORD}
+      - PAPERLESS_TIKA_ENABLED=true
+      - PAPERLESS_TIKA_ENDPOINT=http://tika:9998
+      - PAPERLESS_TIKA_GOTENBERG_ENDPOINT=http://gotenberg:3000
+    volumes:
+      - paperless_data:/usr/src/paperless/data
+      - paperless_media:/usr/src/paperless/media
+      - paperless_export:/usr/src/paperless/export
+      - paperless_consume:/usr/src/paperless/consume
+    networks:
+      - ai_network
+      - public_network
+
+  # ── MONITORING (Uptime Kuma) ──────────────────────────────────
+  # Bewusst NICHT öffentlich über Caddy – nur über Tailscale erreichbar (wie Flowise),
+  # da das Dashboard interne Infrastruktur-Details zeigt.
+  kuma:
+    image: louislam/uptime-kuma:2.4.0
+    container_name: Uptime-Kuma
+    restart: unless-stopped
+    volumes:
+      - kuma_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "3006:3001"
+    networks:
+      - ai_network
+
+  # ── TEAM-CHAT (Mattermost) ─────────────────────────────────────
+  # Reine Standard-Installation, keine eigene Image-Anpassung. Alle individuellen
+  # Einstellungen (Site-URL, SMTP, künftige Bot-Integrationen) laufen über Umgebungs-
+  # variablen in der .env bzw. später über n8n-Webhooks – nichts ist im Image gebacken.
+  # Dadurch 1:1 auf eine andere Instanz (z. B. KorKI) rückportierbar: einfach diesen
+  # Service-Block + die MATTERMOST_*-Variablen aus der .env übernehmen.
+  mattermost:
+    image: mattermost/mattermost-team-edition:9.11
+    container_name: Mattermost
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3007:8065"
+    environment:
+      - MM_SQLSETTINGS_DRIVERNAME=postgres
+      - MM_SQLSETTINGS_DATASOURCE=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/mattermost?sslmode=disable
+      - MM_SERVICESETTINGS_SITEURL=${MATTERMOST_URL}
+      - MM_EMAILSETTINGS_SMTPSERVER=${SMTP_HOST}
+      - MM_EMAILSETTINGS_SMTPPORT=${SMTP_PORT}
+      - MM_EMAILSETTINGS_SMTPUSERNAME=${SMTP_USER}
+      - MM_EMAILSETTINGS_SMTPPASSWORD=${SMTP_PASS}
+      - MM_EMAILSETTINGS_FEEDBACKEMAIL=${SMTP_FROM}
+      - MM_EMAILSETTINGS_REPLYTOADDRESS=${SMTP_FROM}
+      - MM_EMAILSETTINGS_ENABLESMTPAUTH=true
+      - MM_EMAILSETTINGS_SENDEMAILNOTIFICATIONS=true
+      - MM_EMAILSETTINGS_REQUIREEMAILVERIFICATION=false
+      - MM_LOCALIZATIONSETTINGS_DEFAULTSERVERLOCALE=de
+      - MM_LOCALIZATIONSETTINGS_DEFAULTCLIENTLOCALE=de
+      - MM_LOCALIZATIONSETTINGS_AVAILABLELOCALES=de,en
+      - MM_EMAILSETTINGS_CONNECTIONSECURITY=STARTTLS
+    volumes:
+      - mattermost_data:/mattermost/data
+      - mattermost_logs:/mattermost/logs
+      - mattermost_config:/mattermost/config
+      - mattermost_plugins:/mattermost/plugins
+      - mattermost_client_plugins:/mattermost/client/plugins
+    networks:
+      - ai_network
+      - public_network
+
+  # ── CONTAINER-MANAGEMENT (Portainer) ─────────────────────────
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: Portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - "9443:9443"
+    networks:
+      - ai_network
+
+  # ── LOG-VIEWER (Dozzle) ───────────────────────────────────────
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: Dozzle
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - ai_network
+
+  # ── MAILSERVER (SMTP + IMAP) ───────────────────────────────────
+  mailserver:
+    image: docker.io/mailserver/docker-mailserver:latest
+    container_name: Mailserver
+    hostname: mail.${MAIL_DOMAIN}
+    restart: unless-stopped
+    ports:
+      - "25:25"
+      - "143:143"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - mail_data:/var/mail
+      - mail_state:/var/mail-state
+      - mail_logs:/var/log/mail
+      - mail_config:/tmp/docker-mailserver
+      - caddy_data:/caddy-certs:ro
+    environment:
+      - OVERRIDE_HOSTNAME=mail.${MAIL_DOMAIN}
+      - DOMAINNAME=${MAIL_DOMAIN}
+      - POSTMASTER_ADDRESS=postmaster@${MAIL_DOMAIN}
+      - ENABLE_IMAP=1
+      - ENABLE_POP3=0
+      - ENABLE_CLAMAV=0
+      - ENABLE_FAIL2BAN=1
+      - ENABLE_SPAMASSASSIN=0
+      - SPOOF_PROTECTION=1
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/caddy-certs/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${MAIL_DOMAIN}/mail.${MAIL_DOMAIN}.crt
+      - SSL_KEY_PATH=/caddy-certs/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.${MAIL_DOMAIN}/mail.${MAIL_DOMAIN}.key
+      - TZ=Europe/Berlin
+      - PERMIT_DOCKER=network
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - public_network

@@ -1,0 +1,387 @@
+{
+  "name": "Paperless KI-Tagging",
+  "nodes": [
+    {
+      "id": "schedule",
+      "name": "Alle 2 Stunden",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1400, 300],
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 2 }] }
+      }
+    },
+    {
+      "id": "get-tags",
+      "name": "Tags holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1200, 300],
+      "parameters": {
+        "url": "http://paperless:8000/api/tags/?page_size=200",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-correspondents",
+      "name": "Korrespondenten holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1000, 300],
+      "parameters": {
+        "url": "http://paperless:8000/api/correspondents/?page_size=200",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-doctypes",
+      "name": "Dokumenttypen holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-800, 300],
+      "parameters": {
+        "url": "http://paperless:8000/api/document_types/?page_size=200",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "get-docs",
+      "name": "Neue Dokumente holen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-600, 300],
+      "parameters": {
+        "url": "={{ 'http://paperless:8000/api/documents/?tags__id__all=' + (($('Tags holen').first().json.results || []).find(t => t.name === 'not-yet-tagged') || {}).id + '&page_size=25&ordering=created' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "prepare",
+      "name": "Aufbereiten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-400, 300],
+      "parameters": {
+        "jsCode": "const tagResults = $('Tags holen').first().json.results || [];\nconst corrResults = $('Korrespondenten holen').first().json.results || [];\nconst docTypeResults = $('Dokumenttypen holen').first().json.results || [];\n\nconst tagMap = {};\nfor (const t of tagResults) { tagMap[t.name.toLowerCase()] = t.id; }\nconst notYetTaggedId = tagMap['not-yet-tagged'];\nif (!notYetTaggedId) throw new Error('Tag \"not-yet-tagged\" nicht in Paperless gefunden');\n\nconst corrMap = {};\nfor (const c of corrResults) { corrMap[c.name.toLowerCase()] = c.id; }\n\nconst docTypeMap = {};\nfor (const d of docTypeResults) { docTypeMap[d.name.toLowerCase()] = d.id; }\n\nconst docs = $input.first().json.results || [];\nif (!docs.length) return [];\n\nreturn docs.map(doc => ({\n  json: {\n    docId: doc.id,\n    currentTitle: doc.title,\n    content: (doc.content || '').slice(0, 6000),\n    currentTags: doc.tags.filter(id => id !== notYetTaggedId),\n    notYetTaggedId,\n    tagMap,\n    corrMap,\n    docTypeMap\n  }\n}));"
+      }
+    },
+    {
+      "id": "outer-loop",
+      "name": "Pro Dokument",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-200, 300],
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "llm-call",
+      "name": "LLM aufrufen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepinfra.com/v1/openai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer REDACTED-ROTATED-TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'Qwen/Qwen3-32B', messages: [{ role: 'system', content: 'Du analysierst Dokumente für ein digitales Archiv. Antworte NUR mit einem JSON-Objekt, kein Text davor oder danach. /no_think' }, { role: 'user', content: 'Analysiere dieses Dokument und gib zurück:\\n{\\n  \"title\": \"präziser, kurzer Titel auf Deutsch, max. 60 Zeichen\",\\n  \"correspondent\": \"offizieller Name des Absenders/der Firma (oder null)\",\\n  \"document_type\": \"Typ: Rechnung, Vertrag, Bescheid, Brief, Kontoauszug, Quittung, Versicherung oder Sonstiges\",\\n  \"created\": \"Datum des Dokuments YYYY-MM-DD (oder null wenn nicht erkennbar)\",\\n  \"tags\": [\"tag1\", \"tag2\"]\\n}\\nRegeln:\\n- Titel: kurz, präzise, deutsch\\n- Correspondent: offizieller Name der ausstellenden Stelle oder Firma\\n- Tags: 2-5 Stück, deutsch, nur lowercase Buchstaben und Bindestriche\\n- NUR das JSON zurückgeben\\n\\nDokumenttext:\\n' + $json.content }], stream: false, max_tokens: 300 }) }}",
+        "options": { "timeout": 30000 }
+      }
+    },
+    {
+      "id": "parse",
+      "name": "Antwort parsen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "parameters": {
+        "jsCode": "const doc = $('Pro Dokument').item.json;\nlet raw = $input.item.json.choices?.[0]?.message?.content || '';\n\nraw = raw.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();\n\nlet title = doc.currentTitle;\nlet suggestedTags = [];\nlet correspondentName = null;\nlet documentTypeName = null;\nlet created = null;\n\ntry {\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    const parsed = JSON.parse(match[0]);\n    if (parsed.title) title = parsed.title.trim().slice(0, 80);\n    suggestedTags = (parsed.tags || []).map(t => t.toLowerCase().trim().replace(/[^a-z0-9\\-äöüß]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''));\n    if (parsed.correspondent && parsed.correspondent !== 'null') correspondentName = String(parsed.correspondent).trim();\n    if (parsed.document_type && parsed.document_type !== 'null') documentTypeName = String(parsed.document_type).trim();\n    if (parsed.created && parsed.created !== 'null') {\n      const d = new Date(parsed.created);\n      if (!isNaN(d.getTime())) created = parsed.created;\n    }\n  }\n} catch(e) {}\n\nconst tagMap = doc.tagMap || {};\nconst corrMap = doc.corrMap || {};\nconst docTypeMap = doc.docTypeMap || {};\n\nconst existingTagIds = [...doc.currentTags];\nconst newTagNames = [];\nfor (const name of suggestedTags) {\n  if (tagMap[name] !== undefined) {\n    if (!existingTagIds.includes(tagMap[name])) existingTagIds.push(tagMap[name]);\n  } else {\n    newTagNames.push(name);\n  }\n}\n\nlet correspondentId = null;\nlet newCorrespondentName = null;\nif (correspondentName) {\n  const key = correspondentName.toLowerCase();\n  if (corrMap[key] !== undefined) { correspondentId = corrMap[key]; }\n  else { newCorrespondentName = correspondentName; }\n}\n\nlet documentTypeId = null;\nlet newDocumentTypeName = null;\nif (documentTypeName) {\n  const key = documentTypeName.toLowerCase();\n  if (docTypeMap[key] !== undefined) { documentTypeId = docTypeMap[key]; }\n  else { newDocumentTypeName = documentTypeName; }\n}\n\nreturn [{ json: {\n  docId: doc.docId,\n  title,\n  created,\n  existingTagIds,\n  newTagNames,\n  notYetTaggedId: doc.notYetTaggedId,\n  correspondentId,\n  newCorrespondentName,\n  documentTypeId,\n  newDocumentTypeName,\n  tagMap,\n  corrMap,\n  docTypeMap,\n  skipTagCreation: newTagNames.length === 0\n}}];"
+      }
+    },
+    {
+      "id": "create-correspondent",
+      "name": "Korrespondent anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.newCorrespondentName ? 'http://paperless:8000/api/correspondents/' : 'http://paperless:8000/api/__skip__/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.newCorrespondentName }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "resolve-correspondent",
+      "name": "Korrespondent-ID ermitteln",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300],
+      "parameters": {
+        "jsCode": "const httpResp = $input.item.json;\nconst parseData = $('Antwort parsen').item.json;\n\nlet correspondentId = parseData.correspondentId;\nif (httpResp.id) {\n  correspondentId = httpResp.id;\n} else if (parseData.newCorrespondentName) {\n  correspondentId = parseData.corrMap[parseData.newCorrespondentName.toLowerCase()] || null;\n}\n\nreturn [{ json: { ...parseData, correspondentId } }];"
+      }
+    },
+    {
+      "id": "create-doctype",
+      "name": "Dokumenttyp anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 300],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.newDocumentTypeName ? 'http://paperless:8000/api/document_types/' : 'http://paperless:8000/api/__skip__/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.newDocumentTypeName }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "resolve-doctype",
+      "name": "Dokumenttyp-ID ermitteln",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300],
+      "parameters": {
+        "jsCode": "const httpResp = $input.item.json;\nconst corrData = $('Korrespondent-ID ermitteln').item.json;\n\nlet documentTypeId = corrData.documentTypeId;\nif (httpResp.id) {\n  documentTypeId = httpResp.id;\n} else if (corrData.newDocumentTypeName) {\n  documentTypeId = corrData.docTypeMap[corrData.newDocumentTypeName.toLowerCase()] || null;\n}\n\nreturn [{ json: { ...corrData, documentTypeId } }];"
+      }
+    },
+    {
+      "id": "if-new-tags",
+      "name": "Neue Tags nötig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1200, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{
+            "id": "c1",
+            "leftValue": "={{ $json.skipTagCreation }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "true" }
+          }],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "tags-split",
+      "name": "Tags aufteilen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 480],
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\nreturn item.newTagNames.map(name => ({ json: { ...item, currentTagName: name } }));"
+      }
+    },
+    {
+      "id": "inner-loop",
+      "name": "Pro neuem Tag",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1400, 480],
+      "parameters": { "batchSize": 1, "options": {} }
+    },
+    {
+      "id": "create-tag",
+      "name": "Tag anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 480],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "http://paperless:8000/api/tags/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.currentTagName }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "resolve-tag",
+      "name": "Tag-ID ermitteln",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 480],
+      "parameters": {
+        "jsCode": "const httpResp = $input.item.json;\nconst tagItem = $('Tags aufteilen').item.json;\n\nlet resolvedTagId = null;\nif (httpResp.id) {\n  resolvedTagId = httpResp.id;\n} else {\n  resolvedTagId = (tagItem.tagMap || {})[tagItem.currentTagName] || null;\n}\nreturn [{ json: { ...tagItem, resolvedTagId } }];"
+      }
+    },
+    {
+      "id": "build-patch",
+      "name": "Patch vorbereiten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 120],
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Pfad 1: keine neuen Tags nötig\nif (items[0]?.json?.skipTagCreation) {\n  const d = items[0].json;\n  const patch = { docId: d.docId, title: d.title, finalTagIds: d.existingTagIds };\n  if (d.correspondentId) patch.correspondentId = d.correspondentId;\n  if (d.documentTypeId) patch.documentTypeId = d.documentTypeId;\n  if (d.created) patch.created = d.created;\n  return [{ json: patch }];\n}\n\n// Pfad 2: nach Tag-Erstellung (Items aus inner-loop done)\nconst base = items[0].json;\nconst collectedIds = [...base.existingTagIds];\nfor (const item of items) {\n  const id = item.json.resolvedTagId;\n  if (id && !collectedIds.includes(id)) collectedIds.push(id);\n}\nconst patch = { docId: base.docId, title: base.title, finalTagIds: collectedIds };\nif (base.correspondentId) patch.correspondentId = base.correspondentId;\nif (base.documentTypeId) patch.documentTypeId = base.documentTypeId;\nif (base.created) patch.created = base.created;\nreturn [{ json: patch }];"
+      }
+    },
+    {
+      "id": "build-body",
+      "name": "PATCH-Body aufbauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 120],
+      "parameters": {
+        "jsCode": "const d = $input.item.json;\nconst body = { title: d.title, tags: d.finalTagIds };\nif (d.correspondentId != null) body.correspondent = d.correspondentId;\nif (d.documentTypeId != null) body.document_type = d.documentTypeId;\nif (d.created) body.created = d.created;\nreturn [{ json: { ...d, patchBody: JSON.stringify(body) } }];"
+      }
+    },
+    {
+      "id": "patch-doc",
+      "name": "Dokument aktualisieren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1800, 120],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'http://paperless:8000/api/documents/' + $json.docId + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.patchBody }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "done",
+      "name": "Fertig",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1800, 120],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Alle 2 Stunden": {
+      "main": [[{ "node": "Tags holen", "type": "main", "index": 0 }]]
+    },
+    "Tags holen": {
+      "main": [[{ "node": "Korrespondenten holen", "type": "main", "index": 0 }]]
+    },
+    "Korrespondenten holen": {
+      "main": [[{ "node": "Dokumenttypen holen", "type": "main", "index": 0 }]]
+    },
+    "Dokumenttypen holen": {
+      "main": [[{ "node": "Neue Dokumente holen", "type": "main", "index": 0 }]]
+    },
+    "Neue Dokumente holen": {
+      "main": [[{ "node": "Aufbereiten", "type": "main", "index": 0 }]]
+    },
+    "Aufbereiten": {
+      "main": [[{ "node": "Pro Dokument", "type": "main", "index": 0 }]]
+    },
+    "Pro Dokument": {
+      "main": [
+        [{ "node": "Fertig", "type": "main", "index": 0 }],
+        [{ "node": "LLM aufrufen", "type": "main", "index": 0 }]
+      ]
+    },
+    "LLM aufrufen": {
+      "main": [[{ "node": "Antwort parsen", "type": "main", "index": 0 }]]
+    },
+    "Antwort parsen": {
+      "main": [[{ "node": "Korrespondent anlegen", "type": "main", "index": 0 }]]
+    },
+    "Korrespondent anlegen": {
+      "main": [[{ "node": "Korrespondent-ID ermitteln", "type": "main", "index": 0 }]]
+    },
+    "Korrespondent-ID ermitteln": {
+      "main": [[{ "node": "Dokumenttyp anlegen", "type": "main", "index": 0 }]]
+    },
+    "Dokumenttyp anlegen": {
+      "main": [[{ "node": "Dokumenttyp-ID ermitteln", "type": "main", "index": 0 }]]
+    },
+    "Dokumenttyp-ID ermitteln": {
+      "main": [[{ "node": "Neue Tags nötig?", "type": "main", "index": 0 }]]
+    },
+    "Neue Tags nötig?": {
+      "main": [
+        [{ "node": "Patch vorbereiten", "type": "main", "index": 0 }],
+        [{ "node": "Tags aufteilen", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tags aufteilen": {
+      "main": [[{ "node": "Pro neuem Tag", "type": "main", "index": 0 }]]
+    },
+    "Pro neuem Tag": {
+      "main": [
+        [{ "node": "Patch vorbereiten", "type": "main", "index": 0 }],
+        [{ "node": "Tag anlegen", "type": "main", "index": 0 }]
+      ]
+    },
+    "Tag anlegen": {
+      "main": [[{ "node": "Tag-ID ermitteln", "type": "main", "index": 0 }]]
+    },
+    "Tag-ID ermitteln": {
+      "main": [[{ "node": "Pro neuem Tag", "type": "main", "index": 0 }]]
+    },
+    "Patch vorbereiten": {
+      "main": [[{ "node": "PATCH-Body aufbauen", "type": "main", "index": 0 }]]
+    },
+    "PATCH-Body aufbauen": {
+      "main": [[{ "node": "Dokument aktualisieren", "type": "main", "index": 0 }]]
+    },
+    "Dokument aktualisieren": {
+      "main": [[{ "node": "Pro Dokument", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

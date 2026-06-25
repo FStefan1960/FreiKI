@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- Antenne -->
+  <line x1="64" y1="16" x2="64" y2="30" stroke="#1F54C0" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="64" cy="10" r="7" fill="#1F54C0"/>
+  <!-- Kopf -->
+  <rect x="14" y="30" width="100" height="80" rx="22" fill="#1F54C0"/>
+  <!-- Ohren -->
+  <rect x="3" y="52" width="11" height="18" rx="4" fill="#1F54C0"/>
+  <rect x="114" y="52" width="11" height="18" rx="4" fill="#1F54C0"/>
+  <!-- Augen -->
+  <circle cx="42" cy="62" r="14" fill="white"/>
+  <circle cx="86" cy="62" r="14" fill="white"/>
+  <circle cx="42" cy="64" r="7" fill="#1F54C0"/>
+  <circle cx="86" cy="64" r="7" fill="#1F54C0"/>
+  <circle cx="45" cy="61" r="3" fill="white"/>
+  <circle cx="89" cy="61" r="3" fill="white"/>
+  <!-- Lächeln -->
+  <path d="M38 86 Q64 100 90 86" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+</svg>
