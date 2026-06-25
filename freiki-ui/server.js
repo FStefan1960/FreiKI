@@ -99,6 +99,20 @@ const MAX_CONTEXT_CHARS_MULTI = parseInt(process.env.MAX_CONTEXT_CHARS_MULTI || 
 const MAX_VLLM_CHARS_MULTI    = parseInt(process.env.MAX_VLLM_CHARS_MULTI    || '80000');
 const SEARXNG_RESULTS = 5;
 
+// ── Environment-Validierung ───────────────────────────────────
+const REQUIRED_ENV = ['KORKI_JWT_SECRET', 'VLLM_URL', 'VLLM_API_KEY', 'PG_PASS_KB'];
+const OPTIONAL_ENV = ['SMTP_HOST', 'WHISPER_URL', 'PIPER_URL', 'PAPERLESS_TOKEN',
+                      'MATTERMOST_URL', 'KB_INGEST_API_KEY', 'BOT_API_KEY'];
+const missingRequired = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missingRequired.length) {
+  console.error(`FATAL: Fehlende Pflicht-Umgebungsvariablen: ${missingRequired.join(', ')}`);
+  process.exit(1);
+}
+const missingOptional = OPTIONAL_ENV.filter(k => !process.env[k]);
+if (missingOptional.length) {
+  console.warn(`WARNUNG: Optionale Variablen nicht gesetzt (Features deaktiviert): ${missingOptional.join(', ')}`);
+}
+
 // ── Auth: eigene Benutzer-DB (PostgreSQL) + JWT ──────────────
 const JWT_SECRET = process.env.KORKI_JWT_SECRET || '';
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
