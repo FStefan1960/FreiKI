@@ -290,7 +290,7 @@
     if (!token || Date.now() >= expiry) {
       localStorage.removeItem('korki_token');
       localStorage.removeItem('korki_token_expiry');
-      (window.top || window).location.href = '/';
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
     }
   })();
 
