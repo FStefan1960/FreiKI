@@ -77,9 +77,11 @@
       <div class="sidebar-tabs">
         <button class="sidebar-tab active" id="tab-werkzeuge" onclick="switchTab('werkzeuge')">Werkzeuge</button>
         <button class="sidebar-tab" id="tab-wissen" onclick="switchTab('wissen')">Wissen</button>
+        <button class="sidebar-tab" id="tab-extras" onclick="switchTab('extras')" style="display:none">Extras</button>
       </div>
       <div id="mode-buttons-werkzeuge" class="tab-panel"></div>
       <div id="mode-buttons-wissen" class="tab-panel" style="display:none"></div>
+      <div id="mode-buttons-extras" class="tab-panel" style="display:none"></div>
 
       <div style="margin-top: auto;"></div>
 
@@ -131,7 +133,8 @@
             <span>DSGVO · DSG-EKD · EU · Open Source</span>
           </div>
           <div class="header-icon-group">
-            <a href="{{PAPERLESS_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled kb-admin-link" title="Dokumentenarchiv (Paperless)" style="display:none;">DMS</a>
+            <a href="{{MATTERMOST_URL}}" target="_blank" id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;">💬 <span class="hilfe-label">Teamchat</span></a>
+            <a href="{{PAPERLESS_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled" title="Dokumentenarchiv (Paperless)" style="display:none;">DMS</a>
             <button class="header-icon-btn header-icon-btn-labeled" onclick="toggleHilfeBubble()" title="{{APP_NAME}}-Hilfe">? <span class="hilfe-label">Hilfe</span></button>
           </div>
           <button class="new-chat-btn" onclick="newChat()">+ Neu</button>
@@ -389,10 +392,12 @@ clearOldHistory();
 
 // ── Load modes from server ──
 function switchTab(tab) {
-  document.getElementById('tab-werkzeuge').classList.toggle('active', tab === 'werkzeuge');
-  document.getElementById('tab-wissen').classList.toggle('active', tab === 'wissen');
-  document.getElementById('mode-buttons-werkzeuge').style.display = tab === 'werkzeuge' ? '' : 'none';
-  document.getElementById('mode-buttons-wissen').style.display = tab === 'wissen' ? '' : 'none';
+  ['werkzeuge','wissen','extras'].forEach(t => {
+    const btn = document.getElementById('tab-' + t);
+    const panel = document.getElementById('mode-buttons-' + t);
+    if (btn) btn.classList.toggle('active', tab === t);
+    if (panel) panel.style.display = tab === t ? '' : 'none';
+  });
 }
 
 const ICON_MAP = {
@@ -470,11 +475,10 @@ async function loadModes() {
     const wissen    = list.filter(m =>  m.workspace);
 
     werkzeuge.forEach(m => cw.appendChild(makeModeBtn(m)));
-    // Werkzeuge als eingebettete Panels: Piktogramme + Transkription
+    // Fest eingebaute Panel-Werkzeuge (bei allen Instanzen gleich)
     [
-      { panel: '/picto.html',     icon: '🖼️', title: 'Piktogramme',  desc: 'ARASAAC-Bildsuche' },
-      { panel: '/tagesplan.html', icon: '📅', title: 'Tagesplan',    desc: 'Tagesplan mit Symbolen erstellen' },
-      { panel: '/whisper.html',   icon: '🎙️', title: 'Transkription', desc: 'Audio → Text per E-Mail' },
+      { panel: '/picto.html',   icon: '🖼️', title: 'Piktogramme',  desc: 'ARASAAC-Bildsuche' },
+      { panel: '/whisper.html', icon: '🎙️', title: 'Transkription', desc: 'Audio → Text per E-Mail' },
     ].forEach(t => {
       const b = document.createElement('button');
       b.className = 'mode-btn';
@@ -482,7 +486,25 @@ async function loadModes() {
       b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc}</div></div>`;
       cw.appendChild(b);
     });
-    wissen.forEach(m    => ck.appendChild(makeModeBtn(m)));
+    wissen.forEach(m => ck.appendChild(makeModeBtn(m)));
+
+    // Kundenspezifische Extras aus public/extras/*.json
+    try {
+      const extRes = await fetch('/api/extras', { headers: token ? { 'Authorization': `Bearer ${token}` } : {}, cache: 'no-store' });
+      const extras = await extRes.json();
+      const ce = document.getElementById('mode-buttons-extras');
+      const tabExtras = document.getElementById('tab-extras');
+      if (extras.length > 0 && ce && tabExtras) {
+        tabExtras.style.display = '';
+        extras.forEach(t => {
+          const b = document.createElement('button');
+          b.className = 'mode-btn';
+          b.onclick = () => t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
+          b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc || ''}</div></div>`;
+          ce.appendChild(b);
+        });
+      }
+    } catch (e) { /* Extras nicht verfügbar – kein Problem */ }
 
     const first = werkzeuge[0] || wissen[0];
     if (first) setMode(first.key);
@@ -527,6 +549,8 @@ async function login() {
         el.style.display = ['admin', 'manager'].includes(role) ? '' : 'none';
       });
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = role === 'admin' ? '' : 'none');
+      const tcBtn = document.getElementById('teamchat-btn');
+      if (tcBtn && tcBtn.getAttribute('href')) tcBtn.style.display = '';
       await loadModes();
       loadTips();
     } else {
@@ -646,6 +670,7 @@ function restoreChat(mode, history) {
     const bubble = addMessage(msg.role === 'user' ? 'user' : 'ai', msg.content);
     if (msg.role === 'assistant' && bubble) {
       bubble.innerHTML = safeMarked(msg.content);
+      patchPaperlessLinks(bubble);
       bubble.dataset.copyText = msg.content;
       const msgId = bubble.id;
       addMessageActions(bubble, msgId);
@@ -720,7 +745,7 @@ async function plLoadMeta() {
           tagSel.appendChild(o);
         });
 
-    plMetaLoaded = true;
+    plMetaLoaded = (tags.length > 0 || correspondents.length > 0 || document_types.length > 0);
   } catch (e) { console.warn('plLoadMeta:', e); }
 }
 
@@ -967,6 +992,27 @@ function addStarRating(bubble, msgId) {
   wrapper.appendChild(ratingDiv);
 }
 
+// Paperless-Download-Links: per Fetch mit Auth-Header laden, Token bleibt serverseitig
+function patchPaperlessLinks(el) {
+  el.querySelectorAll('a[href^="/api/paperless/download/"]').forEach(a => {
+    const url = a.getAttribute('href').split('?')[0];
+    a.removeAttribute('href');
+    a.style.cursor = 'pointer';
+    a.onclick = async (e) => {
+      e.preventDefault();
+      const tk = localStorage.getItem('korki_token') || '';
+      try {
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + tk } });
+        if (!res.ok) { alert('Dokument nicht verfügbar.'); return; }
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch(e) { alert('Fehler beim Laden des Dokuments.'); }
+    };
+  });
+}
+
 // ── Messages ──
 function addMessage(role, content, fileName) {
   const welcome = document.getElementById('welcome');
@@ -1168,6 +1214,7 @@ async function sendMessage() {
             if (delta) {
               fullText += delta;
               bubble.innerHTML = safeMarked(fullText);
+              patchPaperlessLinks(bubble);
               bubble.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
           } catch (e) {}
@@ -1180,6 +1227,7 @@ async function sendMessage() {
     if (fullText) {
       const msgId = bubble.id;
       bubble.innerHTML = safeMarked(fullText);
+      patchPaperlessLinks(bubble);
       // Text als data-Attribut speichern für sauberes Kopieren
       bubble.dataset.copyText = fullText;
       addMessageActions(bubble, msgId);

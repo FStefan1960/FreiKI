@@ -682,6 +682,20 @@ const VALID_ROLES = ['admin', 'manager', 'default'];
 const isValidUsername = (s) => typeof s === 'string' && s.trim().length >= 3 && s.trim().length <= 64 && /^[a-zA-Z0-9._\-äöüÄÖÜß]+$/.test(s.trim());
 const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
+// Extras: kundenspezifische Tools aus public/extras/*.json
+app.get('/api/extras', (req, res) => {
+  const dir = path.join(__dirname, 'public', 'extras');
+  try {
+    if (!fs.existsSync(dir)) return res.json([]);
+    const extras = fs.readdirSync(dir)
+      .filter(f => f.endsWith('.json'))
+      .sort()
+      .map(f => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch { return null; } })
+      .filter(Boolean);
+    res.json(extras);
+  } catch (e) { res.json([]); }
+});
+
 // Bereiche (aus den w_-Prompts) für die UI
 app.get('/api/admin/areas', (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
