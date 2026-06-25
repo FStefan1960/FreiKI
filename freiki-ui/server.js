@@ -2073,6 +2073,17 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
 });
 
-loadBrandConfig().then(() => {
+(async () => {
+  // DB-Verbindung prüfen bevor der Server startet
+  try {
+    const client = await pgPool.connect();
+    await client.query('SELECT 1');
+    client.release();
+  } catch (e) {
+    console.error(`FATAL: Keine DB-Verbindung (${process.env.PG_HOST || 'PostgreSQL'}): ${e.message}`);
+    process.exit(1);
+  }
+
+  await loadBrandConfig();
   app.listen(3000, () => console.log(`${brandConfig.name} UI läuft auf Port 3000`));
-});
+})();
