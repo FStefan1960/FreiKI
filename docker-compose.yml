@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 networks:
   ai_network:
     driver: bridge
@@ -35,6 +41,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: PostgreSQL
     restart: unless-stopped
+    logging: *default-logging
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -54,6 +61,7 @@ services:
     image: n8nio/n8n:2.25.6
     container_name: n8n
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "5678:5678"
     dns:
@@ -85,6 +93,7 @@ services:
     image: caddy:2.9.1
     container_name: Caddy
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"
@@ -104,6 +113,7 @@ services:
     image: freiki-ui:latest
     container_name: FreiKI
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "3003:3000"
     volumes:
@@ -192,6 +202,7 @@ services:
     image: onerahmet/openai-whisper-asr-webservice:v1.9.1
     container_name: Whisper
     restart: unless-stopped
+    logging: *default-logging
     environment:
       - ASR_MODEL=${WHISPER_MODEL}
       - ASR_ENGINE=faster_whisper
@@ -205,6 +216,7 @@ services:
     image: ghcr.io/matatonic/openedai-speech-min:latest
     container_name: Piper-TTS
     restart: unless-stopped
+    logging: *default-logging
     command: python speech.py --xtts_device none -L WARNING
     volumes:
       - ./piper/voices:/app/voices
@@ -217,6 +229,7 @@ services:
     image: searxng/searxng:2026.6.10-de03f4eb1
     container_name: SearXNG
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - ./searxng:/etc/searxng
     dns:
@@ -231,6 +244,7 @@ services:
     image: redis:7
     container_name: Paperless-Redis
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - paperless_redis:/data
     networks:
@@ -242,6 +256,7 @@ services:
     image: gotenberg/gotenberg:8
     container_name: Gotenberg
     restart: unless-stopped
+    logging: *default-logging
     command:
       - "gotenberg"
       - "--chromium-disable-routes=true"
@@ -253,6 +268,7 @@ services:
     image: apache/tika:latest
     container_name: Tika
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - ai_network
 
@@ -260,6 +276,7 @@ services:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: Paperless
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - postgres
       - paperless-redis
@@ -301,6 +318,7 @@ services:
     image: louislam/uptime-kuma:2.4.0
     container_name: Uptime-Kuma
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - kuma_data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -319,6 +337,7 @@ services:
     image: mattermost/mattermost-team-edition:9.11
     container_name: Mattermost
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       postgres:
         condition: service_healthy
@@ -356,6 +375,7 @@ services:
     image: portainer/portainer-ce:latest
     container_name: Portainer
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -369,6 +389,7 @@ services:
     image: amir20/dozzle:latest
     container_name: Dozzle
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
@@ -382,6 +403,7 @@ services:
     container_name: Mailserver
     hostname: mail.${MAIL_DOMAIN}
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "25:25"
       - "143:143"

@@ -772,7 +772,7 @@ async function rewriteQuery(question, hist) {
         const d = await r.json();
         const rewritten = d.choices?.[0]?.message?.content?.trim();
         if (rewritten && rewritten.length > 5) {
-          console.log(`Query rewrite: "${question}" → "${rewritten}"`);
+          console.log(`Query rewrite: ${question.length} → ${rewritten.length} Zeichen`);
           return rewritten;
         }
       } catch(e) {
@@ -1371,7 +1371,7 @@ app.post('/api/transcribe', uploadAudio.single('audio'), async (req, res) => {
       }
 
       const whisperJson = await whisperRes.json();
-      console.log('Whisper Antwort:', JSON.stringify(whisperJson).slice(0, 300));
+      console.log(`Whisper Antwort: ${whisperJson.text?.length ?? 0} Zeichen`);
       const transcript = (whisperJson.text || '').trim();
 
       if (!transcript) {
