@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const fetch = require('node-fetch');
 const fs = require('fs');
@@ -17,13 +18,43 @@ const app = express();
 app.disable('x-powered-by');
 const upload = multer({
   dest: '/tmp/uploads/',
-  limits: { fileSize: 50 * 1024 * 1024 }
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['application/pdf','text/plain','text/markdown','application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg','image/png','image/webp'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp. Erlaubt: PDF, TXT, MD, DOC/DOCX, JPG, PNG, WEBP'), false);
+  }
 });
 const uploadAudio = multer({
   dest: '/tmp/uploads/',
-  limits: { fileSize: 200 * 1024 * 1024 }
+  limits: { fileSize: 200 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['audio/mpeg','audio/wav','audio/ogg','audio/webm','audio/mp4'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp für Audio. Erlaubt: MP3, WAV, OGG, WEBM'), false);
+  }
 });
 
+// ── Rate Limiting ─────────────────────────────────────────────
+const apiLimiter   = rateLimit({ windowMs: 15*60*1000, max: 100, message: { error: 'Zu viele Anfragen' } });
+const loginLimiter = rateLimit({ windowMs: 15*60*1000, max: 5,   message: { error: 'Zu viele Login-Versuche' } });
+app.use('/api/', apiLimiter);
+
+// ── Upload-Cleanup (Temp-Dateien älter als 24h löschen) ───────
+const cleanupUploads = () => {
+  ['/tmp/uploads/', '/tmp/kb_uploads/'].forEach(dir => {
+    try {
+      fs.readdirSync(dir).forEach(file => {
+        const fp = path.join(dir, file);
+        if (Date.now() - fs.statSync(fp).mtimeMs > 24 * 60 * 60 * 1000) fs.unlinkSync(fp);
+      });
+    } catch (_) {}
+  });
+};
+cleanupUploads();
+setInterval(cleanupUploads, 24 * 60 * 60 * 1000);
 
 // ── Brand-Konfiguration (White-Label) ────────────────────────
 // Defaults aus .env; DB-Einträge überschreiben diese zur Laufzeit
@@ -71,7 +102,10 @@ const SEARXNG_RESULTS = 5;
 
 // ── Auth: eigene Benutzer-DB (PostgreSQL) + JWT ──────────────
 const JWT_SECRET = process.env.KORKI_JWT_SECRET || '';
-if (!JWT_SECRET) console.warn('WARNUNG: KORKI_JWT_SECRET nicht gesetzt – Logins schlagen fehl!');
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  console.error('FEHLER: KORKI_JWT_SECRET muss gesetzt sein und mindestens 32 Zeichen lang!');
+  process.exit(1);
+}
 const pgPool = new Pool({
   host: process.env.PG_HOST || 'PostgreSQL',
   database: process.env.PG_DB || 'flowise',
@@ -574,7 +608,7 @@ app.post('/api/feedback', async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
   try {
@@ -1698,7 +1732,17 @@ app.post('/api/kb-ingest-text', async (req, res) => {
   }
 });
 
-const uploadKB = multer({ dest: '/tmp/kb_uploads/', limits: { fileSize: 50 * 1024 * 1024 } });
+const uploadKB = multer({
+  dest: '/tmp/kb_uploads/',
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['application/pdf','text/plain','text/markdown','application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg','image/png','image/webp'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp. Erlaubt: PDF, TXT, MD, DOC/DOCX, JPG, PNG, WEBP'), false);
+  }
+});
 
 app.post('/api/kb-upload', uploadKB.array('files', 20), async (req, res) => {
   const session = getSession(req);
