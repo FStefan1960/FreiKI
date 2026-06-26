@@ -1,8 +1,8 @@
-const CACHE_NAME = 'freiki-v2';
+const CACHE_NAME = 'freiki-v3';
 const STATIC_ASSETS = [
   '/',
   '/style.css',
-  '/freiki-header.png',
+  '/header.png',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
