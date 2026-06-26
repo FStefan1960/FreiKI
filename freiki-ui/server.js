@@ -314,23 +314,25 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ── Brand-Injection: index.html als Template rendern ─────────
 const PUBLIC_DIR = path.join(__dirname, 'public');
-let _indexHtml = null;
+const CACHE_VERSION = Date.now().toString(36);
 function getIndexHtml() {
-  if (!_indexHtml) {
-    _indexHtml = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8')
-      .replace(/\{\{APP_NAME\}\}/g,          brandConfig.name)
-      .replace(/\{\{APP_LOGO\}\}/g,          brandConfig.logo)
-      .replace(/\{\{APP_LOGO_SIDEBAR\}\}/g,  brandConfig.logoSidebar)
-      .replace(/\{\{APP_TAGLINE\}\}/g,       brandConfig.tagline)
-      .replace(/\{\{APP_COLOR\}\}/g,         brandConfig.color)
-      .replace(/\{\{PAPERLESS_URL\}\}/g,     brandConfig.paperlessUrl)
-      .replace(/\{\{MATTERMOST_URL\}\}/g,    brandConfig.mattermostUrl)
-      .replace(/\{\{DEMO_MODE\}\}/g,         brandConfig.demoMode ? '' : 'display:none')
-      .replace(/\{\{FOOTER_NOTE\}\}/g,       brandConfig.footerNote || brandConfig.name);
-  }
-  return _indexHtml;
+  return fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8')
+    .replace(/\{\{APP_NAME\}\}/g,          brandConfig.name)
+    .replace(/\{\{APP_LOGO\}\}/g,          brandConfig.logo)
+    .replace(/\{\{APP_LOGO_SIDEBAR\}\}/g,  brandConfig.logoSidebar)
+    .replace(/\{\{APP_TAGLINE\}\}/g,       brandConfig.tagline)
+    .replace(/\{\{APP_COLOR\}\}/g,         brandConfig.color)
+    .replace(/\{\{PAPERLESS_URL\}\}/g,     brandConfig.paperlessUrl)
+    .replace(/\{\{MATTERMOST_URL\}\}/g,    brandConfig.mattermostUrl)
+    .replace(/\{\{DEMO_MODE\}\}/g,         brandConfig.demoMode ? '' : 'display:none')
+    .replace(/\{\{FOOTER_NOTE\}\}/g,       brandConfig.footerNote || brandConfig.name);
 }
 app.get('/', (_req, res) => res.type('html').send(getIndexHtml()));
+app.get('/sw.js', (_req, res) => {
+  const sw = fs.readFileSync(path.join(PUBLIC_DIR, 'sw.js'), 'utf8')
+    .replace(/\{\{CACHE_VERSION\}\}/g, CACHE_VERSION);
+  res.type('application/javascript').send(sw);
+});
 
 // ── Dynamische Brand-Assets ───────────────────────────────────
 // /brand.css: Farb-Override für CSS-Variablen

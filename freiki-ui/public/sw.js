@@ -1,4 +1,4 @@
-const CACHE_NAME = 'freiki-v3';
+const CACHE_NAME = 'freiki-{{CACHE_VERSION}}';
 const STATIC_ASSETS = [
   '/',
   '/style.css',
