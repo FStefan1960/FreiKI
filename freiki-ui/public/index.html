@@ -330,6 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nameEl) nameEl.textContent = username;
     const avatarEl = document.getElementById('user-avatar');
     if (avatarEl) avatarEl.textContent = username[0]?.toUpperCase() || '?';
+    const tcBtn = document.getElementById('teamchat-btn');
+    if (tcBtn && tcBtn.getAttribute('href')) tcBtn.style.display = '';
     loadModes();
     loadTips();
   } else if (token) {
