@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreiKI · Neue Instanz konfigurieren</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+  header { background: #1F54C0; color: #fff; padding: 1.25rem 2rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+  header span { opacity: .65; font-size: .9rem; }
+  main { max-width: 860px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+  .section { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.5rem; overflow: hidden; }
+  .section-header { background: #f7f8fa; border-bottom: 1px solid #e8eaed; padding: .9rem 1.5rem; display: flex; align-items: center; gap: .6rem; cursor: pointer; user-select: none; }
+  .section-header h2 { font-size: .95rem; font-weight: 600; flex: 1; }
+  .section-header .badge { font-size: .72rem; background: #e8f0fe; color: #1F54C0; padding: .2rem .55rem; border-radius: 20px; font-weight: 600; }
+  .section-header .badge.warn { background: #fff3e0; color: #e65100; }
+  .section-header .chevron { font-size: .8rem; transition: transform .2s; color: #888; }
+  .section-body { padding: 1.25rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .section-body.collapsed { display: none; }
+  .field { display: flex; flex-direction: column; gap: .35rem; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: .8rem; font-weight: 600; color: #444; display: flex; align-items: center; gap: .4rem; }
+  label .req { color: #e53935; font-size: .75rem; }
+  label .hint { font-weight: 400; color: #888; font-size: .75rem; margin-left: auto; }
+  input, select { border: 1.5px solid #dde1e7; border-radius: 7px; padding: .5rem .75rem; font-size: .875rem; width: 100%; transition: border-color .15s; background: #fff; }
+  input:focus, select:focus { outline: none; border-color: #1F54C0; }
+  input.error { border-color: #e53935; background: #fff5f5; }
+  input.ok { border-color: #2e7d32; }
+  .gen-btn { font-size: .72rem; color: #1F54C0; background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; white-space: nowrap; }
+  .field-row { display: flex; gap: .5rem; align-items: stretch; }
+  .field-row input { flex: 1; }
+  .err-msg { font-size: .72rem; color: #e53935; display: none; }
+  .field.has-error .err-msg { display: block; }
+  .actions { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #e8eaed; padding: 1rem 1.5rem; display: flex; gap: 1rem; align-items: center; box-shadow: 0 -2px 8px rgba(0,0,0,.06); }
+  .btn { padding: .65rem 1.5rem; border-radius: 8px; font-size: .875rem; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: #1F54C0; color: #fff; }
+  .btn-primary:hover { background: #1A4AAD; }
+  .btn-secondary { background: #f0f2f5; color: #444; }
+  .btn-secondary:hover { background: #e2e5ea; }
+  .status { font-size: .8rem; color: #888; flex: 1; }
+  .status.err { color: #e53935; }
+  textarea#output { display: none; font-family: monospace; font-size: .78rem; white-space: pre; border: 1.5px solid #dde1e7; border-radius: 7px; padding: 1rem; width: 100%; resize: vertical; min-height: 300px; background: #f7f8fa; }
+  #output-wrap { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: none; }
+  #output-wrap h2 { font-size: .95rem; font-weight: 600; margin-bottom: .75rem; }
+  .copy-row { display: flex; gap: .75rem; margin-top: .75rem; align-items: center; }
+  .copy-msg { font-size: .78rem; color: #2e7d32; display: none; }
+  @media (max-width: 600px) { .section-body { grid-template-columns: 1fr; } .field.full { grid-column: 1; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FreiKI · Neue Instanz konfigurieren</h1>
+  <span>Generiert eine fertige .env-Datei</span>
+</header>
+
+<main>
+
+<!-- ══ 1. App-Identity ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>App-Identität</h2>
+    <span class="badge warn">Pflicht</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field">
+      <label>APP_NAME <span class="req">*</span></label>
+      <input type="text" id="APP_NAME" placeholder="KorKI" required data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld</span>
+    </div>
+    <div class="field">
+      <label>APP_TAGLINE</label>
+      <input type="text" id="APP_TAGLINE" placeholder="KI für die Diakonie Kork">
+    </div>
+    <div class="field full">
+      <label>APP_URL <span class="req">*</span> <span class="hint">mit https://</span></label>
+      <input type="url" id="APP_URL" placeholder="https://assi.diakonie-kork-ki.de" required data-validate="url">
+      <span class="err-msg">Gültige URL erforderlich (https://…)</span>
+    </div>
+    <div class="field">
+      <label>APP_FOOTER_NOTE</label>
+      <input type="text" id="APP_FOOTER_NOTE" placeholder="F. Stefan · Diakonie Kork · 2026">
+    </div>
+    <div class="field">
+      <label>APP_SUPPORT_EMAIL</label>
+      <input type="email" id="APP_SUPPORT_EMAIL" placeholder="support@example.de">
+    </div>
+    <div class="field">
+      <label>APP_DEMO_MODE <span class="hint">Demo-Banner zeigen?</span></label>
+      <select id="APP_DEMO_MODE">
+        <option value="false">false (kein Banner)</option>
+        <option value="true">true (Demo-Banner aktiv)</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 2. Farben & Logos ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>Farben &amp; Logos</h2>
+    <span class="badge">Brand</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field">
+      <label>APP_COLOR <span class="req">*</span></label>
+      <div class="field-row">
+        <input type="text" id="APP_COLOR" placeholder="#1F54C0" data-validate="hex">
+        <input type="color" id="APP_COLOR_picker" value="#1F54C0" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_COLOR')">
+      </div>
+      <span class="err-msg">Hex-Farbe erforderlich (#RRGGBB)</span>
+    </div>
+    <div class="field">
+      <label>APP_COLOR_HOVER</label>
+      <div class="field-row">
+        <input type="text" id="APP_COLOR_HOVER" placeholder="#1A4AAD" data-validate="hexopt">
+        <input type="color" id="APP_COLOR_HOVER_picker" value="#1A4AAD" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_COLOR_HOVER')">
+      </div>
+    </div>
+    <div class="field">
+      <label>APP_COLOR_ACTIVE</label>
+      <div class="field-row">
+        <input type="text" id="APP_COLOR_ACTIVE" placeholder="#173F95" data-validate="hexopt">
+        <input type="color" id="APP_COLOR_ACTIVE_picker" value="#173F95" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_COLOR_ACTIVE')">
+      </div>
+    </div>
+    <div class="field">
+      <label>APP_NAVY</label>
+      <div class="field-row">
+        <input type="text" id="APP_NAVY" placeholder="#14306B" data-validate="hexopt">
+        <input type="color" id="APP_NAVY_picker" value="#14306B" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_NAVY')">
+      </div>
+    </div>
+    <div class="field">
+      <label>APP_LOGO <span class="hint">Pfad im public/-Verzeichnis</span></label>
+      <input type="text" id="APP_LOGO" placeholder="/header.png" value="/header.png">
+    </div>
+    <div class="field">
+      <label>APP_LOGO_SIDEBAR</label>
+      <input type="text" id="APP_LOGO_SIDEBAR" placeholder="/header.png" value="/header.png">
+    </div>
+  </div>
+</div>
+
+<!-- ══ 3. Secrets ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>Secrets &amp; API-Keys</h2>
+    <span class="badge warn">Pflicht</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field">
+      <label>KORKI_JWT_SECRET <span class="req">*</span> <button class="gen-btn" onclick="genHex('KORKI_JWT_SECRET',64)">generieren</button></label>
+      <input type="text" id="KORKI_JWT_SECRET" placeholder="64 Zeichen Hex" data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld – bitte generieren</span>
+    </div>
+    <div class="field">
+      <label>KB_INGEST_API_KEY <span class="req">*</span> <button class="gen-btn" onclick="genHex('KB_INGEST_API_KEY',40)">generieren</button></label>
+      <input type="text" id="KB_INGEST_API_KEY" placeholder="40 Zeichen Hex" data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld</span>
+    </div>
+    <div class="field">
+      <label>BOT_API_KEY <button class="gen-btn" onclick="genHex('BOT_API_KEY',40)">generieren</button></label>
+      <input type="text" id="BOT_API_KEY" placeholder="40 Zeichen Hex">
+    </div>
+    <div class="field">
+      <label>N8N_ENCRYPTION_KEY <button class="gen-btn" onclick="genHex('N8N_ENCRYPTION_KEY',64)">generieren</button></label>
+      <input type="text" id="N8N_ENCRYPTION_KEY" placeholder="64 Zeichen Hex">
+    </div>
+  </div>
+</div>
+
+<!-- ══ 4. Datenbank ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>Datenbank (PostgreSQL)</h2>
+    <span class="badge warn">Pflicht</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field">
+      <label>POSTGRES_USER <span class="req">*</span></label>
+      <input type="text" id="POSTGRES_USER" placeholder="korki" data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld</span>
+    </div>
+    <div class="field">
+      <label>POSTGRES_PASSWORD <span class="req">*</span> <button class="gen-btn" onclick="genHex('POSTGRES_PASSWORD',24)">generieren</button></label>
+      <input type="text" id="POSTGRES_PASSWORD" placeholder="sicheres Passwort" data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld</span>
+    </div>
+    <div class="field">
+      <label>POSTGRES_DB <span class="req">*</span></label>
+      <input type="text" id="POSTGRES_DB" placeholder="korki_db" data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 5. LLM-Backend ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>LLM-Backend</h2>
+    <span class="badge warn">Pflicht</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field full">
+      <label>VLLM_URL <span class="req">*</span> <span class="hint">OpenAI-kompatibler Endpunkt</span></label>
+      <input type="url" id="VLLM_URL" placeholder="https://api.deepinfra.com/v1/openai" data-validate="url">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field">
+      <label>VLLM_API_KEY <span class="req">*</span></label>
+      <input type="text" id="VLLM_API_KEY" placeholder="API-Key des Providers" data-validate="nonempty">
+      <span class="err-msg">Pflichtfeld</span>
+    </div>
+    <div class="field">
+      <label>VLLM_MODEL</label>
+      <input type="text" id="VLLM_MODEL" placeholder="Qwen/Qwen3-32B">
+    </div>
+    <div class="field full">
+      <label>VLLM_EMBED_URL <span class="hint">Embedding-Endpunkt</span></label>
+      <input type="url" id="VLLM_EMBED_URL" placeholder="https://api.deepinfra.com/v1/openai/embeddings" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field">
+      <label>WHISPER_MODEL <span class="hint">CPU: base · GPU: large-v3</span></label>
+      <select id="WHISPER_MODEL">
+        <option value="">– nicht gesetzt –</option>
+        <option value="tiny">tiny (schnellste, CPU)</option>
+        <option value="base">base (gut für CPU)</option>
+        <option value="small">small</option>
+        <option value="medium">medium</option>
+        <option value="large-v3">large-v3 (beste Qualität, GPU)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>HUGGING_FACE_HUB_TOKEN <span class="hint">nur bei GPU-vLLM</span></label>
+      <input type="text" id="HUGGING_FACE_HUB_TOKEN" placeholder="hf_…">
+    </div>
+  </div>
+</div>
+
+<!-- ══ 6. n8n ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>n8n &amp; Automatisierung</h2>
+    <span class="badge">Optional</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field">
+      <label>N8N_HOST</label>
+      <input type="text" id="N8N_HOST" placeholder="n8n">
+    </div>
+    <div class="field">
+      <label>WEBHOOK_URL <span class="hint">n8n Basis-URL</span></label>
+      <input type="url" id="WEBHOOK_URL" placeholder="https://n8n.example.de" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field full">
+      <label>N8N_WEBHOOK_URL <span class="hint">Webhook-URL für KI-Assistent</span></label>
+      <input type="url" id="N8N_WEBHOOK_URL" placeholder="https://n8n.example.de/webhook/…" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 7. Mail ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>Mail (SMTP)</h2>
+    <span class="badge">Optional</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field">
+      <label>MAIL_DOMAIN</label>
+      <input type="text" id="MAIL_DOMAIN" placeholder="example.de">
+    </div>
+    <div class="field">
+      <label>SMTP_HOST</label>
+      <input type="text" id="SMTP_HOST" placeholder="mail.example.de">
+    </div>
+    <div class="field">
+      <label>SMTP_PORT</label>
+      <select id="SMTP_PORT">
+        <option value="">– wählen –</option>
+        <option value="587">587 (STARTTLS)</option>
+        <option value="465">465 (SSL)</option>
+        <option value="25">25 (SMTP)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>SMTP_USER</label>
+      <input type="text" id="SMTP_USER" placeholder="noreply@example.de">
+    </div>
+    <div class="field">
+      <label>SMTP_PASS <button class="gen-btn" onclick="genHex('SMTP_PASS',24)">generieren</button></label>
+      <input type="text" id="SMTP_PASS" placeholder="SMTP-Passwort">
+    </div>
+    <div class="field">
+      <label>SMTP_FROM</label>
+      <input type="email" id="SMTP_FROM" placeholder="noreply@example.de">
+    </div>
+  </div>
+</div>
+
+<!-- ══ 8. Optionale Dienste ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>Optionale Dienste</h2>
+    <span class="badge">Optional</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
+    <div class="field full">
+      <label>MATTERMOST_URL</label>
+      <input type="url" id="MATTERMOST_URL" placeholder="https://chat.example.de" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field">
+      <label>MATTERMOST_OIDC_CLIENT_ID</label>
+      <input type="text" id="MATTERMOST_OIDC_CLIENT_ID" placeholder="SSO Client-ID">
+    </div>
+    <div class="field">
+      <label>MATTERMOST_OIDC_CLIENT_SECRET</label>
+      <input type="text" id="MATTERMOST_OIDC_CLIENT_SECRET" placeholder="SSO Client-Secret">
+    </div>
+    <div class="field full">
+      <label>MATTERMOST_OIDC_REDIRECT_URI</label>
+      <input type="url" id="MATTERMOST_OIDC_REDIRECT_URI" placeholder="https://app.example.de/auth/callback" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field full">
+      <label>PAPERLESS_URL</label>
+      <input type="url" id="PAPERLESS_URL" placeholder="https://paperless.example.de" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field">
+      <label>PAPERLESS_INTERNAL_URL</label>
+      <input type="url" id="PAPERLESS_INTERNAL_URL" placeholder="http://paperless:8000" data-validate="urlopt">
+      <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field">
+      <label>PAPERLESS_TOKEN</label>
+      <input type="text" id="PAPERLESS_TOKEN" placeholder="API-Token">
+    </div>
+    <div class="field">
+      <label>PAPERLESS_SECRET_KEY <button class="gen-btn" onclick="genHex('PAPERLESS_SECRET_KEY',50)">generieren</button></label>
+      <input type="text" id="PAPERLESS_SECRET_KEY" placeholder="Secret Key">
+    </div>
+    <div class="field">
+      <label>PAPERLESS_ADMIN_USER</label>
+      <input type="text" id="PAPERLESS_ADMIN_USER" placeholder="admin">
+    </div>
+    <div class="field">
+      <label>PAPERLESS_ADMIN_PASSWORD <button class="gen-btn" onclick="genHex('PAPERLESS_ADMIN_PASSWORD',24)">generieren</button></label>
+      <input type="text" id="PAPERLESS_ADMIN_PASSWORD" placeholder="sicheres Passwort">
+    </div>
+    <div class="field">
+      <label>FLOWISE_USERNAME</label>
+      <input type="text" id="FLOWISE_USERNAME" placeholder="admin">
+    </div>
+    <div class="field">
+      <label>FLOWISE_PASSWORD <button class="gen-btn" onclick="genHex('FLOWISE_PASSWORD',20)">generieren</button></label>
+      <input type="text" id="FLOWISE_PASSWORD" placeholder="sicheres Passwort">
+    </div>
+    <div class="field full">
+      <label>FLOWISE_CHATFLOW_ID <span class="hint">erst nach Einrichtung in Flowise</span></label>
+      <input type="text" id="FLOWISE_CHATFLOW_ID" placeholder="UUID">
+    </div>
+  </div>
+</div>
+
+<!-- ══ Output ══ -->
+<div id="output-wrap">
+  <h2>.env-Datei</h2>
+  <textarea id="output" readonly></textarea>
+  <div class="copy-row">
+    <button class="btn btn-secondary" onclick="copyEnv()">In Zwischenablage kopieren</button>
+    <button class="btn btn-primary" onclick="downloadEnv()">Als .env herunterladen</button>
+    <span class="copy-msg" id="copy-msg">✓ Kopiert</span>
+  </div>
+</div>
+
+</main>
+
+<div class="actions">
+  <span class="status" id="status-msg">Alle Pflichtfelder ausfüllen, dann generieren.</span>
+  <button class="btn btn-secondary" onclick="resetForm()">Zurücksetzen</button>
+  <button class="btn btn-primary" onclick="generate()">→ .env generieren</button>
+</div>
+
+<script>
+// ── Collapse/Expand ──
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const ch = header.querySelector('.chevron');
+  body.classList.toggle('collapsed');
+  ch.textContent = body.classList.contains('collapsed') ? '▶' : '▼';
+}
+
+// ── Color picker sync ──
+function syncColor(picker, fieldId) {
+  document.getElementById(fieldId).value = picker.value.toUpperCase();
+}
+document.querySelectorAll('input[type="text"][id$="_COLOR"], input[type="text"][id$="_HOVER"], input[type="text"][id$="_ACTIVE"], #APP_NAVY').forEach(input => {
+  input.addEventListener('input', () => {
+    const pickerId = input.id + '_picker';
+    const picker = document.getElementById(pickerId);
+    if (picker && /^#[0-9A-Fa-f]{6}$/.test(input.value)) picker.value = input.value;
+  });
+});
+
+// ── Random hex ──
+function genHex(fieldId, bytes) {
+  const arr = new Uint8Array(bytes / 2);
+  crypto.getRandomValues(arr);
+  document.getElementById(fieldId).value = Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+  validate(document.getElementById(fieldId));
+}
+
+// ── Validation ──
+function validate(input) {
+  const rule = input.dataset.validate;
+  if (!rule) return true;
+  const v = input.value.trim();
+  const field = input.closest('.field');
+  let ok = true;
+  if (rule === 'nonempty') ok = v.length > 0;
+  else if (rule === 'url') ok = v.length > 0 && isUrl(v);
+  else if (rule === 'urlopt') ok = v === '' || isUrl(v);
+  else if (rule === 'hex') ok = v.length > 0 && /^#[0-9A-Fa-f]{6}$/.test(v);
+  else if (rule === 'hexopt') ok = v === '' || /^#[0-9A-Fa-f]{6}$/.test(v);
+  field.classList.toggle('has-error', !ok);
+  input.classList.toggle('error', !ok);
+  input.classList.toggle('ok', ok && v.length > 0);
+  return ok;
+}
+function isUrl(v) {
+  try { new URL(v); return true; } catch { return false; }
+}
+document.querySelectorAll('input[data-validate]').forEach(el => {
+  el.addEventListener('blur', () => validate(el));
+  el.addEventListener('input', () => { if (el.classList.contains('error')) validate(el); });
+});
+
+// ── Generate ──
+function generate() {
+  const inputs = document.querySelectorAll('input[data-validate]');
+  let valid = true;
+  inputs.forEach(el => { if (!validate(el)) valid = false; });
+  const status = document.getElementById('status-msg');
+  if (!valid) {
+    status.textContent = '⚠ Bitte Fehler in den rot markierten Feldern beheben.';
+    status.className = 'status err';
+    return;
+  }
+  const v = id => document.getElementById(id)?.value?.trim() ?? '';
+  const lines = [
+    '# Generiert von setup/config.html · ' + new Date().toLocaleDateString('de-DE'),
+    '',
+    '# ── App-Identität ──',
+    `APP_NAME=${v('APP_NAME')}`,
+    `APP_TAGLINE=${v('APP_TAGLINE')}`,
+    `APP_URL=${v('APP_URL')}`,
+    `APP_FOOTER_NOTE=${v('APP_FOOTER_NOTE')}`,
+    `APP_SUPPORT_EMAIL=${v('APP_SUPPORT_EMAIL')}`,
+    `APP_DEMO_MODE=${v('APP_DEMO_MODE')}`,
+    '',
+    '# ── Brand-Farben ──',
+    `APP_COLOR=${v('APP_COLOR')}`,
+    `APP_COLOR_HOVER=${v('APP_COLOR_HOVER')}`,
+    `APP_COLOR_ACTIVE=${v('APP_COLOR_ACTIVE')}`,
+    `APP_NAVY=${v('APP_NAVY')}`,
+    `APP_LOGO=${v('APP_LOGO') || '/header.png'}`,
+    `APP_LOGO_SIDEBAR=${v('APP_LOGO_SIDEBAR') || '/header.png'}`,
+    '',
+    '# ── Secrets ──',
+    `KORKI_JWT_SECRET=${v('KORKI_JWT_SECRET')}`,
+    `KB_INGEST_API_KEY=${v('KB_INGEST_API_KEY')}`,
+    `BOT_API_KEY=${v('BOT_API_KEY')}`,
+    `N8N_ENCRYPTION_KEY=${v('N8N_ENCRYPTION_KEY')}`,
+    '',
+    '# ── PostgreSQL ──',
+    `POSTGRES_USER=${v('POSTGRES_USER')}`,
+    `POSTGRES_PASSWORD=${v('POSTGRES_PASSWORD')}`,
+    `POSTGRES_DB=${v('POSTGRES_DB')}`,
+    '',
+    '# ── LLM-Backend ──',
+    `VLLM_URL=${v('VLLM_URL')}`,
+    `VLLM_API_KEY=${v('VLLM_API_KEY')}`,
+    `VLLM_MODEL=${v('VLLM_MODEL')}`,
+    `VLLM_EMBED_URL=${v('VLLM_EMBED_URL')}`,
+    `WHISPER_MODEL=${v('WHISPER_MODEL')}`,
+    `HUGGING_FACE_HUB_TOKEN=${v('HUGGING_FACE_HUB_TOKEN')}`,
+    '',
+    '# ── n8n ──',
+    `N8N_HOST=${v('N8N_HOST')}`,
+    `WEBHOOK_URL=${v('WEBHOOK_URL')}`,
+    `N8N_ENCRYPTION_KEY=${v('N8N_ENCRYPTION_KEY')}`,
+    `N8N_WEBHOOK_URL=${v('N8N_WEBHOOK_URL')}`,
+    '',
+    '# ── Mail (SMTP) ──',
+    `MAIL_DOMAIN=${v('MAIL_DOMAIN')}`,
+    `SMTP_HOST=${v('SMTP_HOST')}`,
+    `SMTP_PORT=${v('SMTP_PORT')}`,
+    `SMTP_USER=${v('SMTP_USER')}`,
+    `SMTP_PASS=${v('SMTP_PASS')}`,
+    `SMTP_FROM=${v('SMTP_FROM')}`,
+    '',
+    '# ── Mattermost ──',
+    `MATTERMOST_URL=${v('MATTERMOST_URL')}`,
+    `MATTERMOST_OIDC_CLIENT_ID=${v('MATTERMOST_OIDC_CLIENT_ID')}`,
+    `MATTERMOST_OIDC_CLIENT_SECRET=${v('MATTERMOST_OIDC_CLIENT_SECRET')}`,
+    `MATTERMOST_OIDC_REDIRECT_URI=${v('MATTERMOST_OIDC_REDIRECT_URI')}`,
+    '',
+    '# ── Paperless ──',
+    `PAPERLESS_URL=${v('PAPERLESS_URL')}`,
+    `PAPERLESS_INTERNAL_URL=${v('PAPERLESS_INTERNAL_URL')}`,
+    `PAPERLESS_TOKEN=${v('PAPERLESS_TOKEN')}`,
+    `PAPERLESS_SECRET_KEY=${v('PAPERLESS_SECRET_KEY')}`,
+    `PAPERLESS_ADMIN_USER=${v('PAPERLESS_ADMIN_USER')}`,
+    `PAPERLESS_ADMIN_PASSWORD=${v('PAPERLESS_ADMIN_PASSWORD')}`,
+    '',
+    '# ── Flowise ──',
+    `FLOWISE_USERNAME=${v('FLOWISE_USERNAME')}`,
+    `FLOWISE_PASSWORD=${v('FLOWISE_PASSWORD')}`,
+    `FLOWISE_CHATFLOW_ID=${v('FLOWISE_CHATFLOW_ID')}`,
+  ];
+  const content = lines.join('\n');
+  const out = document.getElementById('output');
+  out.value = content;
+  out.style.display = 'block';
+  document.getElementById('output-wrap').style.display = 'block';
+  document.getElementById('output-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  status.textContent = '✓ .env-Datei generiert – bitte herunterladen oder kopieren.';
+  status.className = 'status';
+}
+
+function copyEnv() {
+  navigator.clipboard.writeText(document.getElementById('output').value).then(() => {
+    const msg = document.getElementById('copy-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  });
+}
+
+function downloadEnv() {
+  const name = document.getElementById('APP_NAME').value.trim().toLowerCase().replace(/\s+/g,'_') || 'instanz';
+  const blob = new Blob([document.getElementById('output').value], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `.env.${name}`;
+  a.click();
+}
+
+function resetForm() {
+  document.querySelectorAll('input[type="text"], input[type="url"], input[type="email"]').forEach(i => { i.value = ''; i.className = ''; });
+  document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+  document.querySelectorAll('.field').forEach(f => f.classList.remove('has-error'));
+  document.getElementById('APP_LOGO').value = '/header.png';
+  document.getElementById('APP_LOGO_SIDEBAR').value = '/header.png';
+  document.getElementById('output-wrap').style.display = 'none';
+  document.getElementById('status-msg').textContent = 'Alle Pflichtfelder ausfüllen, dann generieren.';
+  document.getElementById('status-msg').className = 'status';
+}
+</script>
+</body>
+</html>
