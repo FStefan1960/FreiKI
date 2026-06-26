@@ -318,11 +318,11 @@
   let token = null;
 
   function checkAuth() {
-    const stored = localStorage.getItem('korki_token');
-    const expiry = localStorage.getItem('korki_token_expiry');
+    const stored = localStorage.getItem('freiki_token');
+    const expiry = localStorage.getItem('freiki_token_expiry');
     if (stored && expiry && Date.now() < parseInt(expiry)) {
       token = stored;
-      showMain(localStorage.getItem('korki_role') || 'default');
+      showMain(localStorage.getItem('freiki_role') || 'default');
     } else {
       document.getElementById('login-screen').style.display = 'flex';
     }
@@ -341,10 +341,10 @@
       const d = await r.json();
       if (!r.ok || !d.token) throw new Error(d.error || 'Anmeldung fehlgeschlagen');
       token = d.token;
-      localStorage.setItem('korki_token', token);
-      localStorage.setItem('korki_token_expiry', Date.now() + 8 * 3600 * 1000);
-      localStorage.setItem('korki_role', d.role || 'default');
-      localStorage.setItem('korki_areas', JSON.stringify(d.areas || []));
+      localStorage.setItem('freiki_token', token);
+      localStorage.setItem('freiki_token_expiry', Date.now() + 8 * 3600 * 1000);
+      localStorage.setItem('freiki_role', d.role || 'default');
+      localStorage.setItem('freiki_areas', JSON.stringify(d.areas || []));
       showMain(d.role || 'default');
     } catch (e) {
       document.getElementById('login-error').textContent = e.message;

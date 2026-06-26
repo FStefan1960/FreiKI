@@ -141,9 +141,9 @@
 </div>
 
 <script>
-const TOKEN = localStorage.getItem('korki_token') || '';
-const EXP = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
-const ROLE = localStorage.getItem('korki_role') || 'default';
+const TOKEN = localStorage.getItem('freiki_token') || '';
+const EXP = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
+const ROLE = localStorage.getItem('freiki_role') || 'default';
 function bail(){ (window.top||window).location.href='/'; }
 if (!TOKEN || Date.now() >= EXP || ROLE !== 'admin') { bail(); }
 const H = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };

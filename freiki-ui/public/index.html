@@ -288,19 +288,19 @@ function midnightExpiry() {
 }
 
 function isTokenValid() {
-  const expiry = localStorage.getItem('korki_token_expiry');
+  const expiry = localStorage.getItem('freiki_token_expiry');
   if (!expiry) return false;
   return Date.now() < parseInt(expiry, 10);
 }
 
 function forceLogout() {
   authToken = null;
-  localStorage.removeItem('korki_token');
-  localStorage.removeItem('korki_token_expiry');
-  localStorage.removeItem('korki_user');
-  localStorage.removeItem('korki_role');
-  localStorage.removeItem('korki_areas');
-  sessionStorage.removeItem('korki_tip_shown');
+  localStorage.removeItem('freiki_token');
+  localStorage.removeItem('freiki_token_expiry');
+  localStorage.removeItem('freiki_user');
+  localStorage.removeItem('freiki_role');
+  localStorage.removeItem('freiki_areas');
+  sessionStorage.removeItem('freiki_tip_shown');
   document.getElementById('login-screen').style.display = 'flex';
   const app = document.getElementById('app');
   if (app) app.style.display = 'none';
@@ -312,15 +312,15 @@ function forceLogout() {
 
 // Token beim Laden prüfen
 document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('korki_token');
-  const storedRole = localStorage.getItem('korki_role') || 'default';
+  const token = localStorage.getItem('freiki_token');
+  const storedRole = localStorage.getItem('freiki_role') || 'default';
   if (['admin', 'manager'].includes(storedRole)) {
     document.querySelectorAll('.kb-admin-link').forEach(el => el.style.display = '');
   }
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = storedRole === 'admin' ? '' : 'none');
   if (token && isTokenValid()) {
     authToken = token;
-    const username = localStorage.getItem('korki_user') || '';
+    const username = localStorage.getItem('freiki_user') || '';
     currentUsername = username;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
@@ -349,7 +349,7 @@ let tipList = [];
 let lastTipIndex = -1;
 
 async function loadTips() {
-  if (sessionStorage.getItem('korki_tip_shown')) return;
+  if (sessionStorage.getItem('freiki_tip_shown')) return;
   try {
     const r = await fetch('/api/tips');
     const d = await r.json();
@@ -357,7 +357,7 @@ async function loadTips() {
     if (tipList.length) {
       showNextTip();
       setTimeout(() => { document.getElementById('tip-modal').classList.add('show'); }, 600);
-      sessionStorage.setItem('korki_tip_shown', '1');
+      sessionStorage.setItem('freiki_tip_shown', '1');
     }
   } catch (e) { /* Tipps optional */ }
 }
@@ -378,7 +378,7 @@ function closeTipModal() {
 const TODAY = new Date().toISOString().slice(0, 10);
 
 function historyKey(mode) {
-  return `korki_history_${currentUsername}_${mode}_${TODAY}`;
+  return `freiki_history_${currentUsername}_${mode}_${TODAY}`;
 }
 
 function saveHistory(mode) {
@@ -400,10 +400,10 @@ function loadHistory(mode) {
 }
 
 function clearOldHistory() {
-  // Alle korki_history-Einträge löschen die nicht von heute sind
+  // Alle freiki_history-Einträge löschen die nicht von heute sind
   try {
     Object.keys(localStorage)
-      .filter(k => k.startsWith('korki_history_') && !k.endsWith(`_${TODAY}`))
+      .filter(k => k.startsWith('freiki_history_') && !k.endsWith(`_${TODAY}`))
       .forEach(k => localStorage.removeItem(k));
   } catch(e) {}
 }
@@ -479,7 +479,7 @@ function makeModeBtn(m) {
 
 async function loadModes() {
   try {
-    const token = localStorage.getItem('korki_token') || '';
+    const token = localStorage.getItem('freiki_token') || '';
     const res = await fetch('/api/modes', { headers: token ? { 'Authorization': `Bearer ${token}` } : {}, cache: 'no-store' });
     const list = await res.json();
     modes = {};
@@ -551,11 +551,11 @@ async function login() {
     const data = await res.json();
     if (data.token) {
       authToken = data.token;
-      localStorage.setItem('korki_token', data.token);
-      localStorage.setItem('korki_token_expiry', midnightExpiry());
-      localStorage.setItem('korki_user', username);
-      localStorage.setItem('korki_role', data.role || 'default');
-      localStorage.setItem('korki_areas', JSON.stringify(data.areas || []));
+      localStorage.setItem('freiki_token', data.token);
+      localStorage.setItem('freiki_token_expiry', midnightExpiry());
+      localStorage.setItem('freiki_user', username);
+      localStorage.setItem('freiki_role', data.role || 'default');
+      localStorage.setItem('freiki_areas', JSON.stringify(data.areas || []));
       currentUsername = username;
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
@@ -738,7 +738,7 @@ let plMetaLoaded = false;
 async function plLoadMeta() {
   if (plMetaLoaded) return;
   try {
-    const token = localStorage.getItem('korki_token') || '';
+    const token = localStorage.getItem('freiki_token') || '';
     const res = await fetch('/api/paperless/meta', { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) return;
     const { tags, correspondents, document_types } = await res.json();
@@ -780,7 +780,7 @@ async function plToggleDoc(row, id) {
   panel.style.display = '';
   panel.innerHTML = '<span style="color:var(--fk-muted);font-size:13px;">Lade…</span>';
   try {
-    const token = localStorage.getItem('korki_token') || '';
+    const token = localStorage.getItem('freiki_token') || '';
     const res = await fetch(`/api/paperless/document/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
     const d = await res.json();
     const text = (d.content || '').trim();
@@ -799,7 +799,7 @@ async function plSearch() {
   btn.disabled = true;
   resultsEl.innerHTML = '<div class="pl-empty">Suche läuft…</div>';
 
-  const token = localStorage.getItem('korki_token') || '';
+  const token = localStorage.getItem('freiki_token') || '';
   const tagSel = document.getElementById('pl-tags');
   const tag_ids = tagSel.value ? [tagSel.value] : [];
 
@@ -1018,7 +1018,7 @@ function patchPaperlessLinks(el) {
     a.style.cursor = 'pointer';
     a.onclick = async (e) => {
       e.preventDefault();
-      const tk = localStorage.getItem('korki_token') || '';
+      const tk = localStorage.getItem('freiki_token') || '';
       try {
         const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + tk } });
         if (!res.ok) { alert('Dokument nicht verfügbar.'); return; }
@@ -1364,7 +1364,7 @@ async function sendHilfeFrage() {
     btn.disabled = true;
     btn.textContent = '...';
     try {
-      const token = localStorage.getItem('korki_token');
+      const token = localStorage.getItem('freiki_token');
       const res = await fetch('/api/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -1418,7 +1418,7 @@ async function sendHilfeFrage() {
   <script>
     (function() {
       async function loadAdminStats() {
-        const token = localStorage.getItem('freiki_token') || localStorage.getItem('korki_token');
+        const token = localStorage.getItem('freiki_token') || localStorage.getItem('freiki_token');
         if (!token) return;
         try {
           const r = await fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } });

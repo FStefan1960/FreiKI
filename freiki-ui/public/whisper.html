@@ -272,11 +272,11 @@
 <script>
   // Auth-Guard + hinterlegte E-Mail-Adresse anzeigen
   (async function() {
-    const token = localStorage.getItem('korki_token');
-    const expiry = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
+    const token = localStorage.getItem('freiki_token');
+    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
     if (!token || Date.now() >= expiry) {
-      localStorage.removeItem('korki_token');
-      localStorage.removeItem('korki_token_expiry');
+      localStorage.removeItem('freiki_token');
+      localStorage.removeItem('freiki_token_expiry');
       if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
       return;
     }
@@ -335,9 +335,9 @@
     formData.append('audio', file);
 
     try {
-      const token = localStorage.getItem('korki_token') || '';
-    const expiry = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
-    if (!token || Date.now() >= expiry) { localStorage.removeItem('korki_token'); localStorage.removeItem('korki_token_expiry'); if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; } return; }
+      const token = localStorage.getItem('freiki_token') || '';
+    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
+    if (!token || Date.now() >= expiry) { localStorage.removeItem('freiki_token'); localStorage.removeItem('freiki_token_expiry'); if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; } return; }
       const res = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,

@@ -311,11 +311,11 @@
 
 <script>
   (function() {
-    const token  = localStorage.getItem('korki_token');
-    const expiry = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
+    const token  = localStorage.getItem('freiki_token');
+    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
     if (!token || Date.now() >= expiry) {
-      localStorage.removeItem('korki_token');
-      localStorage.removeItem('korki_token_expiry');
+      localStorage.removeItem('freiki_token');
+      localStorage.removeItem('freiki_token_expiry');
       if (window.top !== window && window.parent.closeToolPanel) {
         window.parent.closeToolPanel();
       } else {
@@ -446,7 +446,7 @@
     grid.classList.remove('visible');
     smsg.textContent = '';
 
-    const token = localStorage.getItem('korki_token');
+    const token = localStorage.getItem('freiki_token');
     try {
       const res  = await fetch(`/api/pictograms?q=${encodeURIComponent(q)}&lang=de`,
                                { headers: token ? { Authorization: `Bearer ${token}` } : {} });

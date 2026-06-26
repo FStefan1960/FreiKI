@@ -155,8 +155,8 @@
   </div>
   <div class="section-body">
     <div class="field">
-      <label>KORKI_JWT_SECRET <span class="req">*</span> <button class="gen-btn" onclick="genHex('KORKI_JWT_SECRET',64)">generieren</button></label>
-      <input type="text" id="KORKI_JWT_SECRET" placeholder="— generieren →" data-validate="nonempty">
+      <label>JWT_SECRET <span class="req">*</span> <button class="gen-btn" onclick="genHex('JWT_SECRET',64)">generieren</button></label>
+      <input type="text" id="JWT_SECRET" placeholder="— generieren →" data-validate="nonempty">
       <span class="err-msg">Pflichtfeld – bitte generieren</span>
     </div>
     <div class="field">
@@ -478,7 +478,7 @@ function generate() {
     `APP_LOGO_SIDEBAR=${v('APP_LOGO_SIDEBAR') || '/header.png'}`,
     '',
     '# ── Secrets ──',
-    `KORKI_JWT_SECRET=${v('KORKI_JWT_SECRET')}`,
+    `JWT_SECRET=${v('JWT_SECRET')}`,
     `KB_INGEST_API_KEY=${v('KB_INGEST_API_KEY')}`,
     `BOT_API_KEY=${v('BOT_API_KEY')}`,
     `N8N_ENCRYPTION_KEY=${v('N8N_ENCRYPTION_KEY')}`,

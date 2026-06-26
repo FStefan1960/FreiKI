@@ -40,7 +40,7 @@ nano .env
 | `APP_LOGO_SIDEBAR` | Pfad Logo Sidebar | `/header.png` |
 | `APP_FOOTER_NOTE` | Fußzeilen-Text | `F. Stefan · Diakonie Kork · 2026` |
 | `APP_DEMO_MODE` | Demo-Hinweis zeigen? | `false` |
-| `KORKI_JWT_SECRET` | JWT-Geheimnis (zufällig) | `openssl rand -hex 32` |
+| `JWT_SECRET` | JWT-Geheimnis (zufällig) | `openssl rand -hex 32` |
 | `KB_INGEST_API_KEY` | API-Key für KB-Ingest | `openssl rand -hex 20` |
 | `BOT_API_KEY` | API-Key für Bot | `openssl rand -hex 20` |
 
