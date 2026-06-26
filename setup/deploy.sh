@@ -11,7 +11,7 @@ echo "-> Git pull..."
 git pull origin main
 
 echo "-> Version schreiben..."
-git rev-parse --short HEAD > freiki-ui/VERSION
+git rev-parse --short HEAD > freiki-ui/public/VERSION
 
 echo "-> Container neu starten..."
 docker compose restart freiki-ui

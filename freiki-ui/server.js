@@ -315,7 +315,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // ── Brand-Injection: index.html als Template rendern ─────────
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const CACHE_VERSION = Date.now().toString(36);
-const GIT_VERSION = (() => { try { return fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim(); } catch { return 'dev'; } })();
+const GIT_VERSION = (() => { try { return fs.readFileSync(path.join(PUBLIC_DIR, 'VERSION'), 'utf8').trim(); } catch { return 'dev'; } })();
 function getIndexHtml() {
   return fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8')
     .replace(/\{\{APP_NAME\}\}/g,          brandConfig.name)
