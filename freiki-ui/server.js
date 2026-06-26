@@ -2132,6 +2132,27 @@ function trackChatRequest(userId) {
   if (userId) pgPool.query('INSERT INTO chat_log (user_id) VALUES ($1)', [userId]).catch(() => {});
 }
 
+const gpuCache = { live: 0, peak: 0, peakDate: '' };
+
+async function pollGpuCache() {
+  try {
+    const r = await fetch(`${VLLM_URL}/metrics`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return;
+    const text = await r.text();
+    const match = text.match(/vllm:gpu_cache_usage_perc\s+([\d.]+)/);
+    if (match) {
+      const val = parseFloat(match[1]) * 100;
+      gpuCache.live = val;
+      const today = new Date().toDateString();
+      if (today !== gpuCache.peakDate) { gpuCache.peak = 0; gpuCache.peakDate = today; }
+      if (val > gpuCache.peak) gpuCache.peak = val;
+    }
+  } catch (_) {}
+}
+
+setInterval(pollGpuCache, 60_000);
+pollGpuCache();
+
 app.get('/api/admin/stats', async (req, res) => {
   const s = getSession(req);
   if (!s || s.role !== 'admin') return res.status(403).json({ error: 'Kein Zugriff' });
@@ -2143,6 +2164,8 @@ app.get('/api/admin/stats', async (req, res) => {
     res.json({
       requests: parseInt(rows[0].requests),
       users: parseInt(rows[0].users),
+      gpuCacheLive: Math.round(gpuCache.live * 10) / 10,
+      gpuCachePeak: Math.round(gpuCache.peak * 10) / 10,
     });
   } catch (e) {
     res.status(500).json({ error: 'DB-Fehler' });
