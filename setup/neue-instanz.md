@@ -1,280 +1,162 @@
-# Neue Instanz aus GitHub aufsetzen
+# Neue FreiKI-Instanz einrichten
 
-Diese Anleitung beschreibt, wie aus dem FreiKI-Repository eine neue, eigenständige Instanz (z.B. „EvaKI") aufgesetzt wird. Ausgangspunkt ist ein laufendes Ubuntu-System.
-
----
-
-## 1. Servervorbereitung
+## 1 · Server vorbereiten
 
 ```bash
-sudo apt update && sudo apt upgrade -y
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker
-sudo apt install -y git curl openssl ufw
-```
+# SSH-Key für GitHub generieren
+ssh-keygen -t ed25519 -C "<instanz>-server-deploy" -f ~/.ssh/id_ed25519 -N ''
+cat ~/.ssh/id_ed25519.pub
+# → GitHub → FStefan1960/FreiKI → Settings → Deploy keys → Add (Read-only)
 
-### Firewall einrichten
+# GitHub als known host eintragen
+ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-```bash
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 25/tcp
-sudo ufw allow 587/tcp
-sudo ufw allow 143/tcp
-sudo ufw allow 993/tcp
-sudo ufw enable
-```
-
-Tailscale installieren und einloggen, dann:
-
-```bash
-sudo ufw allow in on tailscale0
-```
-
-Deployment-User anlegen:
-
-```bash
-sudo adduser evaki-admin
-sudo usermod -aG docker,sudo evaki-admin
-su - evaki-admin
+# Repo klonen
+git clone git@github.com:FStefan1960/FreiKI.git ~/freiki-package
+cd ~/freiki-package
 ```
 
 ---
 
-## 2. Repository klonen
-
-```bash
-git clone git@github.com:FStefan1960/FreiKI.git evaki-package
-cd evaki-package
-```
-
-> SSH-Key des Servers vorher bei GitHub hinterlegen (Settings → SSH and GPG keys).
-
----
-
-## 3. .env anlegen und anpassen
+## 2 · .env ausfüllen
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Folgende Felder **zwingend** anpassen:
+### Pflichtfelder
 
-| Variable | Hinweis |
-|----------|---------|
-| `POSTGRES_USER` | z.B. `evaki_user` |
-| `POSTGRES_PASSWORD` | `openssl rand -hex 32` |
-| `POSTGRES_DB` | z.B. `evaki` |
-| `N8N_HOST` | `n8n.evaki.de` |
-| `WEBHOOK_URL` | `https://n8n.evaki.de/` |
-| `N8N_ENCRYPTION_KEY` | `openssl rand -hex 32` |
-| `VLLM_URL` | API-Endpunkt (z.B. DeepInfra) |
-| `VLLM_API_KEY` | API-Key für neuen Mandanten |
-| `VLLM_MODEL` | z.B. `Qwen/Qwen3-32B` |
-| `APP_URL` | `https://app.evaki.de` |
-| `KORKI_JWT_SECRET` | `openssl rand -hex 32` |
-| `KB_INGEST_API_KEY` | `openssl rand -hex 32` |
-| `MATTERMOST_URL` | `https://chat.evaki.de` |
-| `PAPERLESS_URL` | `https://paperless.evaki.de` |
-| `PAPERLESS_SECRET_KEY` | `openssl rand -hex 32` |
-| `PAPERLESS_ADMIN_PASSWORD` | neu generieren |
-| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | nach Mailserver-Einrichtung (Schritt 9) |
+| Variable | Bedeutung | Beispiel |
+|---|---|---|
+| `APP_NAME` | Name der Instanz | `KorKI` |
+| `APP_TAGLINE` | Slogan unter dem Logo | `KI für die Diakonie Kork` |
+| `APP_URL` | Öffentliche URL der App | `https://assi.diakonie-kork-ki.de` |
+| `APP_COLOR` | Hauptfarbe (Hex) | `#1F54C0` |
+| `APP_COLOR_HOVER` | Hover-Farbe | `#1A4AAD` |
+| `APP_COLOR_ACTIVE` | Aktiv-Farbe | `#173F95` |
+| `APP_NAVY` | Dunkle Akzentfarbe | `#14306B` |
+| `APP_LOGO` | Pfad Logo Header | `/header.png` |
+| `APP_LOGO_SIDEBAR` | Pfad Logo Sidebar | `/header.png` |
+| `APP_FOOTER_NOTE` | Fußzeilen-Text | `F. Stefan · Diakonie Kork · 2026` |
+| `APP_DEMO_MODE` | Demo-Hinweis zeigen? | `false` |
+| `KORKI_JWT_SECRET` | JWT-Geheimnis (zufällig) | `openssl rand -hex 32` |
+| `KB_INGEST_API_KEY` | API-Key für KB-Ingest | `openssl rand -hex 20` |
+| `BOT_API_KEY` | API-Key für Bot | `openssl rand -hex 20` |
 
-Secrets schnell generieren:
-```bash
-openssl rand -hex 32
-```
+### LLM-Backend
 
----
+| Variable | Bedeutung |
+|---|---|
+| `VLLM_URL` | OpenAI-kompatibler Endpunkt |
+| `VLLM_API_KEY` | API-Key des Providers |
+| `VLLM_MODEL` | Modellname |
+| `VLLM_EMBED_URL` | Embedding-Endpunkt |
+| `WHISPER_MODEL` | `tiny` / `base` / `large-v3` |
 
-## 4. Branding (White-Label)
+### Datenbank & Automatisierung
 
-In `.env` die App-Variablen auf die neue Instanz anpassen:
+| Variable | Bedeutung |
+|---|---|
+| `POSTGRES_USER` | DB-Benutzername |
+| `POSTGRES_PASSWORD` | DB-Passwort |
+| `POSTGRES_DB` | DB-Name |
+| `N8N_HOST` | n8n-Hostname |
+| `WEBHOOK_URL` | n8n Webhook-Basis-URL |
+| `N8N_ENCRYPTION_KEY` | n8n Verschlüsselungskey |
+| `N8N_WEBHOOK_URL` | Webhook-URL für KI-Assistent |
 
-```env
-APP_NAME=EvaKI
-APP_COLOR=#IHRE_FARBE
-APP_COLOR_HOVER=#DUNKLERE
-APP_COLOR_ACTIVE=#NOCH_DUNKLER
-APP_NAVY=#IHRE_DUNKELFARBE
-APP_TAGLINE=Ihr KI-Assistent
-APP_LOGO=/icons/evaki-logo.svg
-APP_LOGO_SIDEBAR=/icons/evaki-mark.svg
-APP_SW_VERSION=1
-APP_DEMO_MODE=false
-APP_FOOTER_NOTE=
-```
+### Mail
 
-Logos als SVG nach `freiki-ui/public/icons/` kopieren.
+| Variable | Bedeutung |
+|---|---|
+| `MAIL_DOMAIN` | Domain des Mailservers |
+| `SMTP_HOST` | SMTP-Server |
+| `SMTP_PORT` | Port (587 / 465) |
+| `SMTP_USER` | SMTP-Benutzername |
+| `SMTP_PASS` | SMTP-Passwort |
+| `SMTP_FROM` | Absenderadresse |
 
-### Caddyfile anpassen
+### Optionale Dienste
 
-```bash
-sed -i 's/freiki\.com/evaki.de/g' caddy/Caddyfile
-```
-
-### Wissensbereiche anpassen
-
-```bash
-nano freiki-ui/areas.json
-# Bereiche umbenennen, Icons zuweisen
-# Prompts in freiki-ui/prompts/ anpassen (w_freiki.md → für neue Instanz)
-```
-
----
-
-## 5. DNS einrichten
-
-Bei eurem DNS-Anbieter folgende Einträge für `evaki.de` setzen:
-
-| Typ | Hostname | Wert |
-|-----|----------|------|
-| A | `@` | Server-IP |
-| A | `app` | Server-IP |
-| A | `n8n` | Server-IP |
-| A | `chat` | Server-IP |
-| A | `paperless` | Server-IP |
-| A | `mail` | Server-IP |
-| MX | `@` | `mail.evaki.de` (Prio 10) |
-| TXT | `@` | `v=spf1 mx ~all` |
-| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:postmaster@evaki.de` |
-
-Reverse DNS (PTR) im Hoster-Panel: `SERVER-IP → mail.evaki.de`
+| Variable | Bedeutung |
+|---|---|
+| `MATTERMOST_URL` | Öffentliche Mattermost-URL |
+| `MATTERMOST_OIDC_CLIENT_ID` | SSO Client-ID |
+| `MATTERMOST_OIDC_CLIENT_SECRET` | SSO Client-Secret |
+| `MATTERMOST_OIDC_REDIRECT_URI` | SSO Redirect-URI |
+| `PAPERLESS_URL` | Öffentliche Paperless-URL |
+| `PAPERLESS_INTERNAL_URL` | Interne Paperless-URL |
+| `PAPERLESS_TOKEN` | Paperless API-Token |
+| `PAPERLESS_SECRET_KEY` | Paperless Secret |
+| `PAPERLESS_ADMIN_USER` | Paperless Admin |
+| `PAPERLESS_ADMIN_PASSWORD` | Paperless Passwort |
+| `HUGGING_FACE_HUB_TOKEN` | Nur bei GPU-Instanz mit vLLM |
 
 ---
 
-## 6. Stack starten
+## 3 · Instanz-spezifische Dateien
+
+Aus `instance-template/` kopieren und anpassen:
 
 ```bash
+cp -r instance-template/public/. freiki-ui/public/
+cp instance-template/areas.json freiki-ui/areas.json
+cp instance-template/welcome.md freiki-ui/welcome.md
+cp instance-template/tips.md freiki-ui/tips.md
+cp -r instance-template/prompts/. freiki-ui/prompts/
+```
+
+### Checkliste
+
+- [ ] `freiki-ui/public/header.png` — Logo für Header und Login (ersetzt FreiKI-Standard)
+- [ ] `freiki-ui/public/apple-touch-icon.png` — PWA-Icon fürs Handy
+- [ ] `freiki-ui/public/favicon-32.png` — Browser-Tab-Icon
+- [ ] `freiki-ui/public/icons/icon-192.png` — PWA-Icon 192px
+- [ ] `freiki-ui/public/icons/icon-512.png` — PWA-Icon 512px
+- [ ] `freiki-ui/public/manifest.json` — App-Name, Farbe, Icon-Pfade anpassen
+- [ ] `freiki-ui/public/extras/` — Instanz-spezifische Extras hinzufügen/entfernen
+- [ ] `freiki-ui/areas.json` — Wissenskategorien konfigurieren
+- [ ] `freiki-ui/welcome.md` — Willkommenstext anpassen
+- [ ] `freiki-ui/tips.md` — Tipps anpassen
+- [ ] `freiki-ui/prompts/w_*.md` — Wissen-Prompts hinzufügen
+
+---
+
+## 4 · Caddy & Docker konfigurieren
+
+```bash
+nano caddy/Caddyfile   # Domains anpassen
+nano docker-compose.yml
+```
+
+- [ ] Alle Domains in `caddy/Caddyfile` auf neue Instanz gesetzt
+- [ ] `docker-compose.yml`: Volume-Namen mit `name:` explizit gesetzt
+- [ ] `docker-compose.yml`: Netzwerke als `external: true` (wenn bestehend)
+
+---
+
+## 5 · Starten & deployen
+
+```bash
+# Datenbank-Schema einrichten (einmalig)
+docker compose up -d postgres
+sleep 10
+docker exec -i PostgreSQL psql -U $POSTGRES_USER -d $POSTGRES_DB < setup/schema.sql
+
+# Alle Dienste starten
 docker compose up -d
-docker compose logs -f
-```
 
-Beim ersten Start lädt Docker alle Images automatisch herunter, inkl. Piper-TTS (`ghcr.io/matatonic/openedai-speech-min`). Das kann einige Minuten dauern.
-
-Danach das freiki-ui Image bauen (enthält server.js):
-
-```bash
-docker compose build freiki-ui
-docker compose up -d freiki-ui
+# Erstes Deploy (schreibt VERSION-Datei)
+bash setup/deploy.sh
 ```
 
 ---
 
-## 7. Piper-Stimme einrichten
+## 6 · Nach dem Start
 
-Die Stimmdatei ist nicht im Repo enthalten und muss manuell heruntergeladen werden:
-
-```bash
-mkdir -p piper/voices
-
-# Deutsche Stimme Thorsten (ca. 65 MB)
-wget -O piper/voices/de_DE-thorsten-medium.onnx \
-  https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx
-
-wget -O piper/voices/de_DE-thorsten-medium.onnx.json \
-  https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx.json
-
-# Piper neu starten damit er die Stimme erkennt
-docker compose restart piper
-```
-
----
-
-## 8. Ersten Admin-User anlegen
-
-```bash
-bash setup/create-admin.sh
-```
-
----
-
-## 9. Mailserver einrichten
-
-```bash
-# DKIM-Key generieren
-docker exec Mailserver setup config dkim
-
-# Key für DNS auslesen → TXT-Eintrag mail._domainkey anlegen
-docker exec Mailserver cat /tmp/docker-mailserver/opendkim/keys/evaki.de/mail.txt
-
-# Mailkonten anlegen
-for ACCOUNT in noreply paperless n8n info admin postmaster; do
-    PASS=$(openssl rand -base64 20)
-    docker exec Mailserver setup email add ${ACCOUNT}@evaki.de "$PASS"
-    echo "${ACCOUNT}@evaki.de: $PASS"
-done >> ~/mail-accounts.txt
-chmod 600 ~/mail-accounts.txt
-
-# SMTP_PASS in .env auf noreply-Passwort setzen, dann neu starten:
-docker compose up -d freiki-ui
-```
-
-Port 25 beim Hoster freischalten lassen (Voraussetzung: PTR, SPF, FQDN gesetzt).
-
----
-
-## 10. Paperless IMAP-Verbindung konfigurieren
-
-In Paperless unter **Einstellungen → E-Mail** → neues Konto:
-
-| Feld | Wert |
-|------|------|
-| IMAP-Server | `Mailserver` (interner Container-Name) |
-| IMAP-Port | `143` |
-| Benutzername | `paperless@evaki.de` |
-| Passwort | aus `mail-accounts.txt` |
-| Sicherheit | STARTTLS |
-| Nach Verarbeitung | **In Papierkorb verschieben** (niemals „Als gelesen markieren") |
-
----
-
-## 11. Backup-Cronjob einrichten
-
-```bash
-# backup.sh anpassen: REMOTE_DIR, Pfade
-cp setup/backup.sh ~/backup.sh
-nano ~/backup.sh
-chmod +x ~/backup.sh
-
-# SSH-Key für Backup-Transfer
-ssh-keygen -t ed25519 -f ~/.ssh/backup_key -N ""
-cat ~/.ssh/backup_key.pub
-# → Public Key auf Backup-Server in authorized_keys eintragen
-
-crontab -e
-# 0 3 * * * /home/evaki-admin/backup.sh >> /home/evaki-admin/backup.log 2>&1
-```
-
----
-
-## 12. Abschlusskontrolle
-
-```bash
-docker ps   # Alle Container running?
-
-# Mailversand testen
-docker exec Mailserver swaks --to admin@evaki.de --from noreply@evaki.de \
-  --server localhost --port 587 --auth LOGIN \
-  --auth-user noreply@evaki.de --auth-password PASSWORT --tls \
-  --h-Subject "EvaKI Test" --body "Mailserver funktioniert"
-
-# DNS-Check
-dig MX evaki.de +short
-dig TXT evaki.de +short
-dig -x SERVER-IP +short
-```
-
----
-
-## Updates einspielen
-
-```bash
-cd evaki-package
-git pull
-docker compose build freiki-ui
-docker compose up -d
-```
+- [ ] Admin-User anlegen: `bash setup/create-admin.sh`
+- [ ] DNS-Einträge prüfen (A-Records zeigen auf Server)
+- [ ] DKIM einrichten: `docker exec Mailserver setup config dkim ...`
+- [ ] n8n-Workflows importieren: `setup/n8n-workflows-export.json`
+- [ ] Versionsnummer in der Fußzeile sichtbar ✓
