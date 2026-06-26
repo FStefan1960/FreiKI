@@ -21,6 +21,7 @@ caddy-data/
 caddy-config/
 
 # Instanz-spezifische Dateien (bleiben auf dem Server, werden nicht überschrieben)
+docker-compose.yml
 freiki-ui/public/header.png
 freiki-ui/public/apple-touch-icon.png
 freiki-ui/public/favicon-32.png
