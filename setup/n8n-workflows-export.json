@@ -1,0 +1,2336 @@
+[
+  {
+    "updatedAt": "2026-06-20T17:40:57.877Z",
+    "createdAt": "2026-06-20T17:40:57.877Z",
+    "id": "19YTRAUMpoH3mywV",
+    "name": "FreiKI Paperless Tags synchronisieren",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 24
+              }
+            ]
+          }
+        },
+        "id": "schedule-trigger-tagsync",
+        "name": "Täglich",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -500,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://freiki-ui:3000/api/kb-areas",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "REDACTED-ROTATED-KEY"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-get-areas",
+        "name": "KB-Bereiche holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -280,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-get-tags",
+        "name": "Paperless Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -60,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const areas = $('KB-Bereiche holen').first().json.areas || [];\nconst existingTags = $input.first().json.results || [];\nconst existingNames = existingTags.map(t => t.name.toLowerCase());\n\nconst missing = areas.filter(a => !existingNames.includes(a));\nreturn missing.map(name => ({ json: { name } }));"
+        },
+        "id": "code-find-missing",
+        "name": "Fehlende Tags ermitteln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          160,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://paperless:8000/api/tags/",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ { name: $json.name } }}",
+          "options": {}
+        },
+        "id": "http-create-tag",
+        "name": "Tag in Paperless anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          380,
+          80
+        ]
+      }
+    ],
+    "connections": {
+      "Täglich": {
+        "main": [
+          [
+            {
+              "node": "KB-Bereiche holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "KB-Bereiche holen": {
+        "main": [
+          [
+            {
+              "node": "Paperless Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paperless Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Fehlende Tags ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fehlende Tags ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Tag in Paperless anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": {
+      "node:Täglich": {
+        "recurrenceRules": [
+          0
+        ]
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "511ba611-b5b0-42a0-9d5a-d0b7b5de34e3",
+    "activeVersionId": "511ba611-b5b0-42a0-9d5a-d0b7b5de34e3",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-20T17:40:57.877Z",
+        "createdAt": "2026-06-20T17:40:57.877Z",
+        "role": "workflow:owner",
+        "workflowId": "19YTRAUMpoH3mywV",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-06-22T15:26:53.845Z",
+    "createdAt": "2026-06-22T15:26:53.845Z",
+    "id": "freiki-monitoring-disk",
+    "name": "FreiKI Monitoring – Disk & Memory Alert",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 30
+              }
+            ]
+          }
+        },
+        "id": "trigger-30min",
+        "name": "Alle 30 Minuten",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -600,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://freiki-ui:3000/api/health",
+          "options": {
+            "timeout": 5000
+          }
+        },
+        "id": "http-health",
+        "name": "FreiKI Health holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -400,
+          0
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst h = $input.first().json;\nconst alerts = [];\n\n// Disk\nif (h.disk) {\n  const pct = h.disk.usedPercent || 0;\n  if (pct > 85) alerts.push(`🚨 Disk: ${pct.toFixed(1)}% belegt (${h.disk.used} / ${h.disk.total})`);\n  else if (pct > 70) alerts.push(`⚠️ Disk: ${pct.toFixed(1)}% belegt`);\n}\n\n// Memory\nif (h.memory) {\n  const pct = (h.memory.used / h.memory.total * 100);\n  if (pct > 90) alerts.push(`🚨 RAM: ${pct.toFixed(1)}% belegt`);\n  else if (pct > 80) alerts.push(`⚠️ RAM: ${pct.toFixed(1)}% belegt`);\n}\n\nreturn [{ json: { hasAlert: alerts.length > 0, alerts } }];\n"
+        },
+        "id": "code-check-thresholds",
+        "name": "Schwellwerte prüfen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -200,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $json.hasAlert }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-alert",
+        "name": "Alert nötig?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://mattermost:8065/api/v4/posts",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={ { \"channel_id\": \"cobxa3cfwjdt7rr8wxnr7q9ynr\", \"message\": `🔔 **FreiKI Ressourcen-Alert**\\n` + $json.alerts.join('\\n') } }",
+          "options": {}
+        },
+        "id": "mm-post-alert",
+        "name": "Alert an Mattermost",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          200,
+          -100
+        ]
+      }
+    ],
+    "connections": {
+      "Alle 30 Minuten": {
+        "main": [
+          [
+            {
+              "node": "FreiKI Health holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FreiKI Health holen": {
+        "main": [
+          [
+            {
+              "node": "Schwellwerte prüfen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schwellwerte prüfen": {
+        "main": [
+          [
+            {
+              "node": "Alert nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alert nötig?": {
+        "main": [
+          [
+            {
+              "node": "Alert an Mattermost",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "fd7b21a0-1499-4f0b-a75f-43e26bb0bcf7",
+    "activeVersionId": "fd7b21a0-1499-4f0b-a75f-43e26bb0bcf7",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-22T15:26:53.845Z",
+        "createdAt": "2026-06-22T15:26:53.845Z",
+        "role": "workflow:owner",
+        "workflowId": "freiki-monitoring-disk",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-06-22T15:26:59.543Z",
+    "createdAt": "2026-06-21T08:44:43.391Z",
+    "id": "nZ4r7JyjeDaHSP0E",
+    "name": "Paperless KI-Tagging",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 2
+              }
+            ]
+          }
+        },
+        "id": "3ad52a6f-6305-469e-8c3d-ae53941d8549",
+        "name": "Alle 2 Stunden",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -2640,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=200",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "8e198873-65c6-47f0-acf1-589b370dfc5e",
+        "name": "Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2448,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/correspondents/?page_size=200",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "5c3df665-950b-4938-888f-59fc75a8fc20",
+        "name": "Korrespondenten holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2240,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/document_types/?page_size=200",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "e02561fd-0e4a-44be-a083-a9d658b9f7a4",
+        "name": "Dokumenttypen holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2048,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ 'http://paperless:8000/api/documents/?tags__id__all=' + (($('Tags holen').first().json.results || []).find(t => t.name === 'not-yet-tagged') || {}).id + '&page_size=25&ordering=created' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "96c18f4f-cfcc-455d-a06e-c057f23719ee",
+        "name": "Neue Dokumente holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1840,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const tagResults = $('Tags holen').first().json.results || [];\nconst corrResults = $('Korrespondenten holen').first().json.results || [];\nconst docTypeResults = $('Dokumenttypen holen').first().json.results || [];\n\nconst tagMap = {};\nfor (const t of tagResults) { tagMap[t.name.toLowerCase()] = t.id; }\nconst notYetTaggedId = tagMap['not-yet-tagged'];\nif (!notYetTaggedId) throw new Error('Tag \"not-yet-tagged\" nicht in Paperless gefunden');\n\nconst corrMap = {};\nfor (const c of corrResults) { corrMap[c.name.toLowerCase()] = c.id; }\n\nconst docTypeMap = {};\nfor (const d of docTypeResults) { docTypeMap[d.name.toLowerCase()] = d.id; }\n\nconst docs = $input.first().json.results || [];\nif (!docs.length) return [];\n\nreturn docs.map(doc => ({\n  json: {\n    docId: doc.id,\n    currentTitle: doc.title,\n    content: (doc.content || '').slice(0, 6000),\n    currentTags: doc.tags.filter(id => id !== notYetTaggedId),\n    notYetTaggedId,\n    tagMap,\n    corrMap,\n    docTypeMap\n  }\n}));"
+        },
+        "id": "d06eb2ea-f865-44ff-ad9a-6f136ad942a4",
+        "name": "Aufbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1648,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "42ea14f5-f9a1-4fa3-8bbb-43eb43378a87",
+        "name": "Pro Dokument",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          -1440,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: 'Qwen/Qwen3-32B', messages: [{ role: 'system', content: 'Du analysierst Dokumente für ein digitales Archiv. Antworte NUR mit einem JSON-Objekt, kein Text davor oder danach. /no_think' }, { role: 'user', content: 'Analysiere dieses Dokument und gib zurück:\\n{\\n  \"title\": \"präziser, kurzer Titel auf Deutsch, max. 60 Zeichen\",\\n  \"correspondent\": \"offizieller Name des Absenders/der Firma (oder null)\",\\n  \"document_type\": \"Typ: Rechnung, Vertrag, Bescheid, Brief, Kontoauszug, Quittung, Versicherung oder Sonstiges\",\\n  \"created\": \"Datum des Dokuments YYYY-MM-DD (oder null wenn nicht erkennbar)\",\\n  \"tags\": [\"tag1\", \"tag2\"]\\n}\\nRegeln:\\n- Titel: kurz, präzise, deutsch\\n- Correspondent: offizieller Name der ausstellenden Stelle oder Firma\\n- Tags: 2-5 Stück, deutsch, nur lowercase Buchstaben und Bindestriche\\n- NUR das JSON zurückgeben\\n\\nDokumenttext:\\n' + $json.content }], stream: false, max_tokens: 300 }) }}",
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "d8a5e394-da27-4f49-a58b-0a2d1df734d5",
+        "name": "LLM aufrufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1248,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const doc = $('Pro Dokument').item.json;\nlet raw = $input.item.json.choices?.[0]?.message?.content || '';\n\nraw = raw.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();\n\nlet title = doc.currentTitle;\nlet suggestedTags = [];\nlet correspondentName = null;\nlet documentTypeName = null;\nlet created = null;\n\ntry {\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    const parsed = JSON.parse(match[0]);\n    if (parsed.title) title = parsed.title.trim().slice(0, 80);\n    suggestedTags = (parsed.tags || []).map(t => t.toLowerCase().trim().replace(/[^a-z0-9\\-äöüß]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''));\n    if (parsed.correspondent && parsed.correspondent !== 'null') correspondentName = String(parsed.correspondent).trim();\n    if (parsed.document_type && parsed.document_type !== 'null') documentTypeName = String(parsed.document_type).trim();\n    if (parsed.created && parsed.created !== 'null') {\n      const d = new Date(parsed.created);\n      if (!isNaN(d.getTime())) created = parsed.created;\n    }\n  }\n} catch(e) {}\n\nconst tagMap = doc.tagMap || {};\nconst corrMap = doc.corrMap || {};\nconst docTypeMap = doc.docTypeMap || {};\n\nconst existingTagIds = [...doc.currentTags];\nconst newTagNames = [];\nfor (const name of suggestedTags) {\n  if (tagMap[name] !== undefined) {\n    if (!existingTagIds.includes(tagMap[name])) existingTagIds.push(tagMap[name]);\n  } else {\n    newTagNames.push(name);\n  }\n}\n\nlet correspondentId = null;\nlet newCorrespondentName = null;\nif (correspondentName) {\n  const key = correspondentName.toLowerCase();\n  if (corrMap[key] !== undefined) { correspondentId = corrMap[key]; }\n  else { newCorrespondentName = correspondentName; }\n}\n\nlet documentTypeId = null;\nlet newDocumentTypeName = null;\nif (documentTypeName) {\n  const key = documentTypeName.toLowerCase();\n  if (docTypeMap[key] !== undefined) { documentTypeId = docTypeMap[key]; }\n  else { newDocumentTypeName = documentTypeName; }\n}\n\nreturn [{ json: {\n  docId: doc.docId,\n  title,\n  created,\n  existingTagIds,\n  newTagNames,\n  notYetTaggedId: doc.notYetTaggedId,\n  correspondentId,\n  newCorrespondentName,\n  documentTypeId,\n  newDocumentTypeName,\n  tagMap,\n  corrMap,\n  docTypeMap,\n  skipTagCreation: newTagNames.length === 0\n}}];"
+        },
+        "id": "0f1576c8-e5fe-4f69-b969-f9f9c49aa351",
+        "name": "Antwort parsen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1040,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.newCorrespondentName ? 'http://paperless:8000/api/correspondents/' : 'http://paperless:8000/api/__skip__/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $json.newCorrespondentName }) }}",
+          "options": {}
+        },
+        "id": "529edf24-ace4-476f-a1aa-ece880d65db3",
+        "name": "Korrespondent anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -848,
+          416
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const httpResp = $input.item.json;\nconst parseData = $('Antwort parsen').item.json;\n\nlet correspondentId = parseData.correspondentId;\nif (httpResp.id) {\n  correspondentId = httpResp.id;\n} else if (parseData.newCorrespondentName) {\n  correspondentId = parseData.corrMap[parseData.newCorrespondentName.toLowerCase()] || null;\n}\n\nreturn [{ json: { ...parseData, correspondentId } }];"
+        },
+        "id": "704368a7-57eb-4aba-941e-0c87b8c332d5",
+        "name": "Korrespondent-ID ermitteln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -640,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $json.newDocumentTypeName ? 'http://paperless:8000/api/document_types/' : 'http://paperless:8000/api/__skip__/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $json.newDocumentTypeName }) }}",
+          "options": {}
+        },
+        "id": "ae39cad3-0b63-45ce-94cd-79f22bded518",
+        "name": "Dokumenttyp anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -448,
+          416
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const httpResp = $input.item.json;\nconst corrData = $('Korrespondent-ID ermitteln').item.json;\n\nlet documentTypeId = corrData.documentTypeId;\nif (httpResp.id) {\n  documentTypeId = httpResp.id;\n} else if (corrData.newDocumentTypeName) {\n  documentTypeId = corrData.docTypeMap[corrData.newDocumentTypeName.toLowerCase()] || null;\n}\n\nreturn [{ json: { ...corrData, documentTypeId } }];"
+        },
+        "id": "a69406cc-d4aa-47dc-b075-21369e4da037",
+        "name": "Dokumenttyp-ID ermitteln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -240,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $json.skipTagCreation }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "73e48459-5c70-4670-bec8-f98a8f1c588e",
+        "name": "Neue Tags nötig?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -48,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const item = $input.item.json;\nreturn item.newTagNames.map(name => ({ json: { ...item, currentTagName: name } }));"
+        },
+        "id": "23902f10-56ef-4e24-85fb-bdfb30ab469f",
+        "name": "Tags aufteilen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -48,
+          592
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "0b19c67a-828e-44de-ab44-63ea4605746f",
+        "name": "Pro neuem Tag",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          160,
+          592
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://paperless:8000/api/tags/",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ name: $json.currentTagName }) }}",
+          "options": {}
+        },
+        "id": "7daa4f4c-6baf-420e-ae58-7a546b87044e",
+        "name": "Tag anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          368,
+          592
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const httpResp = $input.item.json;\nconst tagItem = $('Tags aufteilen').item.json;\n\nlet resolvedTagId = null;\nif (httpResp.id) {\n  resolvedTagId = httpResp.id;\n} else {\n  resolvedTagId = (tagItem.tagMap || {})[tagItem.currentTagName] || null;\n}\nreturn [{ json: { ...tagItem, resolvedTagId } }];"
+        },
+        "id": "a2ed9215-af19-4345-bad3-fe04f95ca95e",
+        "name": "Tag-ID ermitteln",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          560,
+          592
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\n\n// Pfad 1: keine neuen Tags nötig\nif (items[0]?.json?.skipTagCreation) {\n  const d = items[0].json;\n  const patch = { docId: d.docId, title: d.title, finalTagIds: d.existingTagIds };\n  if (d.correspondentId) patch.correspondentId = d.correspondentId;\n  if (d.documentTypeId) patch.documentTypeId = d.documentTypeId;\n  if (d.created) patch.created = d.created;\n  return [{ json: patch }];\n}\n\n// Pfad 2: nach Tag-Erstellung (Items aus inner-loop done)\nconst base = items[0].json;\nconst collectedIds = [...base.existingTagIds];\nfor (const item of items) {\n  const id = item.json.resolvedTagId;\n  if (id && !collectedIds.includes(id)) collectedIds.push(id);\n}\nconst patch = { docId: base.docId, title: base.title, finalTagIds: collectedIds };\nif (base.correspondentId) patch.correspondentId = base.correspondentId;\nif (base.documentTypeId) patch.documentTypeId = base.documentTypeId;\nif (base.created) patch.created = base.created;\nreturn [{ json: patch }];"
+        },
+        "id": "d64af88a-1ad2-453f-9e04-4c11b88dcead",
+        "name": "Patch vorbereiten",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          160,
+          224
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const d = $input.item.json;\nconst body = { title: d.title, tags: d.finalTagIds };\nif (d.correspondentId != null) body.correspondent = d.correspondentId;\nif (d.documentTypeId != null) body.document_type = d.documentTypeId;\nif (d.created) body.created = d.created;\nreturn [{ json: { ...d, patchBody: JSON.stringify(body) } }];"
+        },
+        "id": "92448512-d671-4560-a239-f4fc9cd8aad7",
+        "name": "PATCH-Body aufbauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          368,
+          224
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "={{ 'http://paperless:8000/api/documents/' + $json.docId + '/' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ $json.patchBody }}",
+          "options": {}
+        },
+        "id": "8eb253f4-7d8e-4886-96fc-e25d8b0a8f3e",
+        "name": "Dokument aktualisieren",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          560,
+          224
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "e6a6febe-bf4d-4da6-a672-ee68dd6cadda",
+        "name": "Fertig",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          560,
+          224
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Zähle wie viele Dokumente in diesem Lauf verarbeitet wurden\n// (wir nutzen $execution.id als Proxy, da kein direkter Zähler)\nconst items = $input.all();\nconst count = items.length;\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\nreturn [{ json: { \n  message: `📄 **Paperless KI-Tagging** (${now})\\n${count} Dokument(e) automatisch verschlagwortet.`\n} }];\n"
+        },
+        "id": "code-tagging-report",
+        "name": "Tagging-Report aufbauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          800,
+          224
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://mattermost:8065/api/v4/posts",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={ { \"channel_id\": \"cobxa3cfwjdt7rr8wxnr7q9ynr\", \"message\": $json.message } }",
+          "options": {}
+        },
+        "id": "mm-post-tagging",
+        "name": "Tagging-Report an Mattermost",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1000,
+          224
+        ]
+      }
+    ],
+    "connections": {
+      "Alle 2 Stunden": {
+        "main": [
+          [
+            {
+              "node": "Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Korrespondenten holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Korrespondenten holen": {
+        "main": [
+          [
+            {
+              "node": "Dokumenttypen holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumenttypen holen": {
+        "main": [
+          [
+            {
+              "node": "Neue Dokumente holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Neue Dokumente holen": {
+        "main": [
+          [
+            {
+              "node": "Aufbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aufbereiten": {
+        "main": [
+          [
+            {
+              "node": "Pro Dokument",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pro Dokument": {
+        "main": [
+          [
+            {
+              "node": "Fertig",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "LLM aufrufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "LLM aufrufen": {
+        "main": [
+          [
+            {
+              "node": "Antwort parsen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Antwort parsen": {
+        "main": [
+          [
+            {
+              "node": "Korrespondent anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Korrespondent anlegen": {
+        "main": [
+          [
+            {
+              "node": "Korrespondent-ID ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Korrespondent-ID ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Dokumenttyp anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumenttyp anlegen": {
+        "main": [
+          [
+            {
+              "node": "Dokumenttyp-ID ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumenttyp-ID ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Neue Tags nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Neue Tags nötig?": {
+        "main": [
+          [
+            {
+              "node": "Patch vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Tags aufteilen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tags aufteilen": {
+        "main": [
+          [
+            {
+              "node": "Pro neuem Tag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pro neuem Tag": {
+        "main": [
+          [
+            {
+              "node": "Patch vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Tag anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tag anlegen": {
+        "main": [
+          [
+            {
+              "node": "Tag-ID ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tag-ID ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Pro neuem Tag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Patch vorbereiten": {
+        "main": [
+          [
+            {
+              "node": "PATCH-Body aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PATCH-Body aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Dokument aktualisieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokument aktualisieren": {
+        "main": [
+          [
+            {
+              "node": "Tagging-Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tagging-Report aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Tagging-Report an Mattermost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "staticData": {
+      "node:Alle 2 Stunden": {
+        "recurrenceRules": [
+          4
+        ]
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "86bd2134-d3e5-41a9-87c0-8666701ed28b",
+    "activeVersionId": "86bd2134-d3e5-41a9-87c0-8666701ed28b",
+    "versionCounter": 22,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-21T08:44:43.391Z",
+        "createdAt": "2026-06-21T08:44:43.391Z",
+        "role": "workflow:owner",
+        "workflowId": "nZ4r7JyjeDaHSP0E",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-06-20T07:33:30.746Z",
+    "createdAt": "2026-06-20T07:33:30.746Z",
+    "id": "WO5Y4ahntpy9D4TS",
+    "name": "FreiKI @mention Handler",
+    "description": null,
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "freiki-bot-mention",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "id": "b56f5140-102e-4c13-9684-a51059455615",
+        "name": "Mattermost Outgoing Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          144,
+          48
+        ],
+        "webhookId": "f985e3ef-22b8-43f0-9e98-bfa90e7ab6be"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={}",
+          "options": {}
+        },
+        "id": "6cfc968f-8c58-4d4a-9735-e5e943f6aa48",
+        "name": "Sofortige Bestätigung",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          352,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://app.freiki.com/api/bot-chat",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"message\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.text.replace(/@freiki\\s*/i, '').trim()) }},\n  \"username\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.user_name) }}\n}",
+          "options": {}
+        },
+        "id": "77c8f81b-09cd-4163-9ed9-a69b916f1946",
+        "name": "FreiKI Bot-Chat aufrufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          352,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://chat.freiki.com/api/v4/posts",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"channel_id\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.channel_id) }},\n  \"root_id\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.post_id) }},\n  \"message\": {{ JSON.stringify($json.answer) }}\n}",
+          "options": {}
+        },
+        "id": "b3a2da5d-e9ff-445a-8e31-ee2d4df2a9a4",
+        "name": "Antwort in Thread posten",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          592,
+          160
+        ]
+      }
+    ],
+    "connections": {
+      "Mattermost Outgoing Webhook": {
+        "main": [
+          [
+            {
+              "node": "Sofortige Bestätigung",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "FreiKI Bot-Chat aufrufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FreiKI Bot-Chat aufrufen": {
+        "main": [
+          [
+            {
+              "node": "Antwort in Thread posten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "d2f70371-d534-44bc-8f3f-6bd444fa77a5",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-20T07:33:30.746Z",
+        "createdAt": "2026-06-20T07:33:30.746Z",
+        "role": "workflow:owner",
+        "workflowId": "WO5Y4ahntpy9D4TS",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Version d2f70371",
+      "description": ""
+    }
+  },
+  {
+    "updatedAt": "2026-06-20T08:12:35.525Z",
+    "createdAt": "2026-06-20T07:43:08.470Z",
+    "id": "iyU4M5E3kdmkYUa4",
+    "name": "FreiKI @mention Handler",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "freiki-bot-mention",
+          "options": {}
+        },
+        "id": "6275f4ee-f55b-4aaa-8ce7-a29be8379163",
+        "name": "Mattermost Outgoing Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          176,
+          -16
+        ],
+        "webhookId": "f731f614-9cbd-434c-ac14-f72cb16fc10b"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://app.freiki.com/api/bot-chat",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"message\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.text.replace(/@freiki\\s*/i, '').trim()) }},\n  \"username\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.user_name) }}\n}",
+          "options": {}
+        },
+        "id": "33da70c1-81c6-4d34-b852-295030cf9bda",
+        "name": "FreiKI Bot-Chat aufrufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          400,
+          -16
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://chat.freiki.com/api/v4/posts",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"channel_id\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.channel_id) }},\n  \"message\": {{ JSON.stringify($json.answer) }}\n}",
+          "options": {}
+        },
+        "id": "df21d6d3-082e-4b56-b52c-de6956edc8e9",
+        "name": "Antwort in Thread posten",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          640,
+          -16
+        ]
+      }
+    ],
+    "connections": {
+      "Mattermost Outgoing Webhook": {
+        "main": [
+          [
+            {
+              "node": "FreiKI Bot-Chat aufrufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FreiKI Bot-Chat aufrufen": {
+        "main": [
+          [
+            {
+              "node": "Antwort in Thread posten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "e5c1cb4d-0a8b-474b-8725-a956e92513a9",
+    "activeVersionId": "e5c1cb4d-0a8b-474b-8725-a956e92513a9",
+    "versionCounter": 7,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-20T07:43:08.470Z",
+        "createdAt": "2026-06-20T07:43:08.470Z",
+        "role": "workflow:owner",
+        "workflowId": "iyU4M5E3kdmkYUa4",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Version e5c1cb4d",
+      "description": ""
+    }
+  },
+  {
+    "updatedAt": "2026-06-22T15:26:48.755Z",
+    "createdAt": "2026-06-22T15:26:48.755Z",
+    "id": "freiki-monitoring-daily",
+    "name": "FreiKI Monitoring – Täglicher Report",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 7 * * *"
+              }
+            ]
+          }
+        },
+        "id": "trigger-daily",
+        "name": "Täglich 07:00",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -1000,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst services = [\n  { name: 'FreiKI App',   url: 'http://freiki-ui:3000/health' },\n  { name: 'Paperless',    url: 'http://paperless:8000/api/documents/?page_size=1' },\n  { name: 'n8n',          url: 'http://n8n:5678/healthz' },\n  { name: 'Mattermost',   url: 'http://mattermost:8065/api/v4/system/ping' },\n  { name: 'Whisper',      url: 'http://whisper:9000/' },\n];\nreturn [{ json: { services } }];\n"
+        },
+        "id": "code-services",
+        "name": "Services definieren",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -800,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "fieldToSplitOut": "services",
+          "options": {}
+        },
+        "id": "split-services",
+        "name": "Pro Service",
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1,
+        "position": [
+          -600,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "options": {
+            "timeout": 5000
+          },
+          "continueOnFail": true
+        },
+        "id": "http-check",
+        "name": "Service prüfen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -400,
+          0
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.all();\nconst serviceNames = $('Pro Service').all().map(i => i.json.name);\n\nconst lines = items.map((item, idx) => {\n  const name = serviceNames[idx] || '?';\n  const ok = !item.json.error && item.json.$response?.statusCode < 400;\n  return (ok ? '✅' : '❌') + ' ' + name;\n});\n\n// Paperless-Statistiken\nreturn [{ json: { statusLines: lines } }];\n"
+        },
+        "id": "code-aggregate",
+        "name": "Ergebnisse aggregieren",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -200,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/documents/?page_size=1",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-paperless-count",
+        "name": "Paperless Dokumente zählen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -200,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-paperless-tags",
+        "name": "Paperless Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -200,
+          400
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst statusLines = $('Ergebnisse aggregieren').first().json.statusLines || [];\nconst totalDocs = $('Paperless Dokumente zählen').first().json.count || 0;\nconst tags = $('Paperless Tags holen').first().json.results || [];\n\nconst readyTag = tags.find(t => t.name === 'ready-for-rag');\nconst notYetTag = tags.find(t => t.name === 'not-yet-tagged');\n\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\n\nlet msg = `### 📊 FreiKI System-Report – ${now}\\n\\n`;\nmsg += `**Services:**\\n${statusLines.join('\\n')}\\n\\n`;\nmsg += `**Paperless:**\\n`;\nmsg += `- Dokumente gesamt: **${totalDocs}**\\n`;\nif (readyTag) msg += `- Ausstehend (ready-for-rag): Tag-ID ${readyTag.id}\\n`;\nif (notYetTag) msg += `- Zu taggen (not-yet-tagged): Tag-ID ${notYetTag.id}\\n`;\n\nreturn [{ json: { message: msg } }];\n"
+        },
+        "id": "code-build-report",
+        "name": "Report aufbauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          0,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://mattermost:8065/api/v4/posts",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={ { \"channel_id\": \"cobxa3cfwjdt7rr8wxnr7q9ynr\", \"message\": $json.message } }",
+          "options": {}
+        },
+        "id": "mm-post-report",
+        "name": "Report an Mattermost",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          200,
+          200
+        ]
+      }
+    ],
+    "connections": {
+      "Täglich 07:00": {
+        "main": [
+          [
+            {
+              "node": "Services definieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Services definieren": {
+        "main": [
+          [
+            {
+              "node": "Pro Service",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pro Service": {
+        "main": [
+          [
+            {
+              "node": "Service prüfen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service prüfen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnisse aggregieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ergebnisse aggregieren": {
+        "main": [
+          [
+            {
+              "node": "Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paperless Dokumente zählen": {
+        "main": [
+          [
+            {
+              "node": "Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paperless Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Report aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Report an Mattermost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "504b74a1-9171-4f22-ab8c-8ff82d078454",
+    "activeVersionId": "504b74a1-9171-4f22-ab8c-8ff82d078454",
+    "versionCounter": 1,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-22T15:26:48.755Z",
+        "createdAt": "2026-06-22T15:26:48.755Z",
+        "role": "workflow:owner",
+        "workflowId": "freiki-monitoring-daily",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-06-22T15:27:04.618Z",
+    "createdAt": "2026-06-20T17:40:57.902Z",
+    "id": "K6baSUzFjOhwkaJQ",
+    "name": "Paperless -> FreiKI Sync",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        },
+        "id": "schedule-trigger-freiki",
+        "name": "Alle 15 Minuten",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -560,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-get-tags",
+        "name": "Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -336,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://paperless:8000/api/documents/?page_size=100",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "http-get-documents",
+        "name": "Dokumente holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -128,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const tagList = $('Tags holen').first().json.results || [];\n\n// ready-for-rag Tag finden\nconst readyTag = tagList.find(t => t.name.toLowerCase() === 'ready-for-rag');\nif (!readyTag) throw new Error('Tag \"ready-for-rag\" nicht in Paperless gefunden');\nconst readyId = readyTag.id;\n\n// Bereichs-Tags: alles außer ready-for-rag\nconst tagMap = {};\nfor (const t of tagList) {\n  if (t.id !== readyId) tagMap[t.id] = t.name.toLowerCase().replace(/[^a-z0-9]/g, '');\n}\n\nconst docs = $input.first().json.results || [];\nconst out = [];\nfor (const doc of docs) {\n  if (!doc.tags.includes(readyId)) continue;\n  const bereichTagId = doc.tags.find(t => tagMap[t]);\n  if (!bereichTagId) continue;\n  out.push({\n    json: {\n      id: doc.id,\n      bereich: tagMap[bereichTagId],\n      text: doc.content || '',\n      source: doc.title,\n      source_url: `https://paperless.freiki.com/documents/${doc.id}/details`,\n      readyId,\n      newTags: doc.tags.filter(id => id !== readyId)\n    }\n  });\n}\nreturn out;"
+        },
+        "id": "code-filter-prepare",
+        "name": "Bereich ableiten & filtern",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          112,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://freiki-ui:3000/api/kb-ingest-text",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "REDACTED-ROTATED-KEY"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ { bereich: $json.bereich, text: $json.text, source: $json.source, source_url: $json.source_url } }}",
+          "options": {}
+        },
+        "id": "http-post-freiki",
+        "name": "An FreiKI schicken",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          320,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "={{ \"http://paperless:8000/api/documents/\" + $('Bereich ableiten & filtern').item.json.id + \"/\" }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Token REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ { tags: $('Bereich ableiten & filtern').item.json.newTags } }}",
+          "options": {}
+        },
+        "id": "http-remove-ready",
+        "name": "ready-for-rag entfernen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          544,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst items = $input.all();\nconst count = items.length;\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\nconst bereiche = [...new Set(items.map(i => i.json?.bereich).filter(Boolean))];\nlet msg = `🔄 **RAG-Sync FreiKI** (${now})\\n`;\nif (count > 0) {\n  msg += `${count} Dokument(e) ins Wissen aufgenommen.\\n`;\n  if (bereiche.length) msg += `Bereiche: ${bereiche.join(', ')}`;\n} else {\n  msg += 'Keine neuen Dokumente.';\n}\nreturn [{ json: { message: msg } }];\n"
+        },
+        "id": "code-sync-report",
+        "name": "Sync-Report aufbauen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          760,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://mattermost:8065/api/v4/posts",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={ { \"channel_id\": \"cobxa3cfwjdt7rr8wxnr7q9ynr\", \"message\": $json.message } }",
+          "options": {}
+        },
+        "id": "mm-post-sync",
+        "name": "Sync-Report an Mattermost",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          960,
+          80
+        ]
+      }
+    ],
+    "connections": {
+      "Alle 15 Minuten": {
+        "main": [
+          [
+            {
+              "node": "Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Dokumente holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumente holen": {
+        "main": [
+          [
+            {
+              "node": "Bereich ableiten & filtern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bereich ableiten & filtern": {
+        "main": [
+          [
+            {
+              "node": "An FreiKI schicken",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "An FreiKI schicken": {
+        "main": [
+          [
+            {
+              "node": "ready-for-rag entfernen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "ready-for-rag entfernen": {
+        "main": [
+          [
+            {
+              "node": "Sync-Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sync-Report aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Sync-Report an Mattermost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate"
+    },
+    "staticData": {
+      "node:Alle 15 Minuten": {
+        "recurrenceRules": []
+      }
+    },
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "4a48a9ee-884a-4c1e-bf91-550bcc9cbb57",
+    "activeVersionId": "4a48a9ee-884a-4c1e-bf91-550bcc9cbb57",
+    "versionCounter": 6,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-20T17:40:57.902Z",
+        "createdAt": "2026-06-20T17:40:57.902Z",
+        "role": "workflow:owner",
+        "workflowId": "K6baSUzFjOhwkaJQ",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": null,
+      "description": null
+    }
+  },
+  {
+    "updatedAt": "2026-06-19T15:15:09.790Z",
+    "createdAt": "2026-06-19T15:14:54.096Z",
+    "id": "VAaRprXI9N0FW2ft",
+    "name": "FreiKI Mattermost Bot",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "freiki-bot",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "name": "Mattermost Slash-Command Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -176,
+          64
+        ],
+        "id": "e5e41693-d590-42a0-b77d-20d07144de05",
+        "webhookId": "freiki-bot-webhook"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\n  \"response_type\": \"ephemeral\",\n  \"text\": \"FreiKI denkt nach …\"\n}",
+          "options": {}
+        },
+        "name": "Sofortige Bestätigung",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          128,
+          -96
+        ],
+        "id": "3c0f2c30-740c-4de6-b764-9602414460ed"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://app.freiki.com/api/bot-chat",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "REDACTED-ROTATED-TOKEN"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"message\": {{ JSON.stringify($json.body.text) }},\n  \"username\": {{ JSON.stringify($json.body.user_name) }}\n}",
+          "options": {}
+        },
+        "name": "FreiKI Bot-Chat aufrufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          128,
+          192
+        ],
+        "id": "fb86e393-d7e6-47e0-b2ed-cd1f6f92ee75"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $('Mattermost Slash-Command Webhook').item.json.body.response_url }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"response_type\": \"in_channel\",\n  \"text\": {{ JSON.stringify($json.answer) }}\n}",
+          "options": {}
+        },
+        "name": "Antwort an Mattermost-Channel",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          416,
+          192
+        ],
+        "id": "ec152499-d6e4-480b-adf0-f6478c96dfb4"
+      }
+    ],
+    "connections": {
+      "Mattermost Slash-Command Webhook": {
+        "main": [
+          [
+            {
+              "node": "Sofortige Bestätigung",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "FreiKI Bot-Chat aufrufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FreiKI Bot-Chat aufrufen": {
+        "main": [
+          [
+            {
+              "node": "Antwort an Mattermost-Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "nodeGroups": [],
+    "pinData": {},
+    "versionId": "636d1152-d805-4bc8-baf4-35673a974d0f",
+    "activeVersionId": "636d1152-d805-4bc8-baf4-35673a974d0f",
+    "versionCounter": 2,
+    "triggerCount": 1,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-06-19T15:14:54.096Z",
+        "createdAt": "2026-06-19T15:14:54.096Z",
+        "role": "workflow:owner",
+        "workflowId": "VAaRprXI9N0FW2ft",
+        "projectId": "1UzJpVQHpuJt8mh3",
+        "project": {
+          "updatedAt": "2026-06-18T14:01:24.828Z",
+          "createdAt": "2026-06-18T10:14:39.560Z",
+          "id": "1UzJpVQHpuJt8mh3",
+          "name": "Frank Stefan <frank@frank-stefan.de>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Version 636d1152",
+      "description": ""
+    }
+  }
+]
