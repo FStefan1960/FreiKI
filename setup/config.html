@@ -53,12 +53,12 @@
 
 <header>
   <h1>FreiKI · Neue Instanz konfigurieren</h1>
-  <span>Generiert eine fertige .env-Datei</span>
+  <span>Generiert eine fertige .env-Datei · Vorbelegung: FreiKI-Werte</span>
 </header>
 
 <main>
 
-<!-- ══ 1. App-Identity ══ -->
+<!-- ══ 1. App-Identität ══ -->
 <div class="section">
   <div class="section-header" onclick="toggle(this)">
     <h2>App-Identität</h2>
@@ -73,23 +73,23 @@
     </div>
     <div class="field">
       <label>APP_TAGLINE</label>
-      <input type="text" id="APP_TAGLINE" placeholder="KI für die Diakonie Kork">
+      <input type="text" id="APP_TAGLINE" value="Ihr souveräner KI-Assistent">
     </div>
     <div class="field full">
       <label>APP_URL <span class="req">*</span> <span class="hint">mit https://</span></label>
-      <input type="url" id="APP_URL" placeholder="https://assi.diakonie-kork-ki.de" required data-validate="url">
+      <input type="url" id="APP_URL" placeholder="https://app.instanz.de" required data-validate="url">
       <span class="err-msg">Gültige URL erforderlich (https://…)</span>
     </div>
     <div class="field">
       <label>APP_FOOTER_NOTE</label>
-      <input type="text" id="APP_FOOTER_NOTE" placeholder="F. Stefan · Diakonie Kork · 2026">
+      <input type="text" id="APP_FOOTER_NOTE" placeholder="Instanz · 2026">
     </div>
     <div class="field">
       <label>APP_SUPPORT_EMAIL</label>
-      <input type="email" id="APP_SUPPORT_EMAIL" placeholder="support@example.de">
+      <input type="email" id="APP_SUPPORT_EMAIL" value="admin@freiki.net">
     </div>
     <div class="field">
-      <label>APP_DEMO_MODE <span class="hint">Demo-Banner zeigen?</span></label>
+      <label>APP_DEMO_MODE</label>
       <select id="APP_DEMO_MODE">
         <option value="false">false (kein Banner)</option>
         <option value="true">true (Demo-Banner aktiv)</option>
@@ -109,7 +109,7 @@
     <div class="field">
       <label>APP_COLOR <span class="req">*</span></label>
       <div class="field-row">
-        <input type="text" id="APP_COLOR" placeholder="#1F54C0" data-validate="hex">
+        <input type="text" id="APP_COLOR" value="#1F54C0" data-validate="hex">
         <input type="color" id="APP_COLOR_picker" value="#1F54C0" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_COLOR')">
       </div>
       <span class="err-msg">Hex-Farbe erforderlich (#RRGGBB)</span>
@@ -117,31 +117,31 @@
     <div class="field">
       <label>APP_COLOR_HOVER</label>
       <div class="field-row">
-        <input type="text" id="APP_COLOR_HOVER" placeholder="#1A4AAD" data-validate="hexopt">
+        <input type="text" id="APP_COLOR_HOVER" value="#1A4AAD" data-validate="hexopt">
         <input type="color" id="APP_COLOR_HOVER_picker" value="#1A4AAD" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_COLOR_HOVER')">
       </div>
     </div>
     <div class="field">
       <label>APP_COLOR_ACTIVE</label>
       <div class="field-row">
-        <input type="text" id="APP_COLOR_ACTIVE" placeholder="#173F95" data-validate="hexopt">
+        <input type="text" id="APP_COLOR_ACTIVE" value="#173F95" data-validate="hexopt">
         <input type="color" id="APP_COLOR_ACTIVE_picker" value="#173F95" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_COLOR_ACTIVE')">
       </div>
     </div>
     <div class="field">
       <label>APP_NAVY</label>
       <div class="field-row">
-        <input type="text" id="APP_NAVY" placeholder="#14306B" data-validate="hexopt">
+        <input type="text" id="APP_NAVY" value="#14306B" data-validate="hexopt">
         <input type="color" id="APP_NAVY_picker" value="#14306B" style="width:44px;padding:.25rem .3rem;cursor:pointer;border-radius:7px;border:1.5px solid #dde1e7;" oninput="syncColor(this,'APP_NAVY')">
       </div>
     </div>
     <div class="field">
-      <label>APP_LOGO <span class="hint">Pfad im public/-Verzeichnis</span></label>
-      <input type="text" id="APP_LOGO" placeholder="/header.png" value="/header.png">
+      <label>APP_LOGO <span class="hint">Pfad in public/</span></label>
+      <input type="text" id="APP_LOGO" value="/header.png">
     </div>
     <div class="field">
       <label>APP_LOGO_SIDEBAR</label>
-      <input type="text" id="APP_LOGO_SIDEBAR" placeholder="/header.png" value="/header.png">
+      <input type="text" id="APP_LOGO_SIDEBAR" value="/header.png">
     </div>
   </div>
 </div>
@@ -156,21 +156,21 @@
   <div class="section-body">
     <div class="field">
       <label>KORKI_JWT_SECRET <span class="req">*</span> <button class="gen-btn" onclick="genHex('KORKI_JWT_SECRET',64)">generieren</button></label>
-      <input type="text" id="KORKI_JWT_SECRET" placeholder="64 Zeichen Hex" data-validate="nonempty">
+      <input type="text" id="KORKI_JWT_SECRET" placeholder="— generieren →" data-validate="nonempty">
       <span class="err-msg">Pflichtfeld – bitte generieren</span>
     </div>
     <div class="field">
       <label>KB_INGEST_API_KEY <span class="req">*</span> <button class="gen-btn" onclick="genHex('KB_INGEST_API_KEY',40)">generieren</button></label>
-      <input type="text" id="KB_INGEST_API_KEY" placeholder="40 Zeichen Hex" data-validate="nonempty">
+      <input type="text" id="KB_INGEST_API_KEY" placeholder="— generieren →" data-validate="nonempty">
       <span class="err-msg">Pflichtfeld</span>
     </div>
     <div class="field">
       <label>BOT_API_KEY <button class="gen-btn" onclick="genHex('BOT_API_KEY',40)">generieren</button></label>
-      <input type="text" id="BOT_API_KEY" placeholder="40 Zeichen Hex">
+      <input type="text" id="BOT_API_KEY" placeholder="— generieren →">
     </div>
     <div class="field">
       <label>N8N_ENCRYPTION_KEY <button class="gen-btn" onclick="genHex('N8N_ENCRYPTION_KEY',64)">generieren</button></label>
-      <input type="text" id="N8N_ENCRYPTION_KEY" placeholder="64 Zeichen Hex">
+      <input type="text" id="N8N_ENCRYPTION_KEY" placeholder="— generieren →">
     </div>
   </div>
 </div>
@@ -185,12 +185,12 @@
   <div class="section-body">
     <div class="field">
       <label>POSTGRES_USER <span class="req">*</span></label>
-      <input type="text" id="POSTGRES_USER" placeholder="korki" data-validate="nonempty">
+      <input type="text" id="POSTGRES_USER" placeholder="korki_user" data-validate="nonempty">
       <span class="err-msg">Pflichtfeld</span>
     </div>
     <div class="field">
       <label>POSTGRES_PASSWORD <span class="req">*</span> <button class="gen-btn" onclick="genHex('POSTGRES_PASSWORD',24)">generieren</button></label>
-      <input type="text" id="POSTGRES_PASSWORD" placeholder="sicheres Passwort" data-validate="nonempty">
+      <input type="text" id="POSTGRES_PASSWORD" placeholder="— generieren →" data-validate="nonempty">
       <span class="err-msg">Pflichtfeld</span>
     </div>
     <div class="field">
@@ -210,8 +210,8 @@
   </div>
   <div class="section-body">
     <div class="field full">
-      <label>VLLM_URL <span class="req">*</span> <span class="hint">OpenAI-kompatibler Endpunkt</span></label>
-      <input type="url" id="VLLM_URL" placeholder="https://api.deepinfra.com/v1/openai" data-validate="url">
+      <label>VLLM_URL <span class="req">*</span></label>
+      <input type="url" id="VLLM_URL" value="https://api.deepinfra.com/v1/openai" data-validate="url">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
     <div class="field">
@@ -224,17 +224,16 @@
       <input type="text" id="VLLM_MODEL" placeholder="Qwen/Qwen3-32B">
     </div>
     <div class="field full">
-      <label>VLLM_EMBED_URL <span class="hint">Embedding-Endpunkt</span></label>
-      <input type="url" id="VLLM_EMBED_URL" placeholder="https://api.deepinfra.com/v1/openai/embeddings" data-validate="urlopt">
+      <label>VLLM_EMBED_URL</label>
+      <input type="url" id="VLLM_EMBED_URL" value="https://api.deepinfra.com/v1/openai/embeddings" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
     <div class="field">
-      <label>WHISPER_MODEL <span class="hint">CPU: base · GPU: large-v3</span></label>
+      <label>WHISPER_MODEL <span class="hint">CPU: small · GPU: large-v3</span></label>
       <select id="WHISPER_MODEL">
-        <option value="">– nicht gesetzt –</option>
         <option value="tiny">tiny (schnellste, CPU)</option>
-        <option value="base">base (gut für CPU)</option>
-        <option value="small">small</option>
+        <option value="base">base</option>
+        <option value="small" selected>small (FreiKI-Standard)</option>
         <option value="medium">medium</option>
         <option value="large-v3">large-v3 (beste Qualität, GPU)</option>
       </select>
@@ -250,23 +249,31 @@
 <div class="section">
   <div class="section-header" onclick="toggle(this)">
     <h2>n8n &amp; Automatisierung</h2>
-    <span class="badge">Optional</span>
+    <span class="badge">Standard</span>
     <span class="chevron">▼</span>
   </div>
   <div class="section-body">
     <div class="field">
-      <label>N8N_HOST</label>
-      <input type="text" id="N8N_HOST" placeholder="n8n">
+      <label>N8N_HOST <span class="hint">Container-Name</span></label>
+      <input type="text" id="N8N_HOST" value="n8n">
     </div>
     <div class="field">
-      <label>WEBHOOK_URL <span class="hint">n8n Basis-URL</span></label>
-      <input type="url" id="WEBHOOK_URL" placeholder="https://n8n.example.de" data-validate="urlopt">
+      <label>WEBHOOK_URL <span class="hint">öffentliche n8n-URL</span></label>
+      <input type="url" id="WEBHOOK_URL" placeholder="https://n8n.instanz.de/" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
     <div class="field full">
-      <label>N8N_WEBHOOK_URL <span class="hint">Webhook-URL für KI-Assistent</span></label>
-      <input type="url" id="N8N_WEBHOOK_URL" placeholder="https://n8n.example.de/webhook/…" data-validate="urlopt">
+      <label>N8N_WEBHOOK_URL <span class="hint">Webhook für KI-Assistent</span></label>
+      <input type="url" id="N8N_WEBHOOK_URL" placeholder="https://n8n.instanz.de/webhook/…" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
+    </div>
+    <div class="field">
+      <label>MAIL_DOMAIN</label>
+      <input type="text" id="MAIL_DOMAIN" placeholder="instanz.de">
+    </div>
+    <div class="field">
+      <label>HILFE_KB_TABLE <span class="hint">Tabelle für Hilfe-KB</span></label>
+      <input type="text" id="HILFE_KB_TABLE" value="kb_hilfe">
     </div>
   </div>
 </div>
@@ -275,57 +282,52 @@
 <div class="section">
   <div class="section-header" onclick="toggle(this)">
     <h2>Mail (SMTP)</h2>
-    <span class="badge">Optional</span>
+    <span class="badge">Standard</span>
     <span class="chevron">▼</span>
   </div>
   <div class="section-body">
     <div class="field">
-      <label>MAIL_DOMAIN</label>
-      <input type="text" id="MAIL_DOMAIN" placeholder="example.de">
-    </div>
-    <div class="field">
       <label>SMTP_HOST</label>
-      <input type="text" id="SMTP_HOST" placeholder="mail.example.de">
+      <input type="text" id="SMTP_HOST" placeholder="mail.instanz.de">
     </div>
     <div class="field">
       <label>SMTP_PORT</label>
       <select id="SMTP_PORT">
-        <option value="">– wählen –</option>
-        <option value="587">587 (STARTTLS)</option>
+        <option value="587" selected>587 (STARTTLS · FreiKI-Standard)</option>
         <option value="465">465 (SSL)</option>
         <option value="25">25 (SMTP)</option>
       </select>
     </div>
     <div class="field">
       <label>SMTP_USER</label>
-      <input type="text" id="SMTP_USER" placeholder="noreply@example.de">
+      <input type="text" id="SMTP_USER" placeholder="ki_agent@instanz.de">
     </div>
     <div class="field">
-      <label>SMTP_PASS <button class="gen-btn" onclick="genHex('SMTP_PASS',24)">generieren</button></label>
+      <label>SMTP_PASS</label>
       <input type="text" id="SMTP_PASS" placeholder="SMTP-Passwort">
     </div>
     <div class="field">
       <label>SMTP_FROM</label>
-      <input type="email" id="SMTP_FROM" placeholder="noreply@example.de">
+      <input type="email" id="SMTP_FROM" placeholder="ki_agent@instanz.de">
     </div>
   </div>
 </div>
 
-<!-- ══ 8. Optionale Dienste ══ -->
+<!-- ══ 8. Mattermost ══ -->
 <div class="section">
   <div class="section-header" onclick="toggle(this)">
-    <h2>Optionale Dienste</h2>
-    <span class="badge">Optional</span>
+    <h2>Mattermost (Teamchat)</h2>
+    <span class="badge">Standard</span>
     <span class="chevron">▼</span>
   </div>
   <div class="section-body">
     <div class="field full">
-      <label>MATTERMOST_URL</label>
-      <input type="url" id="MATTERMOST_URL" placeholder="https://chat.example.de" data-validate="urlopt">
+      <label>MATTERMOST_URL <span class="hint">öffentliche URL</span></label>
+      <input type="url" id="MATTERMOST_URL" placeholder="https://chat.instanz.de" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
     <div class="field">
-      <label>MATTERMOST_OIDC_CLIENT_ID</label>
+      <label>MATTERMOST_OIDC_CLIENT_ID <span class="hint">nach SSO-Einrichtung</span></label>
       <input type="text" id="MATTERMOST_OIDC_CLIENT_ID" placeholder="SSO Client-ID">
     </div>
     <div class="field">
@@ -334,46 +336,45 @@
     </div>
     <div class="field full">
       <label>MATTERMOST_OIDC_REDIRECT_URI</label>
-      <input type="url" id="MATTERMOST_OIDC_REDIRECT_URI" placeholder="https://app.example.de/auth/callback" data-validate="urlopt">
+      <input type="url" id="MATTERMOST_OIDC_REDIRECT_URI" placeholder="https://app.instanz.de/auth/callback" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
+  </div>
+</div>
+
+<!-- ══ 9. Paperless ══ -->
+<div class="section">
+  <div class="section-header" onclick="toggle(this)">
+    <h2>Paperless-ngx (Dokumentenarchiv)</h2>
+    <span class="badge">Standard</span>
+    <span class="chevron">▼</span>
+  </div>
+  <div class="section-body">
     <div class="field full">
-      <label>PAPERLESS_URL</label>
-      <input type="url" id="PAPERLESS_URL" placeholder="https://paperless.example.de" data-validate="urlopt">
+      <label>PAPERLESS_URL <span class="hint">öffentliche URL</span></label>
+      <input type="url" id="PAPERLESS_URL" placeholder="https://paperless.instanz.de" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
     <div class="field">
-      <label>PAPERLESS_INTERNAL_URL</label>
-      <input type="url" id="PAPERLESS_INTERNAL_URL" placeholder="http://paperless:8000" data-validate="urlopt">
+      <label>PAPERLESS_INTERNAL_URL <span class="hint">Container-intern</span></label>
+      <input type="url" id="PAPERLESS_INTERNAL_URL" value="http://paperless:8000" data-validate="urlopt">
       <span class="err-msg">Gültige URL erforderlich</span>
     </div>
     <div class="field">
-      <label>PAPERLESS_TOKEN</label>
+      <label>PAPERLESS_TOKEN <span class="hint">nach erster Anmeldung</span></label>
       <input type="text" id="PAPERLESS_TOKEN" placeholder="API-Token">
     </div>
     <div class="field">
       <label>PAPERLESS_SECRET_KEY <button class="gen-btn" onclick="genHex('PAPERLESS_SECRET_KEY',50)">generieren</button></label>
-      <input type="text" id="PAPERLESS_SECRET_KEY" placeholder="Secret Key">
+      <input type="text" id="PAPERLESS_SECRET_KEY" placeholder="— generieren →">
     </div>
     <div class="field">
       <label>PAPERLESS_ADMIN_USER</label>
-      <input type="text" id="PAPERLESS_ADMIN_USER" placeholder="admin">
+      <input type="text" id="PAPERLESS_ADMIN_USER" value="admin">
     </div>
     <div class="field">
       <label>PAPERLESS_ADMIN_PASSWORD <button class="gen-btn" onclick="genHex('PAPERLESS_ADMIN_PASSWORD',24)">generieren</button></label>
-      <input type="text" id="PAPERLESS_ADMIN_PASSWORD" placeholder="sicheres Passwort">
-    </div>
-    <div class="field">
-      <label>FLOWISE_USERNAME</label>
-      <input type="text" id="FLOWISE_USERNAME" placeholder="admin">
-    </div>
-    <div class="field">
-      <label>FLOWISE_PASSWORD <button class="gen-btn" onclick="genHex('FLOWISE_PASSWORD',20)">generieren</button></label>
-      <input type="text" id="FLOWISE_PASSWORD" placeholder="sicheres Passwort">
-    </div>
-    <div class="field full">
-      <label>FLOWISE_CHATFLOW_ID <span class="hint">erst nach Einrichtung in Flowise</span></label>
-      <input type="text" id="FLOWISE_CHATFLOW_ID" placeholder="UUID">
+      <input type="text" id="PAPERLESS_ADMIN_PASSWORD" placeholder="— generieren →">
     </div>
   </div>
 </div>
@@ -392,13 +393,12 @@
 </main>
 
 <div class="actions">
-  <span class="status" id="status-msg">Alle Pflichtfelder ausfüllen, dann generieren.</span>
+  <span class="status" id="status-msg">Pflichtfelder prüfen, dann generieren.</span>
   <button class="btn btn-secondary" onclick="resetForm()">Zurücksetzen</button>
   <button class="btn btn-primary" onclick="generate()">→ .env generieren</button>
 </div>
 
 <script>
-// ── Collapse/Expand ──
 function toggle(header) {
   const body = header.nextElementSibling;
   const ch = header.querySelector('.chevron');
@@ -406,19 +406,18 @@ function toggle(header) {
   ch.textContent = body.classList.contains('collapsed') ? '▶' : '▼';
 }
 
-// ── Color picker sync ──
 function syncColor(picker, fieldId) {
   document.getElementById(fieldId).value = picker.value.toUpperCase();
 }
-document.querySelectorAll('input[type="text"][id$="_COLOR"], input[type="text"][id$="_HOVER"], input[type="text"][id$="_ACTIVE"], #APP_NAVY').forEach(input => {
+['APP_COLOR','APP_COLOR_HOVER','APP_COLOR_ACTIVE','APP_NAVY'].forEach(id => {
+  const input = document.getElementById(id);
+  if (!input) return;
   input.addEventListener('input', () => {
-    const pickerId = input.id + '_picker';
-    const picker = document.getElementById(pickerId);
+    const picker = document.getElementById(id + '_picker');
     if (picker && /^#[0-9A-Fa-f]{6}$/.test(input.value)) picker.value = input.value;
   });
 });
 
-// ── Random hex ──
 function genHex(fieldId, bytes) {
   const arr = new Uint8Array(bytes / 2);
   crypto.getRandomValues(arr);
@@ -426,7 +425,6 @@ function genHex(fieldId, bytes) {
   validate(document.getElementById(fieldId));
 }
 
-// ── Validation ──
 function validate(input) {
   const rule = input.dataset.validate;
   if (!rule) return true;
@@ -443,15 +441,12 @@ function validate(input) {
   input.classList.toggle('ok', ok && v.length > 0);
   return ok;
 }
-function isUrl(v) {
-  try { new URL(v); return true; } catch { return false; }
-}
+function isUrl(v) { try { new URL(v); return true; } catch { return false; } }
 document.querySelectorAll('input[data-validate]').forEach(el => {
   el.addEventListener('blur', () => validate(el));
   el.addEventListener('input', () => { if (el.classList.contains('error')) validate(el); });
 });
 
-// ── Generate ──
 function generate() {
   const inputs = document.querySelectorAll('input[data-validate]');
   let valid = true;
@@ -506,9 +501,12 @@ function generate() {
     `WEBHOOK_URL=${v('WEBHOOK_URL')}`,
     `N8N_ENCRYPTION_KEY=${v('N8N_ENCRYPTION_KEY')}`,
     `N8N_WEBHOOK_URL=${v('N8N_WEBHOOK_URL')}`,
+    `MAIL_DOMAIN=${v('MAIL_DOMAIN')}`,
+    `HILFE_KB_TABLE=${v('HILFE_KB_TABLE')}`,
+    `N8N_DIAGNOSTICS_ENABLED=false`,
+    `N8N_VERSION_NOTIFICATIONS_ENABLED=false`,
     '',
     '# ── Mail (SMTP) ──',
-    `MAIL_DOMAIN=${v('MAIL_DOMAIN')}`,
     `SMTP_HOST=${v('SMTP_HOST')}`,
     `SMTP_PORT=${v('SMTP_PORT')}`,
     `SMTP_USER=${v('SMTP_USER')}`,
@@ -521,22 +519,16 @@ function generate() {
     `MATTERMOST_OIDC_CLIENT_SECRET=${v('MATTERMOST_OIDC_CLIENT_SECRET')}`,
     `MATTERMOST_OIDC_REDIRECT_URI=${v('MATTERMOST_OIDC_REDIRECT_URI')}`,
     '',
-    '# ── Paperless ──',
+    '# ── Paperless-ngx ──',
     `PAPERLESS_URL=${v('PAPERLESS_URL')}`,
     `PAPERLESS_INTERNAL_URL=${v('PAPERLESS_INTERNAL_URL')}`,
     `PAPERLESS_TOKEN=${v('PAPERLESS_TOKEN')}`,
     `PAPERLESS_SECRET_KEY=${v('PAPERLESS_SECRET_KEY')}`,
     `PAPERLESS_ADMIN_USER=${v('PAPERLESS_ADMIN_USER')}`,
     `PAPERLESS_ADMIN_PASSWORD=${v('PAPERLESS_ADMIN_PASSWORD')}`,
-    '',
-    '# ── Flowise ──',
-    `FLOWISE_USERNAME=${v('FLOWISE_USERNAME')}`,
-    `FLOWISE_PASSWORD=${v('FLOWISE_PASSWORD')}`,
-    `FLOWISE_CHATFLOW_ID=${v('FLOWISE_CHATFLOW_ID')}`,
   ];
-  const content = lines.join('\n');
   const out = document.getElementById('output');
-  out.value = content;
+  out.value = lines.join('\n');
   out.style.display = 'block';
   document.getElementById('output-wrap').style.display = 'block';
   document.getElementById('output-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -565,10 +557,8 @@ function resetForm() {
   document.querySelectorAll('input[type="text"], input[type="url"], input[type="email"]').forEach(i => { i.value = ''; i.className = ''; });
   document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
   document.querySelectorAll('.field').forEach(f => f.classList.remove('has-error'));
-  document.getElementById('APP_LOGO').value = '/header.png';
-  document.getElementById('APP_LOGO_SIDEBAR').value = '/header.png';
   document.getElementById('output-wrap').style.display = 'none';
-  document.getElementById('status-msg').textContent = 'Alle Pflichtfelder ausfüllen, dann generieren.';
+  document.getElementById('status-msg').textContent = 'Pflichtfelder prüfen, dann generieren.';
   document.getElementById('status-msg').className = 'status';
 }
 </script>
