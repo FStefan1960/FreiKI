@@ -40,3 +40,4 @@ freiki-ui/prompts/w_*.md
 # Build-Artefakte
 dist/
 *.log
+freiki-ui/VERSION
