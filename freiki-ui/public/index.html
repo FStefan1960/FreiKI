@@ -35,6 +35,15 @@
       white-space: nowrap;
       cursor: default;
     }
+  #tc-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;}
+  #tc-modal-overlay.visible{display:flex;}
+  #tc-modal{background:#fff;border-radius:14px;padding:1.75rem 2rem;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center;}
+  #tc-modal h3{margin:0 0 .6rem;font-size:1.05rem;color:var(--color-primary,#1F54C0);}
+  #tc-modal p{margin:0 0 1.25rem;font-size:.875rem;color:#444;line-height:1.5;}
+  #tc-modal .tc-btn-row{display:flex;gap:.75rem;justify-content:center;}
+  #tc-modal .tc-go{background:var(--color-primary,#1F54C0);color:#fff;border:none;border-radius:8px;padding:.6rem 1.4rem;font-size:.875rem;font-weight:600;cursor:pointer;}
+  #tc-modal .tc-go:hover{opacity:.88;}
+  #tc-modal .tc-skip{background:#f0f2f5;color:#444;border:none;border-radius:8px;padding:.6rem 1rem;font-size:.875rem;cursor:pointer;}
   </style>
 </head>
 <body>
@@ -150,7 +159,7 @@
             <span id="stats-text">– / – / –%</span>
           </div>
           <div class="header-icon-group">
-            <a href="{{MATTERMOST_URL}}" target="_blank" id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;">💬 <span class="hilfe-label">Teamchat</span></a>
+            <button id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;" data-url="{{MATTERMOST_URL}}" onclick="openTeamchat()">💬 <span class="hilfe-label">Teamchat</span></button>
             <a href="{{PAPERLESS_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled" title="Dokumentenarchiv (Paperless)" style="display:none;">DMS</a>
             <button class="header-icon-btn header-icon-btn-labeled" onclick="toggleHilfeBubble()" title="{{APP_NAME}}-Hilfe">? <span class="hilfe-label">Hilfe</span></button>
           </div>
@@ -331,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avatarEl = document.getElementById('user-avatar');
     if (avatarEl) avatarEl.textContent = username[0]?.toUpperCase() || '?';
     const tcBtn = document.getElementById('teamchat-btn');
-    if (tcBtn && tcBtn.getAttribute('href')) tcBtn.style.display = '';
+    if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';
     loadModes();
     loadTips();
   } else if (token) {
@@ -568,7 +577,7 @@ async function login() {
       });
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = role === 'admin' ? '' : 'none');
       const tcBtn = document.getElementById('teamchat-btn');
-      if (tcBtn && tcBtn.getAttribute('href')) tcBtn.style.display = '';
+      if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';
       await loadModes();
       loadTips();
     } else {
@@ -1436,5 +1445,19 @@ async function sendHilfeFrage() {
       window.freikiStatsLoad = loadAdminStats;
     })();
   </script>
-</body>
+  <script>
+    var _tcUrl = '';
+    function openTeamchat() {
+      var btn = document.getElementById('teamchat-btn');
+      _tcUrl = btn ? btn.dataset.url : '';
+      if (!_tcUrl) return;
+      if (sessionStorage.getItem('freiki_tc_hint_shown')) { window.open(_tcUrl,'_blank'); return; }
+      document.getElementById('tc-modal-overlay').classList.add('visible');
+    }
+    function tcClose(open) {
+      document.getElementById('tc-modal-overlay').classList.remove('visible');
+      if (open) { sessionStorage.setItem('freiki_tc_hint_shown','1'); window.open(_tcUrl,'_blank'); }
+    }
+  </script>
+<div id="tc-modal-overlay" onclick="if(event.target===this)tcClose(true)"><div id="tc-modal"><h3>💬 Teamchat öffnen</h3><p>Bitte melde dich mit dem<br><strong>„Mit GitLab anmelden"</strong>-Button an –<br>nicht mit E-Mail und Passwort.</p><div class="tc-btn-row"><button class="tc-go" onclick="tcClose(true)">Weiter zu Mattermost</button><button class="tc-skip" onclick="tcClose(false)">Abbrechen</button></div></div></div></body>
 </html>
