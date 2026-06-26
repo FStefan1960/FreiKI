@@ -7,8 +7,12 @@ PACKAGE_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$PACKAGE_DIR"
 
-echo "-> Git pull..."
-git pull origin main
+if [[ "$1" != "--after-pull" ]]; then
+  echo "-> Git pull..."
+  git pull origin main
+  # Neu starten damit ein aktualisiertes deploy.sh wirksam wird
+  exec bash "$SCRIPT_DIR/deploy.sh" --after-pull
+fi
 
 echo "-> Version schreiben..."
 git rev-parse --short HEAD > freiki-ui/public/VERSION
