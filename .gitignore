@@ -20,6 +20,18 @@ n8n-data/
 caddy-data/
 caddy-config/
 
+# Instanz-spezifische Dateien (bleiben auf dem Server, werden nicht überschrieben)
+freiki-ui/public/header.png
+freiki-ui/public/apple-touch-icon.png
+freiki-ui/public/favicon-32.png
+freiki-ui/public/icons/
+freiki-ui/public/manifest.json
+freiki-ui/public/extras/
+freiki-ui/areas.json
+freiki-ui/welcome.md
+freiki-ui/tips.md
+freiki-ui/prompts/w_*.md
+
 # macOS
 .DS_Store
 
