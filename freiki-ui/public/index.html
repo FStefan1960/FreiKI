@@ -146,8 +146,8 @@
             </svg>
             <span>DSGVO · DSG-EKD · EU · Open Source</span>
           </div>
-          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute / GPU-Cache (Peak)">
-            <span id="stats-text">– / – / –%</span>
+          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute">
+            <span id="stats-text">– / –</span>
           </div>
           <div class="header-icon-group">
             <a href="{{MATTERMOST_URL}}" target="_blank" id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;">💬 <span class="hilfe-label">Teamchat</span></a>
@@ -1425,14 +1425,13 @@ async function sendHilfeFrage() {
           if (!r.ok) return;
           const d = await r.json();
           const el = document.getElementById('stats-text');
-          if (el) el.textContent = d.requests + ' / ' + d.users + ' / ' + d.gpuCacheLive.toFixed(1) + '% (↑' + d.gpuCachePeak.toFixed(1) + '%)';
+          if (el) el.textContent = d.requests + ' / ' + d.users;
         } catch(_) {}
       }
       window.addEventListener('load', () => {
         loadAdminStats();
         setInterval(loadAdminStats, 60000);
       });
-      if (role === 'admin') loadAdminStats();
       window.freikiStatsLoad = loadAdminStats;
     })();
   </script>
