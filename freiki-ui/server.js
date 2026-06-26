@@ -315,6 +315,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // ── Brand-Injection: index.html als Template rendern ─────────
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const CACHE_VERSION = Date.now().toString(36);
+const GIT_VERSION = (() => { try { return execSync('git rev-parse --short HEAD', { cwd: path.join(__dirname, '..') }).toString().trim(); } catch { return 'dev'; } })();
 function getIndexHtml() {
   return fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8')
     .replace(/\{\{APP_NAME\}\}/g,          brandConfig.name)
@@ -325,7 +326,8 @@ function getIndexHtml() {
     .replace(/\{\{PAPERLESS_URL\}\}/g,     brandConfig.paperlessUrl)
     .replace(/\{\{MATTERMOST_URL\}\}/g,    brandConfig.mattermostUrl)
     .replace(/\{\{DEMO_MODE\}\}/g,         brandConfig.demoMode ? '' : 'display:none')
-    .replace(/\{\{FOOTER_NOTE\}\}/g,       brandConfig.footerNote || brandConfig.name);
+    .replace(/\{\{FOOTER_NOTE\}\}/g,       brandConfig.footerNote || brandConfig.name)
+    .replace(/\{\{APP_VERSION\}\}/g,       GIT_VERSION);
 }
 app.get('/', (_req, res) => res.type('html').send(getIndexHtml()));
 app.get('/sw.js', (_req, res) => {
