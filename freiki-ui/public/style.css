@@ -89,6 +89,7 @@ body {
 /* ── Disclaimer / Footer Banner ── */
 #disclaimer-banner {
   display: none;
+  position: relative;
   background: var(--fk-surface);
   border-top: 1px solid var(--fk-border);
   padding: 9px 26px;
