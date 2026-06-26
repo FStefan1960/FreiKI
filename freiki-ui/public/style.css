@@ -1049,7 +1049,7 @@ body {
 
 body.tool-open #hilfe-bubble-panel { display: none !important; }
 
-/* ── FreiKI-Hilfe Bubble ── */
+/* ── Hilfe Bubble ── */
 #hilfe-bubble-panel {
   position: fixed;
   bottom: 16px;
@@ -1386,4 +1386,182 @@ body.tool-open #hilfe-bubble-panel { display: none !important; }
 @media (max-width: 600px) {
   .pl-filter-group { min-width: 100%; }
   .pl-search-btn { width: 100%; }
+}
+
+/* ── Paperless Suchmaske ─────────────────────────────────── */
+#paperless-filter-panel {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface, #f8f9fa);
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.pl-filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+.pl-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 160px;
+  min-width: 130px;
+}
+.pl-filter-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.pl-filter-group input,
+.pl-filter-group select {
+  padding: 6px 10px;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  background: var(--white, #fff);
+  color: var(--text, #111827);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.pl-filter-group input:focus,
+.pl-filter-group select:focus {
+  outline: none;
+  border-color: var(--color, #1F54C0);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color, #1F54C0) 15%, transparent);
+}
+.pl-search-btn {
+  padding: 7px 20px;
+  background: var(--color, #1F54C0);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-end;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.pl-search-btn:hover { background: var(--color-hover, #1A4AAD); }
+.pl-search-btn:disabled { opacity: .5; cursor: default; }
+
+/* Ergebnisliste */
+#pl-results { display: flex; flex-direction: column; gap: 8px; }
+.pl-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--white, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pl-result-item:hover {
+  border-color: var(--color, #1F54C0);
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+.pl-result-icon { font-size: 22px; flex-shrink: 0; }
+.pl-result-info { flex: 1; min-width: 0; }
+.pl-result-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-result-meta {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 2px;
+}
+.pl-result-link {
+  font-size: 12px;
+  color: var(--color, #1F54C0);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.pl-result-link:hover { text-decoration: underline; }
+.pl-no-results {
+  text-align: center;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+  padding: 20px;
+}
+
+@media (max-width: 600px) {
+  .pl-filter-grid { flex-direction: column; }
+  .pl-filter-group { flex: 1 1 100%; }
+}
+
+/* ── Paperless Ergebnisse (Zeilen) ──────────────────────────────── */
+.pl-result-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--white, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pl-result-row:hover {
+  border-color: var(--color, #1F54C0);
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+.pl-result-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pl-result-meta {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  grid-column: 1;
+}
+.pl-result-link {
+  font-size: 12px;
+  color: var(--color, #1F54C0);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pl-result-link:hover { text-decoration: underline; }
+.pl-result-chevron {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  flex-shrink: 0;
+}
+.pl-doc-panel {
+  padding: 10px 14px;
+  background: var(--surface, #f8f9fa);
+  border: 1px solid var(--border, #e5e7eb);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  margin-top: -10px;
+}
+.pl-doc-text {
+  white-space: pre-wrap;
+  font-size: 12px;
+  color: var(--text, #111827);
+  margin: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  font-family: inherit;
+}
+.pl-empty {
+  text-align: center;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+  padding: 24px 0;
 }
