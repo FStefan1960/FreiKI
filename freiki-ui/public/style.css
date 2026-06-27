@@ -1155,8 +1155,9 @@ body.tool-open #hilfe-bubble-panel { display: none !important; }
   border: 1px solid var(--fk-border-strong);
   border-radius: var(--fk-radius-sm);
   padding: 4px 8px;
-  background: var(--fk-surface);
-  color: var(--fk-ink);
+  background: #14306b;
+  color: white;
+  font-size: 14px;
   cursor: pointer;
 }
 
