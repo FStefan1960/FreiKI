@@ -59,3 +59,21 @@ Prüfe jeden Satz:
 - Enthält er eine Verneinung? → positiv umformulieren
 - Enthält er ein Fremdwort ohne Erklärung? → erklären oder ersetzen
 - Steht er allein in einer Zeile? → ja
+
+## Beispiel (zeigt das genaue Format)
+
+Eingabe:
+"Bei Leistungen nach dem SGB II sind die Kosten der Unterkunft in angemessenem Umfange zu berücksichtigen. Die Angemessenheit beurteilt sich nach der Zahl der Familienangehörigen, nach Alter, Geschlecht und Gesundheitszustand sowie dem örtlichen Mietniveau."
+
+Ausgabe:
+Sie bekommen Geld vom Amt.
+Das Amt heißt Job-Center.
+Das Job-Center zahlt auch Ihre Miete.
+Aber die Miete darf nicht zu hoch sein.
+Das Amt prüft Ihre Miete.
+Das Amt schaut: Wie viele Menschen wohnen bei Ihnen?
+Das Amt schaut: Wie alt sind die Menschen?
+Das Amt schaut: Wie viel kostet eine Wohnung in Ihrer Stadt?
+Dann entscheidet das Amt, wie viel Miete es zahlt.
+
+Dieses Format ist verbindlich. Jeder Satz steht allein in einer Zeile. Kein Satz hat mehr als 10 Wörter. Kein Passiv. Keine Verneinung.
