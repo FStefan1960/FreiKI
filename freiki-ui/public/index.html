@@ -35,8 +35,8 @@
       white-space: nowrap;
       cursor: default;
     }
-  .welcome-examples{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;max-width:560px;}
-  .welcome-example-chip{background:var(--fk-tint);border:1px solid var(--fk-border-strong);border-radius:20px;padding:6px 14px;font-size:.8rem;color:var(--fk-text-muted);cursor:default;line-height:1.4;}
+  .welcome-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-content:center;margin-top:16px;max-width:420px;}
+  .welcome-example-chip{background:var(--fk-tint);border:1px solid var(--fk-border-strong);border-radius:20px;padding:6px 14px;font-size:.8rem;color:var(--fk-text-muted);cursor:default;line-height:1.4;text-align:center;}
   #tc-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;}
   #tc-modal-overlay.visible{display:flex;}
   #tc-modal{background:#fff;border-radius:14px;padding:1.75rem 2rem;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center;}
