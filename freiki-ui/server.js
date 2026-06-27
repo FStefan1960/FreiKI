@@ -324,6 +324,7 @@ function getIndexHtml() {
     .replace(/\{\{APP_TAGLINE\}\}/g,       brandConfig.tagline)
     .replace(/\{\{APP_COLOR\}\}/g,         brandConfig.color)
     .replace(/\{\{PAPERLESS_URL\}\}/g,     brandConfig.paperlessUrl)
+    .replace(/\{\{PAPERLESS_ADMIN_URL\}\}/g, process.env.PAPERLESS_ADMIN_URL || brandConfig.paperlessUrl)
     .replace(/\{\{MATTERMOST_URL\}\}/g,    brandConfig.mattermostUrl)
     .replace(/\{\{DEMO_MODE\}\}/g,         brandConfig.demoMode ? '' : 'display:none')
     .replace(/\{\{FOOTER_NOTE\}\}/g,       brandConfig.footerNote || brandConfig.name)
