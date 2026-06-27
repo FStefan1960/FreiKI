@@ -304,6 +304,7 @@ fs.readdirSync(promptDir)
       multifile:  meta.multifile  === 'true',
       hidden:     meta.hidden     === 'true',
       paperless:  meta.paperless  === 'true',
+      examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
     });
 
     console.log(`Prompt geladen: ${key} – ${meta.title || key}`);
