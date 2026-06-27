@@ -1256,7 +1256,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
           messages,
           stream: true,
           temperature: lowTempModes.includes(mode) ? 0.3 : 0.5,
-          max_tokens: 4096
+          max_tokens: 8192
         })
       });
 
