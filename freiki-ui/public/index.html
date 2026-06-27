@@ -160,8 +160,8 @@
             <span id="stats-text">– / – / –%</span>
           </div>
           <div class="header-icon-group">
-            <button id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;" data-url="{{MATTERMOST_URL}}" onclick="openTeamchat()">💬 <span class="hilfe-label">Teamchat</span></button>
-            <a href="{{PAPERLESS_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled" title="Dokumentenarchiv (Paperless)" style="display:none;">DMS</a>
+            <a href="{{PAPERLESS_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled admin-only" title="Dokumentenarchiv (Paperless)" style="display:none;">DMS</a>
+            <button id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" style="display:none;" data-url="{{MATTERMOST_URL}}" onclick="openTeamchat()">💬 <span class="hilfe-label">Chat</span></button>
             <button class="header-icon-btn header-icon-btn-labeled" onclick="toggleHilfeBubble()" title="{{APP_NAME}}-Hilfe">? <span class="hilfe-label">Hilfe</span></button>
           </div>
           <button class="new-chat-btn" onclick="newChat()">+ Neu</button>
