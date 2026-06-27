@@ -1920,7 +1920,7 @@ app.post('/api/bot-chat', async (req, res) => {
     }
 
     allChunks.sort((a, b) => a.distance - b.distance);
-    const topChunks = allChunks.slice(0, BOT_TOP_CHUNKS);
+    const topChunks = allChunks.filter(c => c.distance < 0.45).slice(0, BOT_TOP_CHUNKS);
 
     const contextText = topChunks.length
       ? topChunks.map((c, i) => `[${i + 1}] (Bereich: ${c.area})\n${c.content}`).join('\n\n')
