@@ -151,7 +151,12 @@ Durchsucht das interne Dokumentenarchiv nach archivierten Dokumenten.
 
 ### 3.11 Transkription und Sprachausgabe
 
-**Transkription (Audio → Text):** Klicken Sie auf das Mikrofon-Symbol und sprechen Sie – FreiKI wandelt die Aufnahme in Text um. Alternativ können Sie eine Audiodatei hochladen.
+**Transkription (Audio → Text):** Nehmen Sie eine Audiodatei mit einer geeigneten App auf Ihrem Gerät auf und laden Sie sie anschließend über das 📎-Symbol hoch. FreiKI transkribiert die Aufnahme und gibt den Text aus.
+
+Geeignete Aufnahme-Apps:
+- **iOS/iPadOS:** Sprachmemos (vorinstalliert)
+- **macOS:** Sprachmemos (vorinstalliert) oder QuickTime Player → Neue Audioaufnahme
+- **Windows:** Sprachrekorder / Diktiergerät (vorinstalliert)
 
 **Sprachausgabe (Text → Audio):** Klicken Sie auf das 🔊-Symbol neben einer Antwort, um sie vorlesen zu lassen.
 
@@ -182,9 +187,14 @@ Erstellt druckbare Tagespläne mit Piktogrammen.
 
 ## 5. Team-Chat (Mattermost)
 
-Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner Team-Chat bereit. Sie melden sich mit denselben Zugangsdaten wie bei FreiKI an.
+Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner Team-Chat bereit.
 
-- **FreiKI-Bot:** Im Team-Chat ist ein FreiKI-Bot direkt ansprechbar. Er durchsucht die freigegebenen Wissensbereiche und antwortet direkt im Chat-Kanal.
+> ⚠️ **Wichtig:** Melden Sie sich im Team-Chat **nicht** mit E-Mail und Passwort an. Verwenden Sie ausschließlich den **GitLab-Button** auf der Anmeldeseite. Nur so funktioniert die Single-Sign-On-Verbindung zu FreiKI korrekt.
+
+- **FreiKI direkt im Chat nutzen:** Sie können FreiKI auf zwei Arten in einem Kanal ansprechen:
+  - **`@freiki Ihre Frage`** — FreiKI antwortet im Kanal, für alle Teilnehmenden sichtbar. Ideal für Fragen, von deren Antwort das ganze Team profitiert.
+  - **`/freiki Ihre Frage`** — FreiKI antwortet nur für Sie sichtbar (private Antwort). Geeignet für persönliche Anfragen.
+- **Wissensbereiche:** FreiKI durchsucht dabei dieselben freigegebenen Wissensbereiche wie in der App.
 - **Datenschutz:** Alle Nachrichten verbleiben auf dem eigenen Server – keine Cloud-Abhängigkeit.
 
 ---
