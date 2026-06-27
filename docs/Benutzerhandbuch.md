@@ -1,5 +1,9 @@
 # FreiKI – Benutzerhandbuch
 
+> **Hinweis:** Das Erscheinungsbild (Logo, Farben, Name) kann je nach Einsatzort an das Corporate Design Ihrer Organisation angepasst sein. Die Funktionen sind identisch.
+
+---
+
 ## 1. Was ist FreiKI?
 
 FreiKI ist Ihr interner KI-Assistent. Er läuft vollständig auf einem dedizierten Server Ihrer Organisation – Ihre Eingaben verlassen nie Ihre Organisation und werden nicht zum Training der KI verwendet. Kein externer Anbieter hat Zugriff auf Ihre Daten.
@@ -14,7 +18,7 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 
 **Als App installieren (empfohlen):** FreiKI kann auf Smartphones, Tablets und Desktop-PCs als App installiert werden (PWA). Öffnen Sie FreiKI im Browser und wählen Sie im Browser-Menü „Zum Startbildschirm hinzufügen" (iOS/Android) bzw. das Installations-Symbol in der Adressleiste (Chrome/Edge am PC).
 
-**Anmeldung:** Benutzername und Passwort erhalten Sie von Ihrer IT-Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern.
+**Anmeldung:** Benutzername und Passwort erhalten Sie von Ihrer IT-Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Schloss-Symbol unten links in der Seitenleiste).
 
 ---
 
@@ -71,12 +75,12 @@ Lädt eine Datei oder ein Foto und fasst den Inhalt strukturiert zusammen.
 
 ---
 
-### 3.5 Wissenssuche (RAG)
+### 3.5 Wissenssuche
 
 Suche in den für Sie freigegebenen internen Wissensbereichen. FreiKI durchsucht die hinterlegten Dokumente (Richtlinien, Handbücher, Gesetze, interne Prozesse) und antwortet mit konkreter Quellenangabe.
 
 - Nur Wissensbereiche, die Ihre Administration für Sie freigegeben hat, sind sichtbar
-- FreiKI antwortet ausschließlich auf Basis der hinterlegten Dokumente – keine freien Antworten
+- FreiKI antwortet ausschließlich auf Basis der hinterlegten Dokumente
 - Quellenangabe zeigt, aus welchem Dokument/Abschnitt die Antwort stammt
 
 **Anwendungsbeispiel:** „Was muss ich tun, wenn ein Bewohner stürzt?" → FreiKI durchsucht die internen Dienstanweisungen und zeigt die genauen Handlungsschritte mit Quellenangabe.
@@ -102,7 +106,7 @@ Erstellt professionelle Dokumente auf Basis Ihrer Angaben. Geeignet für:
 Analysiert und vergleicht mehrere Dokumente in einem Schritt.
 
 - **Unterstützte Formate:** PDF, DOCX, TXT
-- Lädt bis zu mehrere Dateien gleichzeitig (per 📎 oder Drag & Drop)
+- Lädt mehrere Dateien gleichzeitig (per 📎 oder Drag & Drop)
 - Erstellt zunächst eine Kurzzusammenfassung jedes Dokuments, dann eine übergreifende Zusammenfassung mit Gemeinsamkeiten und Unterschieden
 - Sie können auch konkrete Fragen zu den hochgeladenen Dokumenten stellen
 
@@ -114,7 +118,7 @@ Analysiert und vergleicht mehrere Dokumente in einem Schritt.
 
 Sucht aktuelle Informationen im Internet und fasst die Ergebnisse zusammen.
 
-⚠️ **Wichtiger Datenschutzhinweis:** Beim Einsatz dieses Werkzeugs wird Ihre Suchanfrage über die interne Metasuchmaschine (SearXNG) ins Internet übertragen. **Geben Sie keine personenbezogenen Daten ein.**
+⚠️ **Wichtiger Datenschutzhinweis:** Beim Einsatz dieses Werkzeugs wird Ihre Suchanfrage über die interne Metasuchmaschine ins Internet übertragen. **Geben Sie keine personenbezogenen Daten ein.**
 
 - Ergebnisse werden mit Quellenangaben und URLs geliefert
 - Geeignet für aktuelle Themen, Gesetzesänderungen, Nachrichten
@@ -136,12 +140,12 @@ Sucht aktuelle Informationen im Internet und fasst die Ergebnisse zusammen.
 
 ### 3.10 Archiv durchsuchen
 
-Durchsucht das interne Dokumentenarchiv (Paperless-ngx) nach archivierten Dokumenten.
+Durchsucht das interne Dokumentenarchiv nach archivierten Dokumenten.
 
 - **Zugriff:** Nur für Benutzer, denen diese Funktion von der Administration freigeschaltet wurde
-- **Suchfilter:** Freitext, Korrespondent, Dokumenttyp, Tags, Datumsbereich
+- Suche nach Freitext, Korrespondent, Dokumenttyp, Tags, Datumsbereich
 - Suchergebnisse zeigen Titel, Datum, Typ und Korrespondent
-- Durch Klick auf ein Ergebnis wird der erkannte Text (OCR) direkt inline angezeigt – kein Login in Paperless notwendig
+- Durch Klick auf ein Ergebnis wird der erkannte Text direkt angezeigt – kein separater Login ins Archiv notwendig
 
 ---
 
@@ -155,16 +159,37 @@ Alle Audiodaten werden lokal verarbeitet – nichts wird an externe Dienste übe
 
 ---
 
-## 4. Team-Chat (Mattermost)
+## 4. Extras
 
-Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner Team-Chat bereit (Mattermost). Sie melden sich mit denselben Zugangsdaten wie bei FreiKI an.
+Im Tab **„Extras"** in der Seitenleiste finden Sie ergänzende Werkzeuge:
+
+### 4.1 Piktogramme
+
+Durchsucht die ARASAAC-Bibliothek mit über 12.000 freien Piktogrammen. Geeignet für die Erstellung von Bildkommunikationsmaterial, Tages- und Wochenplänen oder unterstützter Kommunikation.
+
+- Suchbegriff eingeben → Piktogramm auswählen → herunterladen oder kopieren
+- Lizenz: ARASAAC (Creative Commons BY-NC-SA)
+
+### 4.2 Tagesplan
+
+Erstellt druckbare Tagespläne mit Piktogrammen.
+
+- Stichwort eingeben → passendes Symbol suchen und auswählen
+- Beliebig viele Einträge hinzufügen
+- Fertigen Plan ausdrucken
+
+---
+
+## 5. Team-Chat (Mattermost)
+
+Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner Team-Chat bereit. Sie melden sich mit denselben Zugangsdaten wie bei FreiKI an.
 
 - **FreiKI-Bot:** Im Team-Chat ist ein FreiKI-Bot direkt ansprechbar. Er durchsucht die freigegebenen Wissensbereiche und antwortet direkt im Chat-Kanal.
 - **Datenschutz:** Alle Nachrichten verbleiben auf dem eigenen Server – keine Cloud-Abhängigkeit.
 
 ---
 
-## 5. Datenschutz und Nutzungshinweise
+## 6. Datenschutz und Nutzungshinweise
 
 ### Kein Gedächtnis zwischen Sitzungen
 FreiKI speichert Eingaben und Antworten nicht dauerhaft. Der Chatverlauf bleibt ausschließlich in Ihrem Browser und nur für die aktuelle Sitzung erhalten. Nach dem Schließen des Tabs oder dem Abmelden ist er unwiederbringlich gelöscht.
@@ -180,7 +205,7 @@ Nur dieser Modus überträgt Anfragen ins Internet. Alle anderen Werkzeuge laufe
 
 ---
 
-## 6. Rollen und Rechte
+## 7. Rollen und Rechte
 
 | Rolle | Rechte |
 |---|---|
@@ -192,7 +217,7 @@ Welche Wissensbereiche und Werkzeuge Ihnen zur Verfügung stehen, richtet sich n
 
 ---
 
-## 7. Häufige Fragen
+## 8. Häufige Fragen
 
 **Kann FreiKI meine Eingaben für Modell-Training verwenden?**
 Nein. Das Modell ist statisch und lernt nicht aus Ihren Eingaben. Es gibt keine Rückkopplung an den Modellhersteller.
@@ -206,12 +231,13 @@ Ja. FreiKI versteht und antwortet in über 100 Sprachen. Sie müssen nicht auf D
 **Was passiert, wenn ich eine Audiodatei hochlade?**
 Die Datei wird lokal auf dem Server transkribiert. Sie verlässt die Infrastruktur Ihrer Organisation nicht.
 
-**Ist die Archivsuche mit Paperless identisch?**
-Nein. Die Archivsuche zeigt Suchergebnisse und OCR-Texte an, erlaubt aber kein Bearbeiten, Löschen oder Umtaggen von Dokumenten. Dafür ist Paperless direkt zuständig.
+**Ist die Archivsuche identisch mit dem Archiv-System?**
+Nein. Die Archivsuche zeigt Suchergebnisse und erkannte Texte an, erlaubt aber kein Bearbeiten, Löschen oder Umtaggen von Dokumenten. Dafür ist das Archiv-System direkt zuständig.
 
 ---
 
-## 8. Support und Feedback
+## 9. Support und Feedback
 
-- **In der App:** Nutzen Sie die Feedback-Funktion (🔔- oder Feedback-Button), um Wünsche, Fehler oder Verbesserungsvorschläge direkt zu melden.
+- **Feedback-Button** (Sprechblasen-Symbol unten links in der Seitenleiste): Wünsche, Fehler oder Verbesserungsvorschläge direkt aus der App melden.
+- **Passwort ändern:** Schloss-Symbol unten links in der Seitenleiste.
 - **IT-Administration:** Bei Login-Problemen, Zugriffsfragen oder technischen Störungen wenden Sie sich an Ihre interne IT-Administration.
