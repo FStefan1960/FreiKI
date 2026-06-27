@@ -1207,7 +1207,8 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
 
       // Chunking für lange Texte im Übersetzungsmodus
       const TRANSLATE_CHUNK_SIZE = 14000;
-      if (mode === 'uebersetzen' && !fileContent && userMessage.length > TRANSLATE_CHUNK_SIZE) {
+      const isTranslateMode = mode === 'uebersetzen' || mode === '3translate';
+      if (isTranslateMode && !fileContent && userMessage.length > TRANSLATE_CHUNK_SIZE) {
         // Zielsprache aus erster Zeile extrahieren (z.B. "englisch:\nText...")
         let targetLang = 'Deutsch';
         let textToTranslate = userMessage;
