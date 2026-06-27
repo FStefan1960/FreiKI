@@ -116,6 +116,7 @@
       <div><label>E-Mail</label><input type="text" id="n-email" autocomplete="off"></div>
       <div><label>Rolle</label><select id="n-role"><option value="default">User</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
       <div><label>Nutzen</label><div id="n-use"></div></div>
+      <div><label>Paperless-Zugriff</label><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="n-paperless"> Archiv durchsuchen</label></div>
       <div id="n-manage-cell"><label>Verwalten</label><div id="n-manage"></div></div>
       <div><button class="btn btn-primary" id="n-create">Anlegen</button></div>
     </div>
@@ -235,7 +236,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeEdit(); });
 document.getElementById('u-filter').addEventListener('input',renderRows);
 
 function buildEditCard(u){
-    const state={role:u.role,use:u.use.slice(),manage:u.manage.slice(),suspended:u.suspended,first_name:u.first_name||'',last_name:u.last_name||'',funktion:u.funktion||'',email:u.email||''};
+    const state={role:u.role,use:u.use.slice(),manage:u.manage.slice(),suspended:u.suspended,first_name:u.first_name||'',last_name:u.last_name||'',funktion:u.funktion||'',email:u.email||'',use_paperless:!!u.use_paperless};
     const card=document.createElement('div'); card.className='ucard';
     const markDirty=()=>card.classList.add('dirty');
 
@@ -256,6 +257,12 @@ function buildEditCard(u){
     const useHost=document.createElement('div'); makeMultiSelect(useHost,u.use,(v)=>{state.use=v;markDirty();});
     field('Nutzen (Bereiche)', useHost);
 
+    const cbPaper=document.createElement('input'); cbPaper.type='checkbox'; cbPaper.checked=state.use_paperless;
+    cbPaper.addEventListener('change',()=>{state.use_paperless=cbPaper.checked;markDirty();});
+    const cbWrap=document.createElement('label'); cbWrap.style.display='flex'; cbWrap.style.alignItems='center'; cbWrap.style.gap='8px';
+    cbWrap.appendChild(cbPaper); cbWrap.appendChild(document.createTextNode('Archiv durchsuchen'));
+    field('Paperless-Zugriff', cbWrap);
+
     const manHost=document.createElement('div');
     function renderManage(){
       if(state.role==='manager'){ makeMultiSelect(manHost,state.manage,(v)=>{state.manage=v;markDirty();}); }
@@ -271,13 +278,13 @@ function buildEditCard(u){
     const acts=document.createElement('div'); acts.className='row-actions';
     const save=document.createElement('button'); save.className='btn btn-primary'; save.textContent='Speichern';
     save.addEventListener('click',async()=>{ save.disabled=true; save.innerHTML='<span class="spinner"></span>';
-      try{ const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,email:state.email})});
+      try{ const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,email:state.email,use_paperless:state.use_paperless})});
         const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); statusMsg('ok','„'+u.username+'" gespeichert.'); load();
       }catch(e){ statusMsg('err','Speichern fehlgeschlagen: '+e.message); } finally{ save.disabled=false; save.textContent='Speichern'; }
     });
     const susp=document.createElement('button'); susp.className='btn btn-ghost'; susp.textContent=u.suspended?'Entsperren':'Sperren';
     susp.addEventListener('click',async()=>{ susp.disabled=true;
-      try{ const ns=u.suspended?0:1; const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,email:state.email,suspended:ns})});
+      try{ const ns=u.suspended?0:1; const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,email:state.email,suspended:ns,use_paperless:state.use_paperless})});
         const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); load();
       }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); susp.disabled=false; }
     });
@@ -316,7 +323,8 @@ document.getElementById('n-create').addEventListener('click',async()=>{
   if(!username){ statusMsg('err','Benutzername erforderlich.'); return; }
   if(!password && !email){ statusMsg('err','Ohne Passwort wird ein Zufallspasswort per Mail versendet – dafür ist eine E-Mail-Adresse erforderlich.'); return; }
   const btn=document.getElementById('n-create'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
-  try{ const r=await fetch('/api/admin/users',{method:'POST',headers:H,body:JSON.stringify({username,password:password||undefined,role,first_name,last_name,funktion,email,use,manage:role==='manager'?manage:[]})});
+  const use_paperless=document.getElementById('n-paperless').checked;
+  try{ const r=await fetch('/api/admin/users',{method:'POST',headers:H,body:JSON.stringify({username,password:password||undefined,role,first_name,last_name,funktion,email,use,manage:role==='manager'?manage:[],use_paperless})});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
     ['n-user','n-pass','n-first','n-last','n-funktion','n-email'].forEach(id=>document.getElementById(id).value='');
     statusMsg('ok','Nutzer „'+username+'" angelegt.'+(d.mailSent?' Zugangsdaten per Mail versendet.':'')); load();
