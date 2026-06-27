@@ -24,6 +24,9 @@ caddy-config/
 docker-compose.yml
 caddy/Caddyfile
 freiki-ui/public/header.png
+freiki-ui/public/app-header.png
+freiki-ui/public/app-icon-192.png
+freiki-ui/public/freiki-header.png
 freiki-ui/public/apple-touch-icon.png
 freiki-ui/public/favicon-32.png
 freiki-ui/public/icons/
