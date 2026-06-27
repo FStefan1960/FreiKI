@@ -1204,6 +1204,80 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
 
     } else {
       // ── Direkter vLLM-Pfad ──
+
+      // Chunking für lange Texte im Übersetzungsmodus
+      const TRANSLATE_CHUNK_SIZE = 14000;
+      if (mode === 'uebersetzen' && !fileContent && userMessage.length > TRANSLATE_CHUNK_SIZE) {
+        // Zielsprache aus erster Zeile extrahieren (z.B. "englisch:\nText...")
+        let targetLang = 'Deutsch';
+        let textToTranslate = userMessage;
+        const firstNewline = userMessage.indexOf('\n');
+        if (firstNewline > 0 && firstNewline < 60) {
+          const firstLine = userMessage.slice(0, firstNewline).trim().toLowerCase().replace(':', '').trim();
+          const langMap = { englisch: 'Englisch', english: 'Englisch', französisch: 'Französisch', french: 'Französisch', spanisch: 'Spanisch', spanish: 'Spanisch', italienisch: 'Italienisch', italian: 'Italienisch', niederländisch: 'Niederländisch', dutch: 'Niederländisch', polnisch: 'Polnisch', polish: 'Polnisch', türkisch: 'Türkisch', turkish: 'Türkisch' };
+          if (langMap[firstLine]) { targetLang = langMap[firstLine]; textToTranslate = userMessage.slice(firstNewline + 1).trim(); }
+        }
+
+        // Text an Absatzgrenzen in Chunks aufteilen
+        const paragraphs = textToTranslate.split(/\n\n+/);
+        const chunks = [];
+        let current = '';
+        for (const p of paragraphs) {
+          if (current.length + p.length + 2 > TRANSLATE_CHUNK_SIZE && current.length > 0) {
+            chunks.push(current.trim());
+            current = p;
+          } else {
+            current = current ? current + '\n\n' + p : p;
+          }
+        }
+        if (current.trim()) chunks.push(current.trim());
+
+        console.log(`Übersetzung: ${chunks.length} Chunks à ~${Math.round(textToTranslate.length / chunks.length)} Zeichen → ${targetLang}`);
+
+        const basePrompt = basePromptText + (systemPrompts[mode] || systemPrompts[modesConfig[0]?.key] || '');
+        const systemPrompt = `${basePrompt}\n\nSystemzeit: ${now}. Diese Angabe ist verbindlich korrekt. Kommentiere sie niemals, zweifle nie daran. /no_think`;
+
+        for (let i = 0; i < chunks.length; i++) {
+          if (i > 0) {
+            res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '\n\n' } }] })}\n\n`);
+          }
+          const chunkMsg = `Übersetze folgenden Text ins ${targetLang}. Gib NUR die Übersetzung aus, ohne Kommentar oder Einleitung:\n\n${chunks[i]}`;
+          const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: chunkMsg },
+          ];
+          const vllmResp = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
+            body: JSON.stringify({ model: VLLM_MODEL, messages, stream: true, temperature: 0.3, max_tokens: 8192, chat_template_kwargs: { enable_thinking: false } })
+          });
+          if (vllmResp.status >= 400) {
+            const errText = await vllmResp.text();
+            console.error(`Chunk ${i + 1} Fehler: ${errText}`);
+            res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `⚠️ Fehler bei Abschnitt ${i + 1}.` } }] })}\n\n`);
+            continue;
+          }
+          await new Promise((resolve, reject) => {
+            let buf = '';
+            vllmResp.body.on('data', chunk => {
+              buf += chunk.toString();
+              const lines = buf.split('\n'); buf = lines.pop();
+              for (const line of lines) {
+                if (!line.startsWith('data:')) continue;
+                const raw = line.slice(5).trim();
+                if (raw === '[DONE]') { resolve(); return; }
+                res.write(line + '\n');
+              }
+            });
+            vllmResp.body.on('end', resolve);
+            vllmResp.body.on('error', reject);
+          });
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+
       if (!fileContent) {
         if (mode === 'uebersetzen') {
           userMessage = `Übersetze folgenden Text ins Deutsche: "${userMessage}"`;
