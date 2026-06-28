@@ -1033,6 +1033,7 @@ function patchPaperlessLinks(el) {
     a.style.cursor = 'pointer';
     a.onclick = async (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const tk = localStorage.getItem('freiki_token') || '';
       try {
         const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + tk } });
