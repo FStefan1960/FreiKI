@@ -1097,7 +1097,8 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
             const date = doc.created_date || doc.created || '';
             const type = doc.document_type ? `· ${doc.document_type}` : '';
             const link = `[${doc.title}](/api/paperless/download/${doc.id})`;
-            md += `- ${link}  \n  📅 ${date}${type}\n`;
+            const viewLink = publicUrl ? ` · [🔗 Im Archiv öffnen](${publicUrl}/documents/${doc.id}/detail)` : '';
+            md += `- ${link}${viewLink}  \n  📅 ${date}${type}\n`;
           }
         }
         res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: md } }] })}\n\n`);
@@ -1147,7 +1148,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
       const vllmRes = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
-        body: JSON.stringify({ model: VLLM_MODEL, messages, stream: true, max_tokens: 4096, chat_template_kwargs: { enable_thinking: false } })
+        body: JSON.stringify({ model: VLLM_MODEL, messages, stream: true, max_tokens: 4096 })
       });
 
       if (!vllmRes.ok) throw new Error(`vLLM Fehler ${vllmRes.status}`);
@@ -1251,7 +1252,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
           const vllmResp = await fetchWithTimeout(`${VLLM_URL}/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${VLLM_API_KEY}` },
-            body: JSON.stringify({ model: VLLM_MODEL, messages, stream: true, temperature: 0.3, max_tokens: 8192, chat_template_kwargs: { enable_thinking: false } })
+            body: JSON.stringify({ model: VLLM_MODEL, messages, stream: true, temperature: 0.3, max_tokens: 8192 })
           });
           if (vllmResp.status >= 400) {
             const errText = await vllmResp.text();
@@ -1624,7 +1625,7 @@ const PG_DB         = process.env.PG_DB         || 'flowise';
 const PG_USER_KB    = process.env.PG_USER_KB    || 'n8n_user';
 const PG_PASS_KB    = process.env.PG_PASS_KB    || '';
 const EMBED_URL     = process.env.VLLM_EMBED_URL || 'http://vLLM-Embedding:8001/v1/embeddings';
-const EMBED_MODEL   = 'BAAI/bge-m3';
+const EMBED_MODEL   = process.env.VLLM_EMBED_MODEL || 'BAAI/bge-m3';
 
 const areasConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'areas.json'), 'utf-8'));
 const KB_TABLES = {};
@@ -1636,7 +1637,7 @@ for (const [key, def] of Object.entries(areasConfig)) {
 
 const CHUNK_SIZE    = 800;
 const CHUNK_OVERLAP = 150;
-const EMBED_BATCH   = 8;
+const EMBED_BATCH   = 4;
 
 function chunkText(text, source) {
   const paras = text.split(/\n{2,}/).map(p => p.trim()).filter(p => p.length > 0);
@@ -1686,6 +1687,7 @@ async function insertChunks(table, chunks, sourceUrl) {
   let inserted = 0;
   try {
     for (let i = 0; i < chunks.length; i += EMBED_BATCH) {
+      if (i > 0) await new Promise(r => setTimeout(r, 2000));
       const batch = chunks.slice(i, i + EMBED_BATCH);
       const embeddings = await getEmbeddings(batch.map(c => c.content));
       for (let j = 0; j < batch.length; j++) {

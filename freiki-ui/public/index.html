@@ -797,9 +797,9 @@ async function plToggleDoc(row, id) {
     const res = await fetch(`/api/paperless/document/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
     const d = await res.json();
     const text = (d.content || '').trim();
-    panel.innerHTML = text
-      ? `<pre class="pl-doc-text">${text.replace(/</g,'&lt;')}</pre>`
-      : '<span style="color:var(--fk-muted);font-size:13px;">Kein Textinhalt verfügbar.</span>';
+    panel.innerHTML = (text
+        ? `<pre class="pl-doc-text">${text.replace(/</g,'&lt;')}</pre>`
+        : '<span style="color:var(--fk-muted);font-size:13px;">Kein Textinhalt verfügbar.</span>');
     panel.dataset.loaded = '1';
   } catch (e) {
     panel.innerHTML = '<span style="color:var(--fk-muted);">Fehler beim Laden.</span>';
@@ -840,11 +840,13 @@ async function plSearch() {
         return `<div class="pl-result-row" onclick="plToggleDoc(this,${d.id})" data-id="${d.id}">
           <span class="pl-result-title">${d.title}</span>
           <span class="pl-result-meta">${meta}</span>
+          <a href="/api/paperless/download/${d.id}" onclick="event.stopPropagation()" style="font-size:12px;color:var(--fk-color);text-decoration:none;white-space:nowrap;">📄 Öffnen</a>
           <span class="pl-result-chevron">▶</span>
         </div>
         <div class="pl-doc-content" id="pl-doc-${d.id}" style="display:none;"></div>`;
       }).join('');
       resultsEl.innerHTML = `${header}<div class="pl-results-card">${rows}</div>`;
+      patchPaperlessLinks(resultsEl);
     }
   } catch (e) {
     resultsEl.innerHTML = '<div class="pl-empty">⚠️ Paperless nicht erreichbar.</div>';
