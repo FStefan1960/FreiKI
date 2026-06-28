@@ -611,30 +611,38 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('show');
 }
 
-// ── Eingebettete Werkzeug-Panels (iframe) ──
-function openToolPanel(src) {
-  const frame = document.getElementById('tool-frame');
-  if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
+// ── Panel-Hilfsfunktionen ──
+function closeAllPanels() {
   document.getElementById('messages').style.display = 'none';
   document.querySelector('.input-area').style.display = 'none';
-  document.getElementById('tool-panel').style.display = 'flex';
-  document.body.classList.add('tool-open');
+  document.getElementById('tool-panel').style.display = 'none';
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   closeSidebar();
 }
 
-function closeToolPanel() {
-  const panel = document.getElementById('tool-panel');
-  if (!panel || panel.style.display === 'none') return;
-  panel.style.display = 'none';
-  document.body.classList.remove('tool-open');
+function showChat() {
+  document.getElementById('tool-panel').style.display = 'none';
   document.getElementById('messages').style.display = '';
   document.querySelector('.input-area').style.display = '';
+  document.body.classList.remove('tool-open');
+}
+
+// ── Eingebettete Werkzeug-Panels (iframe) ──
+function openToolPanel(src) {
+  closeAllPanels();
+  const frame = document.getElementById('tool-frame');
+  if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
+  document.getElementById('tool-panel').style.display = 'flex';
+  document.body.classList.add('tool-open');
+}
+
+function closeToolPanel() {
+  showChat();
 }
 
 // ── Mode ──
 function setMode(key) {
-  closeToolPanel();
+  showChat();
   currentMode = key;
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('btn-' + key);
