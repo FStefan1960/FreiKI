@@ -840,7 +840,7 @@ async function plSearch() {
         return `<div class="pl-result-row" onclick="plToggleDoc(this,${d.id})" data-id="${d.id}">
           <span class="pl-result-title">${d.title}</span>
           <span class="pl-result-meta">${meta}</span>
-          <a href="/api/paperless/download/${d.id}" onclick="event.stopPropagation()" style="font-size:12px;color:var(--fk-color);text-decoration:none;white-space:nowrap;">📄 Öffnen</a>
+          <a href="/api/paperless/download/${d.id}" onclick="event.stopPropagation()" class="pl-search-btn" style="font-size:12px;text-decoration:none;white-space:nowrap;">📄 Öffnen</a>
           <span class="pl-result-chevron">▶</span>
         </div>
         <div class="pl-doc-content" id="pl-doc-${d.id}" style="display:none;"></div>`;
