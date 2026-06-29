@@ -53,28 +53,14 @@ echo "-> Packen..."
 tar czf "${BACKUP_FILE}" -C /tmp "korki-backup-${BACKUP_DATE}"
 
 echo "-> Übertragen nach Goneo (${GONEO_HOST})..."
-curl --ftp-create-dirs -T "${BACKUP_FILE}" \
-    "ftp://${GONEO_HOST}/${GONEO_DIR}/$(basename ${BACKUP_FILE})" \
-    --user "${GONEO_USER}:${GONEO_PASS}" \
-    --silent --show-error
+curl --insecure -u "${GONEO_USER}:${GONEO_PASS}" \
+    "sftp://${GONEO_HOST}:2222/${GONEO_DIR}/$(basename ${BACKUP_FILE})" \
+    -T "${BACKUP_FILE}" --progress-bar
 
 echo "-> Aufräumen..."
 rm -rf "${BACKUP_DIR}"
 rm -f "${BACKUP_FILE}"
 
-echo "-> Alte Backups auf Goneo löschen (>14 Tage)..."
-CUTOFF=$(date -d '14 days ago' +%Y-%m-%d 2>/dev/null || date -v-14d +%Y-%m-%d)
-curl "ftp://${GONEO_HOST}/${GONEO_DIR}/" \
-    --user "${GONEO_USER}:${GONEO_PASS}" \
-    --silent | awk '{print $NF}' | while read FILE; do
-    FILEDATE=$(echo "${FILE}" | grep -oP '\d{4}-\d{2}-\d{2}' | head -1)
-    if [[ -n "${FILEDATE}" && "${FILEDATE}" < "${CUTOFF}" ]]; then
-        echo "   Lösche: ${FILE}"
-        curl "ftp://${GONEO_HOST}/${GONEO_DIR}/${FILE}" \
-            --user "${GONEO_USER}:${GONEO_PASS}" \
-            -Q "DELE ${GONEO_DIR}/${FILE}" \
-            --silent || true
-    fi
-done
-
 echo "=== Backup abgeschlossen ==="
+
+# Alte Backups auf Goneo: manuelle Bereinigung nötig (curl/SFTP unterstützt kein Listing/Delete)
