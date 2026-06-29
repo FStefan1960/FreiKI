@@ -150,7 +150,7 @@ if (!TOKEN || Date.now() >= EXP || ROLE !== 'admin') { bail(); }
 const H = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
 let AREAS = [];
 
-function statusMsg(type, txt){ const s=document.getElementById('status'); s.className='status-msg '+type; s.textContent=txt; if(type==='ok') setTimeout(()=>s.className='status-msg',3000); }
+function statusMsg(type, txt){ const s=document.getElementById('status'); s.className='status-msg '+type; s.textContent=txt; if(type==='ok') setTimeout(()=>{ s.className='status-msg'; s.textContent=''; },3000); }
 
 // ── Multiselect-Dropdown ──
 function makeMultiSelect(host, selected, onChange){
@@ -188,14 +188,15 @@ async function load(){
     if(ar.status===403) return bail();
     AREAS = await ar.json();
     makeMultiSelect(document.getElementById('n-use'), [], ()=>{});
+    const nManageEl=document.getElementById('n-manage'); nManageEl.innerHTML='';
     const nManageSel=document.createElement('select');
     const nManageEmpty=document.createElement('option'); nManageEmpty.value=''; nManageEmpty.textContent='– bitte wählen –'; nManageSel.appendChild(nManageEmpty);
     AREAS.forEach(a=>{ const o=document.createElement('option'); o.value=a.key; o.textContent=a.title; nManageSel.appendChild(o); });
     nManageSel._values=()=>nManageSel.value?[nManageSel.value]:[];
-    document.getElementById('n-manage').appendChild(nManageSel);
+    nManageEl.appendChild(nManageSel);
     const nRole=document.getElementById('n-role');
     const toggleNManage=()=>{ document.getElementById('n-manage-cell').style.visibility = nRole.value==='manager'?'visible':'hidden'; };
-    nRole.addEventListener('change',toggleNManage); toggleNManage();
+    nRole.onchange=toggleNManage; toggleNManage();
     const ur = await fetch('/api/admin/users',{headers:H});
     const data = await ur.json();
     renderTable(data.users||[]);
