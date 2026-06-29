@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css?v=15">
+  <link rel="stylesheet" href="/style.css?v=17">
   <link rel="stylesheet" href="/brand.css">
   <script src="/marked.min.js"></script>
   <script>
@@ -171,7 +171,7 @@
       </div>
 
       <!-- Paperless Dokumenten-Filter (nur im Paperless-Modus sichtbar) -->
-      <div id="paperless-filter-panel" style="display:none;">
+      <div id="paperless-filter-panel" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
         <div class="pl-filter-grid">
           <div class="pl-filter-group">
             <label>Freitext (Wildcard *)</label>
@@ -205,7 +205,7 @@
           </div>
           <button class="pl-search-btn" onclick="plSearch()" id="pl-search-btn">Suchen</button>
         </div>
-        <div id="pl-results"></div>
+        <div id="pl-results" style="flex:1;min-height:0;overflow-y:auto;display:block;"></div>
       </div>
 
       <div class="messages" id="messages">
@@ -248,6 +248,26 @@
           <button class="tool-panel-back" onclick="closeToolPanel()">← Zurück zum Chat</button>
         </div>
         <iframe id="tool-frame" title="Werkzeug"></iframe>
+      </div>
+      <div id="gesellschaftstrends-panel" style="display:none;flex-direction:column;flex:1;min-height:0;">
+        <div class="tool-panel-bar">
+          <button class="tool-panel-back" onclick="closeGesellschaftstrends()">← Zurück zum Chat</button>
+        </div>
+        <div id="gt-body" style="flex:1;overflow-y:auto;padding:24px;max-width:860px;width:100%;box-sizing:border-box;">
+          <h1 style="font-size:20px;margin-bottom:4px;">📊 Gesellschaftstrends</h1>
+          <div id="gt-date" style="font-size:12px;color:var(--fk-muted);margin-bottom:16px;"></div>
+          <div id="gt-content"><span style="color:var(--fk-muted);">Lade…</span></div>
+        </div>
+      </div>
+      <div id="medienspiegel-panel" style="display:none;flex-direction:column;flex:1;min-height:0;">
+        <div class="tool-panel-bar">
+          <button class="tool-panel-back" onclick="closeMedienspiegel()">← Zurück zum Chat</button>
+        </div>
+        <div id="medienspiegel-body" style="flex:1;overflow-y:auto;padding:24px;max-width:860px;width:100%;box-sizing:border-box;">
+          <h1 style="font-size:20px;margin-bottom:4px;">📰 Medienspiegel</h1>
+          <div id="ms-date" style="font-size:12px;color:var(--fk-muted);margin-bottom:16px;"></div>
+          <div id="ms-content"><span style="color:var(--fk-muted);">Lade…</span></div>
+        </div>
       </div>
     </div>
 
@@ -529,7 +549,7 @@ async function loadModes() {
         extras.forEach(t => {
           const b = document.createElement('button');
           b.className = 'mode-btn';
-          b.onclick = () => t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
+          b.onclick = () => t.key === 'medienspiegel' ? openMedienspiegel() : t.key === 'gesellschaftstrends' ? openGesellschaftstrends() : t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
           b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc || ''}</div></div>`;
           ce.appendChild(b);
         });
@@ -616,12 +636,18 @@ function closeAllPanels() {
   document.getElementById('messages').style.display = 'none';
   document.querySelector('.input-area').style.display = 'none';
   document.getElementById('tool-panel').style.display = 'none';
+  document.getElementById('medienspiegel-panel').style.display = 'none';
+  document.getElementById('gesellschaftstrends-panel').style.display = 'none';
+  document.getElementById('paperless-filter-panel').style.display = 'none';
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   closeSidebar();
 }
 
 function showChat() {
   document.getElementById('tool-panel').style.display = 'none';
+  document.getElementById('medienspiegel-panel').style.display = 'none';
+  document.getElementById('gesellschaftstrends-panel').style.display = 'none';
+  document.getElementById('paperless-filter-panel').style.display = 'none';
   document.getElementById('messages').style.display = '';
   document.querySelector('.input-area').style.display = '';
   document.body.classList.remove('tool-open');
@@ -637,6 +663,48 @@ function openToolPanel(src) {
 }
 
 function closeToolPanel() {
+  showChat();
+}
+
+function openMedienspiegel() {
+  closeAllPanels();
+  document.getElementById('medienspiegel-panel').style.display = 'flex';
+  document.body.classList.add('tool-open');
+  const content = document.getElementById('ms-content');
+  content.innerHTML = '<span style="color:var(--fk-muted);">Lade…</span>';
+  const token = localStorage.getItem('freiki_token');
+  fetch('/api/medienspiegel', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      document.getElementById('ms-date').textContent = data.date ? 'Stand: ' + data.date : '';
+      content.innerHTML = data.html || '<span style="color:var(--fk-muted);">Noch kein Medienspiegel verfügbar.</span>';
+      content.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    })
+    .catch(() => { content.innerHTML = '<span style="color:var(--fk-muted);">Fehler beim Laden.</span>'; });
+}
+
+function openGesellschaftstrends() {
+  closeAllPanels();
+  document.getElementById('gesellschaftstrends-panel').style.display = 'flex';
+  document.body.classList.add('tool-open');
+  const content = document.getElementById('gt-content');
+  content.innerHTML = '<span style="color:var(--fk-muted);">Lade…</span>';
+  const token = localStorage.getItem('freiki_token');
+  fetch('/api/gesellschaftstrends', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      document.getElementById('gt-date').textContent = data.date ? 'Stand: ' + data.date : '';
+      content.innerHTML = data.html || '<span style="color:var(--fk-muted);">Noch keine Daten verfügbar.</span>';
+      content.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    })
+    .catch(() => { content.innerHTML = '<span style="color:var(--fk-muted);">Fehler beim Laden.</span>'; });
+}
+
+function closeGesellschaftstrends() {
+  showChat();
+}
+
+function closeMedienspiegel() {
   showChat();
 }
 

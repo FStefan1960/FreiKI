@@ -716,6 +716,47 @@ app.get('/api/extras', (req, res) => {
   } catch (e) { res.json([]); }
 });
 
+// ── Medienspiegel ─────────────────────────────────────────────
+const MEDIENSPIEGEL_PATH = path.join(__dirname, 'medienspiegel.json');
+
+app.get('/api/medienspiegel', (req, res) => {
+  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    if (!fs.existsSync(MEDIENSPIEGEL_PATH)) return res.json({ date: null, html: null });
+    res.json(JSON.parse(fs.readFileSync(MEDIENSPIEGEL_PATH, 'utf8')));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/medienspiegel', (req, res) => {
+  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
+  const { html, date } = req.body || {};
+  if (!html) return res.status(400).json({ error: 'html fehlt' });
+  try {
+    fs.writeFileSync(MEDIENSPIEGEL_PATH, JSON.stringify({ date: date || new Date().toISOString().slice(0,10), html }));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+const TRENDS_PATH = path.join(__dirname, 'gesellschaftstrends.json');
+
+app.get('/api/gesellschaftstrends', (req, res) => {
+  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    if (!fs.existsSync(TRENDS_PATH)) return res.json({ date: null, html: null });
+    res.json(JSON.parse(fs.readFileSync(TRENDS_PATH, 'utf8')));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/gesellschaftstrends', (req, res) => {
+  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
+  const { html, date } = req.body || {};
+  if (!html) return res.status(400).json({ error: 'html fehlt' });
+  try {
+    fs.writeFileSync(TRENDS_PATH, JSON.stringify({ date: date || new Date().toISOString().slice(0,10), html }));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Bereiche (aus den w_-Prompts) für die UI
 app.get('/api/admin/areas', (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
