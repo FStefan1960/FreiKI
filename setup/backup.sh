@@ -19,7 +19,7 @@ echo "-> Configs sichern..."
 rsync -a --exclude='node_modules' --exclude='.git' "${STACK_DIR}/" "${BACKUP_DIR}/freiki-package/"
 
 echo "-> PostgreSQL Dump..."
-docker exec PostgreSQL pg_dumpall -U freiki_user | gzip > "${BACKUP_DIR}/postgres-dumpall.sql.gz"
+docker exec PostgreSQL pg_dumpall -U n8n_user --no-role-passwords | gzip > "${BACKUP_DIR}/postgres-dumpall.sql.gz"
 
 echo "-> Volumes sichern..."
 for VOLUME in \
