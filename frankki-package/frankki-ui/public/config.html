@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frank-KI – Konfiguration</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f0f4f8;
+      color: #0e0f0f;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .page-header {
+      max-width: 760px;
+      margin: 0 auto 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 760px;
+      margin: 0 auto 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 12px 24px;
+      align-items: start;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .field:last-child { border-bottom: none; }
+
+    .field-label { }
+    .field-label strong { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .field-label span   { font-size: 11px; color: #9ca3af; line-height: 1.5; }
+
+    .field input[type="text"],
+    .field input[type="color"],
+    .field textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      background: #f9fafb;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input[type="text"]:focus,
+    .field textarea:focus { border-color: #2B9CD8; background: #fff; }
+
+    .field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .color-row input[type="color"] {
+      width: 44px;
+      height: 36px;
+      padding: 2px 4px;
+      cursor: pointer;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .color-row input[type="text"] { flex: 1; }
+
+    .actions {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-save {
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status.ok    { background: #bbf7d0; color: #166534; display: block; }
+    .status.error { background: #fecaca; color: #991b1b; display: block; }
+
+    .notes {
+      max-width: 760px;
+      margin: 24px auto 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .note-box {
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .note-box.warn {
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      color: #713f12;
+    }
+    .note-box.info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+    }
+    .note-box code {
+      background: rgba(0,0,0,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>⚙️ Frank-KI – Konfiguration</h1>
+    <p>Anpassung für eine neue Institution. Änderungen werden in <code>config.json</code> gespeichert.<br>
+    Diese Seite ist nicht aus der App verlinkt und nur für Administratoren gedacht.</p>
+  </div>
+</div>
+
+<!-- Branding -->
+<div class="card">
+  <h2>Branding & Name</h2>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>App-Name</strong>
+      <span>Wird im Browser-Tab, Login-Screen und überall als Produktname angezeigt.</span>
+    </div>
+    <input type="text" id="appName" placeholder="z. B. Frank-KI">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Untertitel</strong>
+      <span>Kurzbeschreibung unter dem Logo auf dem Login-Screen.</span>
+    </div>
+    <input type="text" id="appTagline" placeholder="z. B. Dein persönlicher KI-Assistent">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Institution</strong>
+      <span>Name der Institution (für interne Verwendung und Mails).</span>
+    </div>
+    <input type="text" id="institution" placeholder="z. B. Muster GmbH">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Logo-Pfad</strong>
+      <span>Relativer Pfad zur Logo-Datei im <code>public/</code>-Verzeichnis. Empfehlung: PNG, mind. 300px breit.</span>
+    </div>
+    <input type="text" id="logoPath" placeholder="/logo.png">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Favicon-Pfad</strong>
+      <span>Icon für Browser-Tab und PWA (192×192px PNG empfohlen).</span>
+    </div>
+    <input type="text" id="faviconPath" placeholder="/icons/icon-192.png">
+  </div>
+</div>
+
+<!-- Farben -->
+<div class="card">
+  <h2>Farben</h2>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Hauptfarbe (Blue)</strong>
+      <span>Buttons, Links, aktive Elemente. Gut lesbarer mittlerer Blauton empfohlen.</span>
+    </div>
+    <div class="color-row">
+      <input type="color" id="colorBlue-picker" oninput="document.getElementById('colorBlue').value=this.value">
+      <input type="text" id="colorBlue" placeholder="#2B9CD8" oninput="document.getElementById('colorBlue-picker').value=this.value">
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Dunkelfarbe (Blue Dark)</strong>
+      <span>Gradienten, Sidebar-Akzente, Floating Buttons. Sollte deutlich dunkler als die Hauptfarbe sein.</span>
+    </div>
+    <div class="color-row">
+      <input type="color" id="colorBlueDark-picker" oninput="document.getElementById('colorBlueDark').value=this.value">
+      <input type="text" id="colorBlueDark" placeholder="#1e3a8a" oninput="document.getElementById('colorBlueDark-picker').value=this.value">
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Hellfarbe (Blue Light)</strong>
+      <span>Hover-Zustände, aktive Tabs, Hinweis-Boxen. Sehr heller Ton der Hauptfarbe.</span>
+    </div>
+    <div class="color-row">
+      <input type="color" id="colorBlueLight-picker" oninput="document.getElementById('colorBlueLight').value=this.value">
+      <input type="text" id="colorBlueLight" placeholder="#bfdbfe" oninput="document.getElementById('colorBlueLight-picker').value=this.value">
+    </div>
+  </div>
+</div>
+
+<!-- Texte -->
+<div class="card">
+  <h2>Texte & Hinweise</h2>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Disclaimer (Banner)</strong>
+      <span>Erscheint als fester Balken am unteren Rand während eines Gesprächs.</span>
+    </div>
+    <textarea id="disclaimer" placeholder="z. B. ... ist ein Hilfsinstrument – alle Ergebnisse müssen geprüft werden."></textarea>
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Disclaimer (Login)</strong>
+      <span>Wird auf dem Login-Screen in der gelben Hinweisbox angezeigt.</span>
+    </div>
+    <textarea id="loginDisclaimer" placeholder="z. B. ... ist ein KI-Hilfsinstrument. Alle Ergebnisse müssen geprüft werden."></textarea>
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Fußzeile (rechts)</strong>
+      <span>Erscheint rechts im Disclaimer-Banner, z. B. Name, Institution, Jahr.</span>
+    </div>
+    <input type="text" id="footerLeft" placeholder="z. B. M. Mustermann · Muster GmbH · 2026">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Willkommenstitel</strong>
+      <span>Überschrift auf dem leeren Chat-Startbildschirm.</span>
+    </div>
+    <input type="text" id="welcomeTitle" placeholder="z. B. Willkommen bei Frank-KI">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Hilfe-Button-Label</strong>
+      <span>Beschriftung des Hilfe-Buttons unten rechts (Desktop).</span>
+    </div>
+    <input type="text" id="helpBubbleLabel" placeholder="z. B. Frank-KI-Hilfe">
+  </div>
+</div>
+
+<!-- E-Mail -->
+<div class="card">
+  <h2>E-Mail & Transkription</h2>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Erlaubte E-Mail-Domain</strong>
+      <span>Nur Adressen dieser Domain können Transkriptionen erhalten. Ohne @-Zeichen eingeben.</span>
+    </div>
+    <input type="text" id="emailDomain" placeholder="z. B. muster-gmbh.de">
+  </div>
+
+  <div class="field">
+    <div class="field-label">
+      <strong>Mail-Absendername</strong>
+      <span>Anzeigename des Absenders bei Transkriptions-Mails.</span>
+    </div>
+    <input type="text" id="mailFromName" placeholder="z. B. Transkriptions-Dienst">
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="actions">
+  <button class="btn-save" onclick="saveConfig()">💾 Konfiguration speichern</button>
+  <span id="status" class="status"></span>
+</div>
+
+<div class="notes">
+  <div class="note-box warn">
+    ⚠️ <strong>Nach dem Speichern</strong> muss der Frank-KI-Container neu gebaut und gestartet werden, damit Änderungen wirksam werden:<br>
+    <code>cd /opt/frankki &amp;&amp; docker compose build frankki-ui --no-cache &amp;&amp; docker compose up -d frankki-ui</code>
+  </div>
+  <div class="note-box info">
+    📧 <strong>SMTP-Zugangsdaten</strong> (Host, Port, User, Passwort) sind Secrets und werden hier <strong>nicht</strong> konfiguriert –
+    sie müssen direkt in <code>/opt/frankki/.env</code> gepflegt werden.<br>
+    API-Keys können im internen Docker-Netzwerk für alle Dienste identisch bleiben.
+  </div>
+</div>
+
+<script>
+  async function loadConfig() {
+    try {
+      const res = await fetch('/config.json');
+      if (!res.ok) throw new Error('config.json nicht gefunden');
+      const cfg = await res.json();
+
+      document.getElementById('appName').value        = cfg.appName || '';
+      document.getElementById('appTagline').value     = cfg.appTagline || '';
+      document.getElementById('institution').value    = cfg.institution || '';
+      document.getElementById('logoPath').value       = cfg.logoPath || '';
+      document.getElementById('faviconPath').value    = cfg.faviconPath || '';
+      document.getElementById('disclaimer').value     = cfg.disclaimer || '';
+      document.getElementById('loginDisclaimer').value= cfg.loginDisclaimer || '';
+      document.getElementById('footerLeft').value     = cfg.footerLeft || '';
+      document.getElementById('welcomeTitle').value   = cfg.welcomeTitle || '';
+      document.getElementById('helpBubbleLabel').value= cfg.helpBubbleLabel || '';
+      document.getElementById('emailDomain').value    = cfg.emailDomain || '';
+      document.getElementById('mailFromName').value   = cfg.mailFromName || '';
+
+      const blue      = cfg.colors?.blue      || '#2B9CD8';
+      const blueDark  = cfg.colors?.blueDark  || '#1e3a8a';
+      const blueLight = cfg.colors?.blueLight || '#bfdbfe';
+
+      document.getElementById('colorBlue').value           = blue;
+      document.getElementById('colorBlue-picker').value    = blue;
+      document.getElementById('colorBlueDark').value       = blueDark;
+      document.getElementById('colorBlueDark-picker').value= blueDark;
+      document.getElementById('colorBlueLight').value      = blueLight;
+      document.getElementById('colorBlueLight-picker').value = blueLight;
+
+    } catch(e) {
+      showStatus('Fehler beim Laden: ' + e.message, 'error');
+    }
+  }
+
+  async function saveConfig() {
+    const cfg = {
+      appName:        document.getElementById('appName').value.trim(),
+      appTagline:     document.getElementById('appTagline').value.trim(),
+      institution:    document.getElementById('institution').value.trim(),
+      logoPath:       document.getElementById('logoPath').value.trim(),
+      faviconPath:    document.getElementById('faviconPath').value.trim(),
+      disclaimer:     document.getElementById('disclaimer').value.trim(),
+      loginDisclaimer:document.getElementById('loginDisclaimer').value.trim(),
+      footerLeft:     document.getElementById('footerLeft').value.trim(),
+      welcomeTitle:   document.getElementById('welcomeTitle').value.trim(),
+      helpBubbleLabel:document.getElementById('helpBubbleLabel').value.trim(),
+      emailDomain:    document.getElementById('emailDomain').value.trim().replace('@',''),
+      mailFromName:   document.getElementById('mailFromName').value.trim(),
+      colors: {
+        blue:      document.getElementById('colorBlue').value.trim(),
+        blueDark:  document.getElementById('colorBlueDark').value.trim(),
+        blueLight: document.getElementById('colorBlueLight').value.trim(),
+      }
+    };
+
+    const btn = document.querySelector('.btn-save');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg)
+      });
+      if (res.ok) {
+        showStatus('✅ Gespeichert. Nutzer sehen Änderungen beim nächsten Laden.', 'ok');
+      } else {
+        const d = await res.json();
+        showStatus('Fehler: ' + (d.error || res.status), 'error');
+      }
+    } catch(e) {
+      showStatus('Verbindungsfehler: ' + e.message, 'error');
+    }
+    btn.disabled = false;
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + type;
+    setTimeout(() => { el.className = 'status'; }, 5000);
+  }
+
+  loadConfig();
+</script>
+</body>
+</html>

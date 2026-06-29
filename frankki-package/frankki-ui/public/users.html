@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FreiKI Benutzerverwaltung</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:#f1f5f9;min-height:100vh;padding:24px;color:#1f2937}
+    .page{max-width:1100px;margin:0 auto}
+    .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(30,58,138,.10);padding:28px 32px;margin-bottom:22px}
+    .header{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+    .header img{width:44px;height:44px;border-radius:10px}
+    .header h1{font-size:20px;font-weight:700;color:#1E3A8A}
+    .header p{font-size:13px;color:#6b7280}
+    h2{font-size:15px;font-weight:700;color:#1E3A8A;margin-bottom:14px}
+    label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+    input[type=text],input[type=password],select{width:100%;padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;outline:none;background:#fff}
+    input:focus,select:focus{border-color:#2B9CD8}
+    .btn{padding:8px 16px;border:none;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,background .15s}
+    .btn-primary{background:linear-gradient(135deg,#1E3A8A,#2B9CD8);color:#fff}
+    .btn-primary:hover{opacity:.9}
+    .btn-ghost{background:#eef2ff;color:#1E3A8A}
+    .btn-ghost:hover{background:#e0e7ff}
+    .btn-danger{background:#fef2f2;color:#b91c1c}
+    .btn-danger:hover{background:#fee2e2}
+    .btn:disabled{opacity:.5;cursor:default}
+    table{width:100%;border-collapse:collapse}
+    th,td{text-align:left;padding:10px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:middle}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#9ca3af;font-weight:700}
+    tr.dirty{background:#fffbeb}
+    .uname{font-weight:600}
+    .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+    .badge.susp{background:#fef2f2;color:#b91c1c}
+    .badge.ok{background:#ecfdf5;color:#047857}
+    /* Multiselect */
+    .ms{position:relative;min-width:150px}
+    .ms-btn{width:100%;text-align:left;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font:inherit;font-size:12px;cursor:pointer;display:flex;justify-content:space-between;gap:6px;align-items:center}
+    .ms-btn:hover{border-color:#2B9CD8}
+    .ms-btn .chev{color:#9ca3af;font-size:10px}
+    .ms-panel{display:none;position:absolute;z-index:30;top:calc(100% + 4px);left:0;right:0;min-width:200px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;max-height:260px;overflow:auto}
+    .ms.open .ms-panel{display:block}
+    .ms-opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;cursor:pointer}
+    .ms-opt:hover{background:#f3f4f6}
+    .ms-opt input{width:auto}
+    .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+    .new-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;align-items:end}
+    td input.cell{width:100%;padding:6px 8px;font-size:12px;border:1px solid #d1d5db;border-radius:6px;font-family:inherit}
+    td input.cell:focus{border-color:#2B9CD8;outline:none}
+    #table-wrap{overflow-x:auto}
+    /* Übersichts-Tabelle */
+    .u-filter{width:100%;max-width:340px;margin-bottom:14px}
+    .utable{width:100%;border-collapse:collapse}
+    .utable th{text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;border-bottom:1px solid #e5e7eb}
+    .utable td{padding:10px;border-bottom:1px solid #f1f5f9;font-size:14px;vertical-align:middle}
+    .utable tbody tr{cursor:pointer;transition:background .1s}
+    .utable tbody tr:hover{background:#f0f9ff}
+    .utable .uname{font-weight:600;color:#15294a}
+    .role-pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef2ff;color:#3730a3}
+    .role-pill.admin{background:#fee2e2;color:#991b1b}
+    .role-pill.manager{background:#e0e7ff;color:#3730a3}
+    .role-pill.default{background:#f1f5f9;color:#475569}
+    /* Edit-Modal */
+    .modal-ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+    .modal-ov.show{display:flex}
+    .modal-box{background:#fff;border-radius:14px;max-width:820px;width:100%;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+    .modal-head h3{font-size:16px;color:#15294a}
+    .modal-close{background:none;border:none;font-size:24px;line-height:1;cursor:pointer;color:#6b7280;padding:0 4px}
+    .modal-box .ucard{border:none;padding:0;margin:0}
+    /* Karten-Ansicht je Nutzer */
+    .ucard{border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;margin-bottom:14px;background:#fff}
+    .ucard.dirty{border-color:#2B9CD8;box-shadow:0 0 0 2px rgba(43,156,216,.15)}
+    .ucard-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .ucard-head .uname{font-weight:700;font-size:15px;color:#15294a}
+    .ucard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px 14px;align-items:end;margin-bottom:14px}
+    .ucard-grid .field label{display:block;font-size:11px;color:#6b7280;margin-bottom:4px;font-weight:600;letter-spacing:.02em}
+    .ucard-grid .ms{min-width:0}
+    .status-msg{display:none;margin-top:14px;padding:12px 14px;border-radius:10px;font-size:13px}
+    .status-msg.ok{display:block;background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46}
+    .status-msg.err{display:block;background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+    .hint{font-size:12px;color:#6b7280;margin-top:8px}
+    .muted{color:#9ca3af;font-size:12px}
+    .back-link{position:fixed;bottom:24px;right:24px;z-index:1000;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1e3a8a,#2B9CD8);color:#fff;border:none;border-radius:24px;padding:10px 18px;font-size:13px;font-weight:600;text-decoration:none;box-shadow:0 4px 16px rgba(30,58,138,.35)}
+    .embedded .back-link{display:none!important}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:760px){.new-grid{grid-template-columns:1fr 1fr}table{font-size:12px}}
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+<div class="page">
+  <div class="card">
+    <div class="header">
+      <img src="/icons/icon-192.png" alt="FreiKI">
+      <div>
+        <h1>Benutzerverwaltung</h1>
+        <p>Rollen und Bereichs-Berechtigungen verwalten · nur für Administratoren</p>
+      </div>
+    </div>
+    <div class="hint">„Nutzen" = welche Wissens-Bereiche sichtbar sind · „Verwalten" = welche Bereiche per Wissens-Upload pflegbar sind. Werkzeuge (Chat, Übersetzen …) sind für alle frei. <b>Leer = alle Bereiche.</b> Änderungen wirken nach erneutem Login des Nutzers.</div>
+    <div class="status-msg" id="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>➕ Neuen Nutzer anlegen</h2>
+    <div class="new-grid">
+      <div><label>Benutzername</label><input type="text" id="n-user" autocomplete="off"></div>
+      <div><label>Passwort <span style="font-weight:400;color:#9ca3af">(leer = automatisch, per Mail)</span></label><input type="password" id="n-pass" autocomplete="new-password"></div>
+      <div><label>Vorname</label><input type="text" id="n-first" autocomplete="off"></div>
+      <div><label>Nachname</label><input type="text" id="n-last" autocomplete="off"></div>
+      <div><label>Funktion</label><input type="text" id="n-funktion" autocomplete="off"></div>
+      <div><label>E-Mail</label><input type="text" id="n-email" autocomplete="off"></div>
+      <div><label>Rolle</label><select id="n-role"><option value="default">User</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+      <div><label>Nutzen</label><div id="n-use"></div></div>
+      <div id="n-manage-cell"><label>Verwalten</label><div id="n-manage"></div></div>
+      <div><button class="btn btn-primary" id="n-create">Anlegen</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Nutzer</h2>
+    <input type="text" id="u-filter" class="u-filter" placeholder="Suchen (Name, Benutzer, Funktion) …">
+    <div id="table-wrap"><p style="color:#9ca3af">Lade …</p></div>
+  </div>
+  <a href="/" class="back-link">← Zurück zu FreiKI</a>
+</div>
+
+<!-- Edit-Modal -->
+<div class="modal-ov" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="edit-title">Nutzer bearbeiten</h3>
+      <button class="modal-close" id="edit-close" title="Schließen">×</button>
+    </div>
+    <div id="edit-body"></div>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('korki_token') || '';
+const EXP = parseInt(localStorage.getItem('korki_token_expiry') || '0', 10);
+const ROLE = localStorage.getItem('korki_role') || 'default';
+function bail(){ (window.top||window).location.href='/'; }
+if (!TOKEN || Date.now() >= EXP || ROLE !== 'admin') { bail(); }
+const H = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+let AREAS = [];
+
+function statusMsg(type, txt){ const s=document.getElementById('status'); s.className='status-msg '+type; s.textContent=txt; if(type==='ok') setTimeout(()=>s.className='status-msg',3000); }
+
+// ── Multiselect-Dropdown ──
+function makeMultiSelect(host, selected, onChange){
+  host.innerHTML='';
+  const wrap=document.createElement('div'); wrap.className='ms';
+  const btn=document.createElement('button'); btn.type='button'; btn.className='ms-btn';
+  const lbl=document.createElement('span'); const chev=document.createElement('span'); chev.className='chev'; chev.textContent='▼';
+  btn.appendChild(lbl); btn.appendChild(chev);
+  const panel=document.createElement('div'); panel.className='ms-panel';
+  panel.addEventListener('click',(e)=>e.stopPropagation()); // offen lassen für Mehrfachauswahl
+  const sel=new Set(selected.map(s=>s.toLowerCase()));
+  function refresh(){
+    const n=sel.size;
+    lbl.textContent = n===0 ? 'Alle' : (n===AREAS.length ? 'Alle' : n+' gewählt');
+  }
+  AREAS.forEach(a=>{
+    const opt=document.createElement('label'); opt.className='ms-opt';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.value=a.key; cb.checked=sel.has(a.key.toLowerCase());
+    cb.addEventListener('change',()=>{ if(cb.checked) sel.add(a.key.toLowerCase()); else sel.delete(a.key.toLowerCase()); refresh(); onChange(values()); });
+    opt.appendChild(cb); opt.appendChild(document.createTextNode(' '+a.title));
+    panel.appendChild(opt);
+  });
+  function values(){ return AREAS.map(a=>a.key).filter(k=>sel.has(k.toLowerCase())); }
+  btn.addEventListener('click',(e)=>{ e.stopPropagation(); document.querySelectorAll('.ms.open').forEach(o=>{if(o!==wrap)o.classList.remove('open')}); wrap.classList.toggle('open'); });
+  wrap.appendChild(btn); wrap.appendChild(panel); host.appendChild(wrap);
+  refresh();
+  host._values = values;
+  return { values };
+}
+document.addEventListener('click',()=>document.querySelectorAll('.ms.open').forEach(o=>o.classList.remove('open')));
+
+async function load(){
+  try{
+    const ar = await fetch('/api/admin/areas',{headers:H});
+    if(ar.status===403) return bail();
+    AREAS = await ar.json();
+    makeMultiSelect(document.getElementById('n-use'), [], ()=>{});
+    makeMultiSelect(document.getElementById('n-manage'), [], ()=>{});
+    const nRole=document.getElementById('n-role');
+    const toggleNManage=()=>{ document.getElementById('n-manage-cell').style.visibility = nRole.value==='manager'?'visible':'hidden'; };
+    nRole.addEventListener('change',toggleNManage); toggleNManage();
+    const ur = await fetch('/api/admin/users',{headers:H});
+    const data = await ur.json();
+    renderTable(data.users||[]);
+  }catch(e){ statusMsg('err','Laden fehlgeschlagen: '+e.message); }
+}
+
+let USERS=[];
+function roleLabel(r){ return r==='admin'?'Admin':r==='manager'?'Manager':'User'; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function renderTable(users){ USERS=users; renderRows(); }
+
+function renderRows(){
+  const wrap=document.getElementById('table-wrap');
+  const q=(document.getElementById('u-filter').value||'').toLowerCase().trim();
+  const list=USERS.filter(u=> !q || (u.username+' '+(u.first_name||'')+' '+(u.last_name||'')+' '+(u.funktion||'')+' '+(u.email||'')).toLowerCase().includes(q));
+  if(!list.length){ wrap.innerHTML='<p style="color:#9ca3af">Keine Treffer.</p>'; return; }
+  const table=document.createElement('table'); table.className='utable';
+  table.innerHTML='<thead><tr><th>Benutzer</th><th>Name</th><th>Funktion</th><th>Rolle</th><th>Status</th></tr></thead>';
+  const tb=document.createElement('tbody');
+  list.forEach(u=>{
+    const tr=document.createElement('tr');
+    const name=((u.first_name||'')+' '+(u.last_name||'')).trim()||'—';
+    tr.innerHTML='<td><span class="uname">'+esc(u.username)+'</span></td><td>'+esc(name)+'</td><td>'+esc(u.funktion||'—')+'</td>'
+      +'<td><span class="role-pill '+u.role+'">'+roleLabel(u.role)+'</span></td>'
+      +'<td>'+(u.suspended?'<span class="badge susp">gesperrt</span>':'<span class="badge ok">aktiv</span>')+'</td>';
+    tr.addEventListener('click',()=>openEdit(u));
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb); wrap.innerHTML=''; wrap.appendChild(table);
+}
+
+function openEdit(u){
+  document.getElementById('edit-title').textContent='Nutzer: '+u.username;
+  const body=document.getElementById('edit-body'); body.innerHTML=''; body.appendChild(buildEditCard(u));
+  document.getElementById('edit-modal').classList.add('show');
+}
+function closeEdit(){ document.getElementById('edit-modal').classList.remove('show'); }
+document.getElementById('edit-close').addEventListener('click',closeEdit);
+document.getElementById('edit-modal').addEventListener('click',e=>{ if(e.target.id==='edit-modal') closeEdit(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeEdit(); });
+document.getElementById('u-filter').addEventListener('input',renderRows);
+
+function buildEditCard(u){
+    const state={role:u.role,use:u.use.slice(),manage:u.manage.slice(),suspended:u.suspended,first_name:u.first_name||'',last_name:u.last_name||'',funktion:u.funktion||'',email:u.email||''};
+    const card=document.createElement('div'); card.className='ucard';
+    const markDirty=()=>card.classList.add('dirty');
+
+    // Feld-Raster
+    const grid=document.createElement('div'); grid.className='ucard-grid';
+    const field=(labelText,node)=>{ const f=document.createElement('div'); f.className='field'; const l=document.createElement('label'); l.textContent=labelText; f.appendChild(l); f.appendChild(node); grid.appendChild(f); return f; };
+    const textInput=(fld)=>{ const inp=document.createElement('input'); inp.type='text'; inp.value=state[fld]; inp.addEventListener('input',()=>{state[fld]=inp.value;markDirty();}); return inp; };
+
+    field('Vorname', textInput('first_name'));
+    field('Nachname', textInput('last_name'));
+    field('Funktion', textInput('funktion'));
+    field('E-Mail', textInput('email'));
+
+    const selR=document.createElement('select');
+    [['default','User'],['manager','Manager'],['admin','Admin']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;if(v===u.role)o.selected=true;selR.appendChild(o);});
+    field('Rolle', selR);
+
+    const useHost=document.createElement('div'); makeMultiSelect(useHost,u.use,(v)=>{state.use=v;markDirty();});
+    field('Nutzen (Bereiche)', useHost);
+
+    const manHost=document.createElement('div');
+    function renderManage(){
+      if(state.role==='manager'){ makeMultiSelect(manHost,state.manage,(v)=>{state.manage=v;markDirty();}); }
+      else { manHost.innerHTML = state.role==='admin' ? '<span class="muted">alle</span>' : '<span class="muted">–</span>'; }
+    }
+    renderManage();
+    field('Verwalten (Bereiche)', manHost);
+    selR.addEventListener('change',()=>{ state.role=selR.value; markDirty(); renderManage(); });
+
+    card.appendChild(grid);
+
+    // Aktionen
+    const acts=document.createElement('div'); acts.className='row-actions';
+    const save=document.createElement('button'); save.className='btn btn-primary'; save.textContent='Speichern';
+    save.addEventListener('click',async()=>{ save.disabled=true; save.innerHTML='<span class="spinner"></span>';
+      try{ const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,email:state.email})});
+        const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); statusMsg('ok','„'+u.username+'" gespeichert.'); load();
+      }catch(e){ statusMsg('err','Speichern fehlgeschlagen: '+e.message); } finally{ save.disabled=false; save.textContent='Speichern'; }
+    });
+    const susp=document.createElement('button'); susp.className='btn btn-ghost'; susp.textContent=u.suspended?'Entsperren':'Sperren';
+    susp.addEventListener('click',async()=>{ susp.disabled=true;
+      try{ const ns=u.suspended?0:1; const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,email:state.email,suspended:ns})});
+        const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); load();
+      }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); susp.disabled=false; }
+    });
+    const pw=document.createElement('button'); pw.className='btn btn-ghost'; pw.textContent='Passwort';
+    pw.addEventListener('click',async()=>{ const np=prompt('Neues Passwort für „'+u.username+'" (min. 6 Zeichen):'); if(!np) return;
+      try{ const r=await fetch('/api/admin/users/'+u.id+'/password',{method:'POST',headers:H,body:JSON.stringify({password:np})});
+        const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); statusMsg('ok','Passwort für „'+u.username+'" gesetzt.');
+      }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); }
+    });
+    const resend=document.createElement('button'); resend.className='btn btn-ghost'; resend.textContent='Willkommensmail';
+    resend.addEventListener('click',async()=>{ if(!confirm('Neues Passwort generieren und Willkommensmail an „'+u.username+'" senden?')) return;
+      resend.disabled=true;
+      try{ const r=await fetch('/api/admin/users/'+u.id+'/resend-welcome',{method:'POST',headers:H});
+        const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); statusMsg('ok','Willkommensmail an „'+u.username+'" gesendet.');
+      }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); resend.disabled=false; }
+    });
+    const del=document.createElement('button'); del.className='btn btn-danger'; del.textContent='Löschen';
+    del.addEventListener('click',async()=>{ if(!confirm('Nutzer „'+u.username+'" wirklich löschen?')) return;
+      try{ const r=await fetch('/api/admin/users/'+u.id,{method:'DELETE',headers:H}); const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); load();
+      }catch(e){ statusMsg('err','Löschen fehlgeschlagen: '+e.message); }
+    });
+    acts.append(save,susp,pw,resend,del); card.appendChild(acts);
+    return card;
+}
+
+document.getElementById('n-create').addEventListener('click',async()=>{
+  const username=document.getElementById('n-user').value.trim();
+  const password=document.getElementById('n-pass').value;
+  const role=document.getElementById('n-role').value;
+  const first_name=document.getElementById('n-first').value.trim();
+  const last_name=document.getElementById('n-last').value.trim();
+  const funktion=document.getElementById('n-funktion').value.trim();
+  const email=document.getElementById('n-email').value.trim();
+  const use=document.getElementById('n-use')._values?document.getElementById('n-use')._values():[];
+  const manage=document.getElementById('n-manage')._values?document.getElementById('n-manage')._values():[];
+  if(!username){ statusMsg('err','Benutzername erforderlich.'); return; }
+  if(!password && !email){ statusMsg('err','Ohne Passwort wird ein Zufallspasswort per Mail versendet – dafür ist eine E-Mail-Adresse erforderlich.'); return; }
+  const btn=document.getElementById('n-create'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+  try{ const r=await fetch('/api/admin/users',{method:'POST',headers:H,body:JSON.stringify({username,password:password||undefined,role,first_name,last_name,funktion,email,use,manage:role==='manager'?manage:[]})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
+    ['n-user','n-pass','n-first','n-last','n-funktion','n-email'].forEach(id=>document.getElementById(id).value='');
+    statusMsg('ok','Nutzer „'+username+'" angelegt.'+(d.mailSent?' Zugangsdaten per Mail versendet.':'')); load();
+  }catch(e){ statusMsg('err','Anlegen fehlgeschlagen: '+e.message); } finally{ btn.disabled=false; btn.textContent='Anlegen'; }
+});
+
+load();
+</script>
+</body>
+</html>
