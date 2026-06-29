@@ -4,7 +4,7 @@ const multer = require('multer');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const mammoth = require('mammoth');
 const pdfParse = require('pdf-parse');
 const tesseract = require('node-tesseract-ocr');
@@ -17,6 +17,13 @@ const crypto = require('crypto');
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // hinter Caddy
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'microphone=(), camera=(), geolocation=()');
+  next();
+});
 const upload = multer({
   dest: '/tmp/uploads/',
   limits: { fileSize: 50 * 1024 * 1024 },
@@ -55,7 +62,7 @@ const cleanupUploads = () => {
   });
 };
 cleanupUploads();
-setInterval(cleanupUploads, 24 * 60 * 60 * 1000);
+setInterval(cleanupUploads, 6 * 60 * 60 * 1000);
 
 // ── Brand-Konfiguration (White-Label) ────────────────────────
 // Defaults aus .env; DB-Einträge überschreiben diese zur Laufzeit
@@ -186,7 +193,7 @@ function signToken(u) {
   );
 }
 function getSession(req) {
-  const t = ((req.headers['authorization'] || '').replace('Bearer ', '') || req.query._t || '').trim();
+  const t = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
   if (!t || !JWT_SECRET) return null;
   try { return jwt.verify(t, JWT_SECRET); } catch { return null; }
 }
@@ -660,9 +667,15 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   try {
     const { rows } = await pgPool.query('SELECT * FROM freiki_users WHERE lower(username)=lower($1)', [username]);
     const u = rows[0];
-    if (!u || u.suspended) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+    if (!u || u.suspended) {
+      console.warn(`Login fehlgeschlagen: unbekannter Nutzer "${username}" von ${req.ip}`);
+      return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+    }
     const ok = await bcrypt.compare(password, u.password_hash || '');
-    if (!ok) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+    if (!ok) {
+      console.warn(`Login fehlgeschlagen: falsches Passwort für "${username}" von ${req.ip}`);
+      return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+    }
     const token = signToken(u);
     res.json({ token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas });
   } catch (e) {
@@ -724,7 +737,7 @@ app.get('/api/medienspiegel', (req, res) => {
   try {
     if (!fs.existsSync(MEDIENSPIEGEL_PATH)) return res.json({ date: null, html: null });
     res.json(JSON.parse(fs.readFileSync(MEDIENSPIEGEL_PATH, 'utf8')));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e.message); res.status(500).json({ error: 'Interner Fehler' }); }
 });
 
 app.post('/api/admin/medienspiegel', (req, res) => {
@@ -734,7 +747,7 @@ app.post('/api/admin/medienspiegel', (req, res) => {
   try {
     fs.writeFileSync(MEDIENSPIEGEL_PATH, JSON.stringify({ date: date || new Date().toISOString().slice(0,10), html }));
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e.message); res.status(500).json({ error: 'Interner Fehler' }); }
 });
 
 const TRENDS_PATH = path.join(__dirname, 'gesellschaftstrends.json');
@@ -744,7 +757,7 @@ app.get('/api/gesellschaftstrends', (req, res) => {
   try {
     if (!fs.existsSync(TRENDS_PATH)) return res.json({ date: null, html: null });
     res.json(JSON.parse(fs.readFileSync(TRENDS_PATH, 'utf8')));
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e.message); res.status(500).json({ error: 'Interner Fehler' }); }
 });
 
 app.post('/api/admin/gesellschaftstrends', (req, res) => {
@@ -754,7 +767,7 @@ app.post('/api/admin/gesellschaftstrends', (req, res) => {
   try {
     fs.writeFileSync(TRENDS_PATH, JSON.stringify({ date: date || new Date().toISOString().slice(0,10), html }));
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e.message); res.status(500).json({ error: 'Interner Fehler' }); }
 });
 
 // Bereiche (aus den w_-Prompts) für die UI
@@ -856,7 +869,7 @@ app.post('/api/admin/users/:id/resend-welcome', async (req, res) => {
     await pgPool.query('UPDATE freiki_users SET password_hash=$1, updated_at=now() WHERE id=$2', [hash, parseInt(req.params.id,10)]);
     await sendWelcomeMail(u.email, u.username, newPassword, u.first_name||'', u.last_name||'');
     res.json({ ok: true });
-  } catch (e) { console.error('resend-welcome:', e.message); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('resend-welcome:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
 });
 
 // Nutzer löschen
@@ -942,7 +955,7 @@ app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'fil
             const pngDir = `/tmp/ocr-${Date.now()}`;
             fs.mkdirSync(pngDir, { recursive: true });
             try {
-              execSync(`pdftoppm -r 200 -png "${file.path}" "${pngDir}/page"`, { timeout: 60000 });
+              execFileSync('pdftoppm', ['-r', '200', '-png', file.path, `${pngDir}/page`], { timeout: 60000 });
               const pages = fs.readdirSync(pngDir).filter(f => f.endsWith('.png')).sort();
               const ocrResults = await Promise.all(pages.map(p =>
                 tesseract.recognize(path.join(pngDir, p), { lang: 'deu+eng', oem: 1, psm: 3 })
@@ -958,7 +971,7 @@ app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'fil
           console.log('Bild erkannt – korrigiere Rotation und starte OCR...');
           const rotatedPath = file.path + '_rotated.png';
           try {
-            execSync(`magick convert -auto-orient "${file.path}" "${rotatedPath}"`, { timeout: 30000 });
+            execFileSync('magick', ['convert', '-auto-orient', file.path, rotatedPath], { timeout: 30000 });
           } catch (rotErr) {
             console.warn('Auto-Orient fehlgeschlagen, nutze Original:', rotErr.message);
             fs.copyFileSync(file.path, rotatedPath);
@@ -1027,7 +1040,7 @@ app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'fil
               const pngDir = `/tmp/ocr-${Date.now()}`;
               fs.mkdirSync(pngDir, { recursive: true });
               try {
-                execSync(`pdftoppm -r 200 -png "${f.path}" "${pngDir}/page"`, { timeout: 60000 });
+                execFileSync('pdftoppm', ['-r', '200', '-png', f.path, `${pngDir}/page`], { timeout: 60000 });
                 const pages = fs.readdirSync(pngDir).filter(p => p.endsWith('.png')).sort();
                 const ocrResults = await Promise.all(pages.map(p =>
                   tesseract.recognize(path.join(pngDir, p), { lang: 'deu+eng', oem: 1, psm: 3 })

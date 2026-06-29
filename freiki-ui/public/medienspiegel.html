@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medienspiegel</title>
+  <style>
+    html, body { height: auto; overflow-y: auto; margin: 0; }
+    body { font-family: system-ui, sans-serif; background: #fff; color: #111; padding: 24px; max-width: 860px; margin: 0 auto; }
+    #ms-date { font-size: 12px; color: var(--fk-muted, #888); margin-bottom: 16px; }
+    #ms-content h2 { font-size: 16px; margin: 20px 0 6px; color: var(--fk-primary, #1a4f8a); }
+    #ms-content h3 { font-size: 14px; margin: 14px 0 4px; }
+    #ms-content a { color: var(--fk-color, #1a4f8a); }
+    #ms-content ul { padding-left: 18px; }
+    #ms-content li { margin-bottom: 6px; line-height: 1.5; }
+    #ms-empty { color: var(--fk-muted, #888); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1 style="font-size:20px;margin-bottom:4px;">📰 Medienspiegel</h1>
+  <div id="ms-date"></div>
+  <div id="ms-content"><div id="ms-empty">Lade…</div></div>
+
+  <script>
+    const token = window.opener
+      ? window.opener.localStorage?.getItem('freiki_token')
+      : localStorage.getItem('freiki_token');
+
+    fetch('/api/medienspiegel', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => {
+        if (!data.html) {
+          document.getElementById('ms-empty').textContent = 'Noch kein Medienspiegel verfügbar.';
+          return;
+        }
+        document.getElementById('ms-date').textContent = 'Stand: ' + (data.date || '');
+        document.getElementById('ms-content').innerHTML = data.html;
+      })
+      .catch(e => {
+        document.getElementById('ms-empty').textContent = e === 401
+          ? 'Bitte zuerst in BeB-KI anmelden.'
+          : 'Fehler beim Laden des Medienspiegels.';
+      });
+  </script>
+</body>
+</html>
