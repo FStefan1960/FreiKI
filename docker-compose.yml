@@ -32,6 +32,7 @@ volumes:
   mail_state:
   mail_logs:
   mail_config:
+  embedding_cache:
   portainer_data:
 
 services:
@@ -107,6 +108,24 @@ services:
       - public_network
       - ai_network
 
+  # ── KI INFERENZ (Embedding, CPU) ──────────────────────────────
+  infinity_embedding:
+    build: ./embedding
+    image: bge-m3-cpu:latest
+    container_name: vLLM-Embedding
+    labels:
+      - "de.diakonie-kork.name=KI-Embedding (infinity-emb)"
+      - "de.diakonie-kork.desc=BGE-M3 – Semantische Suche, CPU-Betrieb"
+    restart: unless-stopped
+    environment:
+      - EMBED_MODEL=BAAI/bge-m3
+      - EMBED_API_KEY=${VLLM_API_KEY}
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - embedding_cache:/root/.cache/huggingface
+    networks:
+      - ai_network
+
   # ── FREIKI UI ─────────────────────────────────────────────────
   freiki-ui:
     build: ./freiki-ui
@@ -128,6 +147,7 @@ services:
     environment:
       # LLM-Backend – auf einen OpenAI-kompatiblen API-Anbieter zeigen (kein eigenes vLLM nötig)
       - VLLM_URL=${VLLM_URL}
+      - VLLM_MODEL=${VLLM_MODEL}
       - VLLM_API_KEY=${VLLM_API_KEY}
       - VLLM_EMBED_URL=${VLLM_EMBED_URL}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
@@ -135,9 +155,9 @@ services:
       - HILFE_KB_TABLE=${HILFE_KB_TABLE}
       - FLOWISE_URL=http://Flowise:3000
       - PG_HOST=PostgreSQL
-      - PG_DB=${POSTGRES_DB}
-      - PG_USER_KB=${POSTGRES_USER}
-      - PG_PASS_KB=${POSTGRES_PASSWORD}
+      - PG_DB=${PG_DB:-flowise}
+      - PG_USER_KB=${PG_USER_KB:-n8n_user}
+      - PG_PASS_KB=${PG_PASS_KB}
       - WHISPER_URL=http://whisper:9000
       - PIPER_URL=http://piper:8000
       - TTS_VOICE=thorsten
