@@ -1,0 +1,72 @@
+[{
+  "id": "frankki-health-check01",
+  "name": "Health-Check: LLM + Embedding + RAG",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 7 * * *"}]}},
+      "id": "cron", "name": "Täglich 07:00", "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2, "position": [-32, 96]
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "https://api.mistral.ai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "Bearer REDACTED-ROTATED-TOKEN"}]},
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "{ \"model\": \"mistral-medium-latest\", \"messages\": [{\"role\": \"user\", \"content\": \"Hallo\"}], \"max_tokens\": 10 }",
+        "options": {"timeout": 30000}
+      },
+      "id": "llm", "name": "Test LLM", "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2, "position": [224, -80], "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST", "url": "https://api.mistral.ai/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Authorization", "value": "Bearer REDACTED-ROTATED-TOKEN"}]},
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"mistral-embed\",\n  \"input\": [\"Test\"]\n}",
+        "options": {"timeout": 30000}
+      },
+      "id": "embed", "name": "Test Embedding", "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2, "position": [224, 96], "continueOnFail": true
+    },
+    {
+      "parameters": {"operation": "executeQuery", "query": "SELECT count(*) FROM kb_hilfe", "options": {}},
+      "id": "rag", "name": "Test RAG", "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5, "position": [224, 272],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {"numberInputs": 3},
+      "id": "merge", "name": "Zusammenführen", "type": "n8n-nodes-base.merge",
+      "typeVersion": 3, "position": [464, 80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst llm   = items[0];\nconst embed = items[1];\nconst rag   = items[2];\n\nconst appName = 'FrankKI';\nconst errors = [];\n\nif (!llm || llm.error || !llm.json?.choices?.[0]) {\n  errors.push('LLM: ' + (llm?.error?.message || JSON.stringify(llm?.json) || 'Keine Antwort'));\n}\nif (!embed || embed.error || !embed.json?.data?.[0]?.embedding?.length) {\n  errors.push('Embedding: ' + (embed?.error?.message || JSON.stringify(embed?.json) || 'Kein Vektor'));\n}\nif (!rag || rag.error || rag.json?.count === undefined) {\n  errors.push('RAG: ' + (rag?.error?.message || JSON.stringify(rag?.json) || 'Kein Ergebnis'));\n}\n\nconst ok = errors.length === 0;\nreturn [{\n  json: {\n    ok, appName, errors,\n    subject: ok ? '[OK] ' + appName + ' Health-Check: Alles in Ordnung' : '[FEHLER] ' + appName + ' Health-Check: ' + errors.length + ' Problem(e)',\n    body: ok ? appName + ': LLM, Embedding und RAG laufen einwandfrei.' : appName + ' meldet Probleme:\\n\\n' + errors.join('\\n') + '\\n\\nBitte prüfen.'\n  }\n}];"
+      },
+      "id": "auswerten", "name": "Auswerten", "type": "n8n-nodes-base.code",
+      "typeVersion": 2, "position": [688, 96]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=ki_agent@fst60.de", "toEmail": "admin@freiki.com",
+        "subject": "={{ $json.subject }}", "emailFormat": "text", "text": "={{ $json.body }}", "options": {}
+      },
+      "id": "mail", "name": "Mail senden", "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1, "position": [912, 96]
+    }
+  ],
+  "connections": {
+    "Täglich 07:00": {"main": [[{"node": "Test LLM", "type": "main", "index": 0}, {"node": "Test Embedding", "type": "main", "index": 0}, {"node": "Test RAG", "type": "main", "index": 0}]]},
+    "Test LLM":       {"main": [[{"node": "Zusammenführen", "type": "main", "index": 0}]]},
+    "Test Embedding": {"main": [[{"node": "Zusammenführen", "type": "main", "index": 1}]]},
+    "Test RAG":       {"main": [[{"node": "Zusammenführen", "type": "main", "index": 2}]]},
+    "Zusammenführen": {"main": [[{"node": "Auswerten", "type": "main", "index": 0}]]},
+    "Auswerten":      {"main": [[{"node": "Mail senden", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "meta": {"templateCredsSetupCompleted": true}
+}]
