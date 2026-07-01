@@ -5,14 +5,20 @@ const EXCEL_MCP_LAUNCHER = require.resolve('@negokaz/excel-mcp-server/dist/launc
 const MAX_TOOL_ITERATIONS = 5;
 
 function mcpToolsToOpenAI(mcpTools) {
-  return mcpTools.map(t => ({
-    type: 'function',
-    function: {
-      name: t.name,
-      description: t.description || '',
-      parameters: t.inputSchema || { type: 'object', properties: {} }
-    }
-  }));
+  return mcpTools.map(t => {
+    const schema = t.inputSchema || { type: 'object', properties: {} };
+    const properties = { ...(schema.properties || {}) };
+    delete properties.fileAbsolutePath; // wird immer serverseitig erzwungen, Modell soll ihn nicht raten müssen
+    const required = (schema.required || []).filter(r => r !== 'fileAbsolutePath');
+    return {
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description || '',
+        parameters: { ...schema, properties, required }
+      }
+    };
+  });
 }
 
 async function runExcelChat(filePath, messages, { vllmUrl, vllmModel, vllmApiKey, fetchWithTimeout }) {
