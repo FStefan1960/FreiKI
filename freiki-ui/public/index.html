@@ -910,6 +910,7 @@ async function plSearch() {
         tag_ids:          tag_ids.length ? tag_ids : undefined,
       })
     });
+    if (res.status === 401) { forceLogout(); return; }
     const { docs, count } = await res.json();
 
     if (!docs || !docs.length) {

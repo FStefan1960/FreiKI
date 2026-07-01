@@ -186,10 +186,24 @@ async function loadBrandConfig() {
   }
 }
 
+// Sekunden bis Mitternacht (Europe/Berlin) – Token stirbt synchron zum
+// client-seitigen Mitternachts-Cutoff, damit beide Seiten übereinstimmen.
+function secondsUntilMidnightBerlin() {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Berlin', hour12: false,
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).formatToParts(new Date()).map(p => [p.type, p.value])
+  );
+  const secondsPassedToday = (parseInt(parts.hour, 10) % 24) * 3600
+    + parseInt(parts.minute, 10) * 60 + parseInt(parts.second, 10);
+  return 86400 - secondsPassedToday;
+}
+
 function signToken(u) {
   return jwt.sign(
     { uid: u.id, username: u.username, role: u.role, use: u.use_areas || [], manage: u.manage_areas || [] },
-    JWT_SECRET, { expiresIn: '12h' }
+    JWT_SECRET, { expiresIn: secondsUntilMidnightBerlin() }
   );
 }
 function getSession(req) {
@@ -923,6 +937,11 @@ async function rewriteQuery(question, hist) {
 
 
 app.post('/api/chat', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'files', maxCount: 20 }]), async (req, res) => {
+  if (!getSession(req)) {
+    (req.files?.['file'] || []).forEach(f => fs.unlinkSync(f.path));
+    (req.files?.['files'] || []).forEach(f => fs.unlinkSync(f.path));
+    return res.status(401).json({ error: 'Nicht angemeldet' });
+  }
   const { message, mode, history, multidoc_task, threadId } = req.body;
   const modeConf = modesConfig.find(m => m.key === mode);
   const isMulti = modeConf?.multifile || false;
