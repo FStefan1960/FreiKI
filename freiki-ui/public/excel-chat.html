@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel-Chat (Test)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <script src="/marked.min.js"></script>
+  <script src="/purify.min.js"></script>
+  <script>
+    function safeMarked(md) {
+      return DOMPurify.sanitize(marked.parse(md), {
+        ALLOWED_TAGS: ['p','br','strong','em','u','del','a','ul','ol','li',
+          'code','pre','blockquote','h1','h2','h3','h4','h5','h6',
+          'table','thead','tbody','tr','th','td','img'],
+        ALLOWED_ATTR: ['href','title','target','src','alt','width','height'],
+        ALLOW_DATA_ATTR: false,
+      });
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 40px;
+      max-width: 640px;
+      width: 100%;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .header img { width: 48px; height: 48px; border-radius: 10px; }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1E3A8A;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #bfdbfe;
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #2B9CD8;
+      background: #f0f9ff;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon { font-size: 36px; margin-bottom: 10px; }
+
+    .drop-text {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    .drop-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .status {
+      display: none;
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .chat-view { display: none; }
+    .chat-view.visible { display: block; }
+
+    .file-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #f0f9ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #1E3A8A;
+    }
+
+    .file-bar button {
+      background: none;
+      border: none;
+      color: #6b7280;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
+    .thread {
+      max-height: 360px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .msg {
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 90%;
+    }
+    .msg.user { align-self: flex-end; background: #1E3A8A; color: #fff; }
+    .msg.assistant { align-self: flex-start; background: #f3f4f6; color: #1f2937; }
+    .msg.assistant p { margin-bottom: 6px; }
+    .msg.pending { align-self: flex-start; background: #f3f4f6; color: #9ca3af; font-style: italic; }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    .input-row input[type="text"]:focus { border-color: #2B9CD8; }
+
+    .input-row button {
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .back-link {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(30,58,138,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .back-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(30,58,138,0.45);
+      color: #fff;
+    }
+    .embedded .back-link { display: none !important; }
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+
+<div class="card">
+  <div class="header">
+    <img src="/icons/app-mark.svg" alt="">
+    <div>
+      <h1>Excel-Chat (Test)</h1>
+      <p>Excel-Datei hochladen &amp; per Chat lesen/bearbeiten</p>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="excel-file" accept=".xlsx,.xlsm">
+    <div class="drop-icon">📊</div>
+    <div class="drop-text">Excel-Datei hier ablegen oder klicken</div>
+    <div class="drop-sub">XLSX, XLSM · max. 25 MB</div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="chat-view" id="chat-view">
+    <div class="file-bar">
+      <span>📄 <span id="file-name"></span></span>
+      <button type="button" id="reset-btn">Neue Datei</button>
+    </div>
+    <div class="thread" id="thread"></div>
+    <div class="input-row">
+      <input type="text" id="chat-input" placeholder="Frage zur Tabelle stellen …">
+      <button type="button" id="send-btn">Senden</button>
+    </div>
+  </div>
+
+  <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<script>
+  let authToken = '';
+
+  (function() {
+    const token = localStorage.getItem('freiki_token');
+    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
+    if (!token || Date.now() >= expiry) {
+      localStorage.removeItem('freiki_token');
+      localStorage.removeItem('freiki_token_expiry');
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
+      return;
+    }
+    authToken = token;
+  })();
+
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('excel-file');
+  const status = document.getElementById('status');
+  const chatView = document.getElementById('chat-view');
+  const fileNameEl = document.getElementById('file-name');
+  const thread = document.getElementById('thread');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const resetBtn = document.getElementById('reset-btn');
+
+  let fileId = null;
+  let history = [];
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) uploadFile(f);
+  });
+
+  async function uploadFile(file) {
+    showError('');
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/excel-upload', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        fileId = data.fileId;
+        history = [];
+        thread.innerHTML = '';
+        fileNameEl.textContent = data.filename;
+        dropZone.style.display = 'none';
+        chatView.classList.add('visible');
+      } else {
+        showError(data.error || 'Upload fehlgeschlagen');
+      }
+    } catch (err) {
+      showError('Verbindungsfehler: ' + err.message);
+    }
+  }
+
+  function addMessage(role, text) {
+    const el = document.createElement('div');
+    el.className = 'msg ' + role;
+    if (role === 'assistant') el.innerHTML = safeMarked(text);
+    else el.textContent = text;
+    thread.appendChild(el);
+    thread.scrollTop = thread.scrollHeight;
+    return el;
+  }
+
+  async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text || !fileId) return;
+    chatInput.value = '';
+    sendBtn.disabled = true;
+    addMessage('user', text);
+    const pending = document.createElement('div');
+    pending.className = 'msg pending';
+    pending.textContent = 'Denkt nach …';
+    thread.appendChild(pending);
+    thread.scrollTop = thread.scrollHeight;
+
+    try {
+      const res = await fetch('/api/excel-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ fileId, message: text, history })
+      });
+      const data = await res.json();
+      pending.remove();
+      if (res.ok && data.ok) {
+        addMessage('assistant', data.reply);
+        history.push({ role: 'user', content: text });
+        history.push({ role: 'assistant', content: data.reply });
+      } else {
+        showError(data.error || 'Unbekannter Fehler');
+      }
+    } catch (err) {
+      pending.remove();
+      showError('Verbindungsfehler: ' + err.message);
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+  resetBtn.addEventListener('click', () => {
+    fileId = null;
+    history = [];
+    thread.innerHTML = '';
+    chatView.classList.remove('visible');
+    dropZone.style.display = '';
+    fileInput.value = '';
+    showError('');
+  });
+
+  function showError(msg) {
+    if (!msg) { status.className = 'status'; status.textContent = ''; return; }
+    status.className = 'status error';
+    status.textContent = msg;
+  }
+</script>
+
+</body>
+</html>
