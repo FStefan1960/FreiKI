@@ -21,7 +21,15 @@ caddy-data/
 caddy-config/
 
 # Instanz-spezifische Dateien (bleiben auf dem Server, werden nicht überschrieben)
+# Kern (muss auf allen Instanzen identisch sein): freiki-ui/server.js,
+# freiki-ui/public/index.html, freiki-ui/public/style.css, freiki-ui/public/sw.js
+# Siehe setup/check-core-sync.sh, um eine Instanz gegen origin/main zu prüfen.
+#
+# Extras (kundenspezifische "Plugins"): Manifest + Seite gehören komplett unter
+# freiki-ui/public/extras/ (z.B. extras/medienspiegel.json + extras/medienspiegel.html),
+# damit ein einziges Ignore-Pattern das komplette Extra abdeckt.
 docker-compose.yml
+setup/backup.sh
 caddy/Caddyfile
 freiki-ui/public/header.png
 freiki-ui/public/app-header.png
@@ -32,10 +40,13 @@ freiki-ui/public/favicon-32.png
 freiki-ui/public/icons/
 freiki-ui/public/manifest.json
 freiki-ui/public/extras/
+freiki-ui/public/config.html
+freiki-ui/public/config.json
 freiki-ui/areas.json
 freiki-ui/welcome.md
 freiki-ui/tips.md
-freiki-ui/prompts/w_*.md
+freiki-ui/prompts/
+freiki-ui/*.pdf
 
 # macOS
 .DS_Store
@@ -44,3 +55,5 @@ freiki-ui/prompts/w_*.md
 dist/
 *.log
 freiki-ui/public/VERSION
+*.bak
+*_old
