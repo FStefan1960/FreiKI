@@ -45,6 +45,8 @@ freiki-ui/public/config.json
 freiki-ui/areas.json
 freiki-ui/welcome.md
 freiki-ui/tips.md
+freiki-ui/medienspiegel.json
+freiki-ui/gesellschaftstrends.json
 freiki-ui/prompts/
 freiki-ui/*.pdf
 
