@@ -1340,6 +1340,10 @@ async function sendMessage() {
       }
     }
 
+    // Manche Modelle (z.B. Qwen3) liefern leere <think></think>-Bloecke, die im
+    // gerenderten HTML unsichtbar sind, aber beim Kopieren/Vorlesen mitgehen.
+    fullText = fullText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
     chatHistory.push({ role: 'assistant', content: fullText });
     saveHistory(currentMode);
     if (fullText) {
