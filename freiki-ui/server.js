@@ -19,7 +19,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1); // hinter Caddy
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'microphone=(), camera=(), geolocation=()');
   next();
