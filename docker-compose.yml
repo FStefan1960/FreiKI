@@ -32,7 +32,6 @@ volumes:
   mail_state:
   mail_logs:
   mail_config:
-  embedding_cache:
   portainer_data:
 
 services:
@@ -80,6 +79,11 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
       - N8N_SECURE_COOKIE=false
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
+      - VLLM_API_KEY=${VLLM_API_KEY}
+      - KB_INGEST_API_KEY=${KB_INGEST_API_KEY}
+      - BOT_API_KEY=${BOT_API_KEY}
+      - MATTERMOST_BOT_TOKEN=${MATTERMOST_BOT_TOKEN}
     volumes:
       - n8n_storage:/home/node/.n8n
     networks:
@@ -106,24 +110,6 @@ services:
       - /var/log/caddy:/var/log/caddy
     networks:
       - public_network
-      - ai_network
-
-  # ── KI INFERENZ (Embedding, CPU) ──────────────────────────────
-  infinity_embedding:
-    build: ./embedding
-    image: bge-m3-cpu:latest
-    container_name: vLLM-Embedding
-    labels:
-      - "de.diakonie-kork.name=KI-Embedding (infinity-emb)"
-      - "de.diakonie-kork.desc=BGE-M3 – Semantische Suche, CPU-Betrieb"
-    restart: unless-stopped
-    environment:
-      - EMBED_MODEL=BAAI/bge-m3
-      - EMBED_API_KEY=${VLLM_API_KEY}
-      - HF_HOME=/root/.cache/huggingface
-    volumes:
-      - embedding_cache:/root/.cache/huggingface
-    networks:
       - ai_network
 
   # ── FREIKI UI ─────────────────────────────────────────────────
@@ -155,9 +141,9 @@ services:
       - HILFE_KB_TABLE=${HILFE_KB_TABLE}
       - FLOWISE_URL=http://Flowise:3000
       - PG_HOST=PostgreSQL
-      - PG_DB=${PG_DB:-flowise}
-      - PG_USER_KB=${PG_USER_KB:-n8n_user}
-      - PG_PASS_KB=${PG_PASS_KB}
+      - PG_DB=${POSTGRES_DB}
+      - PG_USER_KB=${POSTGRES_USER}
+      - PG_PASS_KB=${POSTGRES_PASSWORD}
       - WHISPER_URL=http://whisper:9000
       - PIPER_URL=http://piper:8000
       - TTS_VOICE=thorsten
