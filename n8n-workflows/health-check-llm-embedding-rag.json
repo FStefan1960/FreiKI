@@ -1,244 +1,253 @@
 [
   {
-    "updatedAt": "2026-06-30T18:14:22.778Z",
-    "createdAt": "2026-06-30T17:18:22.398Z",
     "id": "84KfWwwlzuKSsGzN",
     "name": "Health-Check: LLM + Embedding + RAG + Login + Archiv",
-    "description": null,
     "active": true,
-    "isArchived": false,
     "nodes": [
       {
+        "id": "cron",
+        "name": "Alle 15 Min",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -32,
+          96
+        ],
         "parameters": {
           "rule": {
             "interval": [
               {
                 "field": "cronExpression",
-                "expression": "*/15 * * * *"
+                "expression": "5,20,35,50 * * * *"
               }
             ]
           }
         },
-        "id": "cron",
-        "name": "Alle 15 Min",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.2,
-        "position": [
-          -32,
-          96
-        ]
+        "typeVersion": 1.2
       },
       {
-        "parameters": {
-          "method": "POST",
-          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
-              }
-            ]
-          },
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "{ \"model\": \"Qwen/Qwen3-32B\", \"messages\": [{\"role\": \"user\", \"content\": \"Hallo\"}], \"max_tokens\": 10 }",
-          "options": {
-            "timeout": 30000
-          }
-        },
         "id": "llm",
         "name": "Test LLM",
         "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
         "position": [
           224,
           -80
         ],
-        "continueOnFail": true
-      },
-      {
         "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
           "method": "POST",
-          "url": "https://api.deepinfra.com/v1/openai/embeddings",
+          "options": {
+            "timeout": 30000
+          },
+          "jsonBody": "{ \"model\": \"Qwen/Qwen3-32B\", \"messages\": [{\"role\": \"user\", \"content\": \"Hallo\"}], \"max_tokens\": 10 }",
+          "sendBody": true,
           "sendHeaders": true,
+          "specifyBody": "json",
           "headerParameters": {
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "=Bearer {{$env.VLLM_API_KEY}}"
               }
             ]
-          },
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "{\n  \"model\": \"BAAI/bge-m3\",\n  \"input\": [\"Test\"]\n}",
-          "options": {
-            "timeout": 30000
           }
         },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
         "id": "embed",
         "name": "Test Embedding",
         "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
         "position": [
           224,
           96
         ],
+        "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/embeddings",
+          "method": "POST",
+          "options": {
+            "timeout": 30000
+          },
+          "jsonBody": "{\n  \"model\": \"BAAI/bge-m3\",\n  \"input\": [\"Test\"]\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.VLLM_API_KEY}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
         "continueOnFail": true
       },
       {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "SELECT\n  (SELECT count(*) FROM kb_datenschutz WHERE embedding IS NOT NULL) AS datenschutz,\n  (SELECT count(*) FROM kb_maerchen    WHERE embedding IS NOT NULL) AS maerchen,\n  (SELECT count(*) FROM kb_stvo        WHERE embedding IS NOT NULL) AS stvo,\n  (SELECT count(*) FROM kb_hilfe       WHERE embedding IS NOT NULL) AS hilfe",
-          "options": {}
-        },
         "id": "rag",
         "name": "Test RAG",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
+        "type": "n8n-nodes-base.httpRequest",
         "position": [
           224,
           272
         ],
-        "credentials": {
-          "postgres": {
-            "id": "lLTKNv0IIOvibqNy",
-            "name": "Postgres account"
+        "parameters": {
+          "url": "http://FreiKI:3000/api/chat",
+          "method": "POST",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            }
+          },
+          "jsonBody": "{\"message\": \"Wie funktioniert die Hilfe-Funktion?\", \"mode\": \"w_hilfe\"}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $(\"Test Login\").item.json.token }}"
+              }
+            ]
           }
         },
+        "typeVersion": 4.2,
         "continueOnFail": true
       },
       {
-        "parameters": {
-          "jsCode": "const items = $input.all();\nconst llm    = items[0];\nconst embed  = items[1];\nconst rag    = items[2];\nconst login  = items[3];\nconst archiv = items[4];\n\nconst appName = 'FreiKI';\nconst errors = [];\n\nif (!llm || llm.error || !llm.json?.choices?.[0]) {\n  errors.push('LLM: ' + (llm?.error?.message || JSON.stringify(llm?.json) || 'Keine Antwort'));\n}\nif (!embed || embed.error || !embed.json?.data?.[0]?.embedding?.length) {\n  errors.push('Embedding: ' + (embed?.error?.message || JSON.stringify(embed?.json) || 'Kein Vektor'));\n}\nif (!rag || rag.error) {\n  errors.push('RAG-DB: ' + (rag?.error?.message || 'Keine Verbindung'));\n} else {\n  const r = rag.json;\n  const missing = [];\n  if (!r?.datenschutz || parseInt(r.datenschutz) === 0) missing.push('kb_datenschutz');\n  if (!r?.maerchen    || parseInt(r.maerchen)    === 0) missing.push('kb_maerchen');\n  if (!r?.stvo        || parseInt(r.stvo)        === 0) missing.push('kb_stvo');\n  if (!r?.hilfe       || parseInt(r.hilfe)       === 0) missing.push('kb_hilfe');\n  if (missing.length > 0) errors.push('RAG leer/keine Embeddings: ' + missing.join(', '));\n}\nif (!login || login.error || !login.json?.token) {\n  errors.push('Login: ' + (login?.error?.message || JSON.stringify(login?.json) || 'Kein Token'));\n}\nif (!archiv || archiv.error || archiv.json?.count === undefined || archiv.json?.count === 0) {\n  errors.push('Archiv: ' + (archiv?.error?.message || JSON.stringify(archiv?.json) || 'Keine Ergebnisse'));\n}\n\nconst ok = errors.length === 0;\nreturn [{\n  json: {\n    ok, appName, errors,\n    subject: ok\n      ? '[OK] ' + appName + ' Health-Check: Alles in Ordnung'\n      : '[FEHLER] ' + appName + ' Health-Check: ' + errors.length + ' Problem(e)',\n    body: ok\n      ? appName + ': LLM, Embedding, RAG, Login und Archiv laufen einwandfrei.'\n      : appName + ' meldet Probleme:\\n\\n' + errors.join('\\n') + '\\n\\nBitte prüfen.'\n  }\n}];"
-        },
         "id": "auswerten",
         "name": "Auswerten",
         "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
         "position": [
           688,
           96
-        ]
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst llm    = items[0];\nconst embed  = items[1];\nconst rag    = items[2];\nconst login  = items[3];\nconst archiv = items[4];\n\nconst appName = 'FreiKI';\nconst errors = [];\n\nif (!llm || llm.error || !llm.json?.choices?.[0]) {\n  errors.push('LLM: ' + (llm?.error?.message || JSON.stringify(llm?.json) || 'Keine Antwort'));\n}\nif (!embed || embed.error || !embed.json?.data?.[0]?.embedding?.length) {\n  errors.push('Embedding: ' + (embed?.error?.message || JSON.stringify(embed?.json) || 'Kein Vektor'));\n}\nif (!rag || rag.error) {\n  errors.push('RAG-Chat: ' + (rag?.error?.message || 'Keine Verbindung'));\n} else {\n  const raw = (typeof rag.json === 'string')\n    ? rag.json\n    : (rag.json?.data ?? rag.json?.body ?? JSON.stringify(rag.json ?? ''));\n  let answer = '';\n  for (const line of String(raw).split('\\n')) {\n    if (!line.startsWith('data: ')) continue;\n    const payload = line.slice(6).trim();\n    if (payload === '[DONE]' || !payload) continue;\n    try {\n      const delta = JSON.parse(payload).choices?.[0]?.delta?.content;\n      if (delta) answer += delta;\n    } catch {}\n  }\n  answer = answer.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();\n  if (!answer) errors.push('RAG-Chat: Keine Antwort erhalten (Modus w_hilfe) - LLM, Embedding oder RAG-DB gestört');\n}\nif (!login || login.error || !login.json?.token) {\n  errors.push('Login: ' + (login?.error?.message || JSON.stringify(login?.json) || 'Kein Token'));\n}\nif (!archiv || archiv.error || archiv.json?.count === undefined || archiv.json?.count === 0) {\n  errors.push('Archiv: ' + (archiv?.error?.message || JSON.stringify(archiv?.json) || 'Keine Ergebnisse'));\n}\n\nconst ok = errors.length === 0;\nreturn [{\n  json: {\n    ok, appName, errors,\n    subject: ok\n      ? '[OK] ' + appName + ' Health-Check: Alles in Ordnung'\n      : '[FEHLER] ' + appName + ' Health-Check: ' + errors.length + ' Problem(e)',\n    body: ok\n      ? appName + ': LLM, Embedding, RAG (echter Chat-Request), Login und Archiv laufen einwandfrei.'\n      : appName + ' meldet Probleme:\\n\\n' + errors.join('\\n') + '\\n\\nBitte prüfen.'\n  }\n}];"
+        },
+        "typeVersion": 2
       },
       {
-        "parameters": {
-          "fromEmail": "=ki_agent@freiki.com",
-          "toEmail": "admin@freiki.com",
-          "subject": "={{ $json.subject }}",
-          "emailFormat": "text",
-          "text": "={{ $json.body }}",
-          "options": {}
-        },
         "id": "mail",
         "name": "Mail senden",
         "type": "n8n-nodes-base.emailSend",
-        "typeVersion": 2.1,
         "position": [
           1360,
           96
         ],
         "webhookId": "00aaacd6-cdde-4261-8288-4f608e5eb4d8",
+        "parameters": {
+          "text": "={{ $json.body }}",
+          "options": {},
+          "subject": "={{ $json.subject }}",
+          "toEmail": "admin@freiki.com",
+          "fromEmail": "=ki_agent@freiki.com",
+          "emailFormat": "text"
+        },
         "credentials": {
           "smtp": {
             "id": "beeSlBjHTMsDpZSe",
             "name": "FreiKI SMTP (ki_agent)"
           }
-        }
+        },
+        "typeVersion": 2.1
       },
       {
-        "parameters": {
-          "numberInputs": 5
-        },
         "id": "merge",
         "name": "Zusammenführen",
         "type": "n8n-nodes-base.merge",
-        "typeVersion": 3,
         "position": [
           464,
           80
-        ]
+        ],
+        "parameters": {
+          "numberInputs": 5
+        },
+        "typeVersion": 3
       },
       {
-        "parameters": {
-          "method": "POST",
-          "url": "http://FreiKI:3000/api/login",
-          "sendBody": true,
-          "specifyBody": "json",
-          "jsonBody": "{\"username\": \"healthcheck\", \"password\": \"Hc#Check2026Test\"}",
-          "options": {
-            "timeout": 10000
-          }
-        },
         "id": "login",
         "name": "Test Login",
         "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
         "position": [
           224,
           448
         ],
+        "parameters": {
+          "url": "http://FreiKI:3000/api/login",
+          "method": "POST",
+          "options": {
+            "timeout": 10000
+          },
+          "jsonBody": "{\"username\": \"healthcheck\", \"password\": \"Hc#Check2026Test\"}",
+          "sendBody": true,
+          "specifyBody": "json"
+        },
+        "typeVersion": 4.2,
         "continueOnFail": true
       },
       {
+        "id": "archiv",
+        "name": "Test Archiv",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          624
+        ],
         "parameters": {
-          "method": "GET",
           "url": "https://paperless.freiki.com/api/documents/?query=und&page_size=1",
+          "method": "GET",
+          "options": {
+            "timeout": 15000
+          },
           "sendHeaders": true,
           "headerParameters": {
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
-          },
-          "options": {
-            "timeout": 15000
           }
         },
-        "id": "archiv",
-        "name": "Test Archiv",
-        "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [
-          224,
-          624
-        ],
         "continueOnFail": true
       },
       {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "strict"
-            },
-            "conditions": [
-              {
-                "id": "c1",
-                "leftValue": "={{ $json.ok }}",
-                "rightValue": true,
-                "operator": {
-                  "type": "boolean",
-                  "operation": "equals"
-                }
-              }
-            ],
-            "combinator": "and"
-          }
-        },
         "id": "ifok",
         "name": "Nur bei Fehler",
         "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
         "position": [
           1136,
           96
-        ]
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "c1",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.ok }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
       }
     ],
     "connections": {
@@ -304,6 +313,11 @@
               "node": "Zusammenführen",
               "type": "main",
               "index": 3
+            },
+            {
+              "node": "Test RAG",
+              "type": "main",
+              "index": 0
             }
           ]
         ]
@@ -329,11 +343,6 @@
             },
             {
               "node": "Test Embedding",
-              "type": "main",
-              "index": 0
-            },
-            {
-              "node": "Test RAG",
               "type": "main",
               "index": 0
             },
@@ -367,45 +376,6 @@
       "executionOrder": "v1",
       "binaryMode": "separate"
     },
-    "staticData": {
-      "node:Täglich 07:00": {
-        "recurrenceRules": []
-      }
-    },
-    "meta": {
-      "templateCredsSetupCompleted": true
-    },
-    "nodeGroups": [],
-    "pinData": {},
-    "versionId": "23df1317-7bd4-4e23-b79e-ec59ebe489fd",
-    "activeVersionId": "23df1317-7bd4-4e23-b79e-ec59ebe489fd",
-    "versionCounter": 44,
-    "triggerCount": 1,
-    "sourceWorkflowId": null,
-    "tags": [],
-    "shared": [
-      {
-        "updatedAt": "2026-06-30T17:18:22.398Z",
-        "createdAt": "2026-06-30T17:18:22.398Z",
-        "role": "workflow:owner",
-        "workflowId": "84KfWwwlzuKSsGzN",
-        "projectId": "1UzJpVQHpuJt8mh3",
-        "project": {
-          "updatedAt": "2026-06-18T14:01:24.828Z",
-          "createdAt": "2026-06-18T10:14:39.560Z",
-          "id": "1UzJpVQHpuJt8mh3",
-          "name": "Frank Stefan <frank@frank-stefan.de>",
-          "type": "personal",
-          "icon": null,
-          "description": null,
-          "customTelemetryTags": [],
-          "creatorId": "7ec1aa39-906f-4b54-aa5e-15e69d5c5625"
-        }
-      }
-    ],
-    "versionMetadata": {
-      "name": "Version 23df1317",
-      "description": ""
-    }
+    "triggerCount": 1
   }
 ]

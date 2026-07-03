@@ -1,0 +1,766 @@
+[
+  {
+    "id": "nZ4r7JyjeDaHSP0E",
+    "name": "Paperless KI-Tagging",
+    "active": true,
+    "nodes": [
+      {
+        "id": "3ad52a6f-6305-469e-8c3d-ae53941d8549",
+        "name": "Alle 2 Stunden",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -2640,
+          416
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 2
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "8e198873-65c6-47f0-acf1-589b370dfc5e",
+        "name": "Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2448,
+          416
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=200",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "5c3df665-950b-4938-888f-59fc75a8fc20",
+        "name": "Korrespondenten holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2240,
+          416
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/correspondents/?page_size=200",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "e02561fd-0e4a-44be-a083-a9d658b9f7a4",
+        "name": "Dokumenttypen holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2048,
+          416
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/document_types/?page_size=200",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "96c18f4f-cfcc-455d-a06e-c057f23719ee",
+        "name": "Neue Dokumente holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1840,
+          416
+        ],
+        "parameters": {
+          "url": "={{ 'http://paperless:8000/api/documents/?tags__id__all=' + (($('Tags holen').first().json.results || []).find(t => t.name === 'not-yet-tagged') || {}).id + '&page_size=25&ordering=created' }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "d06eb2ea-f865-44ff-ad9a-6f136ad942a4",
+        "name": "Aufbereiten",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1648,
+          416
+        ],
+        "parameters": {
+          "jsCode": "const tagResults = $('Tags holen').first().json.results || [];\nconst corrResults = $('Korrespondenten holen').first().json.results || [];\nconst docTypeResults = $('Dokumenttypen holen').first().json.results || [];\n\nconst tagMap = {};\nfor (const t of tagResults) { tagMap[t.name.toLowerCase()] = t.id; }\nconst notYetTaggedId = tagMap['not-yet-tagged'];\nif (!notYetTaggedId) throw new Error('Tag \"not-yet-tagged\" nicht in Paperless gefunden');\n\nconst corrMap = {};\nfor (const c of corrResults) { corrMap[c.name.toLowerCase()] = c.id; }\n\nconst docTypeMap = {};\nfor (const d of docTypeResults) { docTypeMap[d.name.toLowerCase()] = d.id; }\n\nconst docs = $input.first().json.results || [];\nif (!docs.length) return [];\n\nreturn docs.map(doc => ({\n  json: {\n    docId: doc.id,\n    currentTitle: doc.title,\n    content: (doc.content || '').slice(0, 6000),\n    currentTags: doc.tags.filter(id => id !== notYetTaggedId),\n    notYetTaggedId,\n    tagMap,\n    corrMap,\n    docTypeMap\n  }\n}));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "42ea14f5-f9a1-4fa3-8bbb-43eb43378a87",
+        "name": "Pro Dokument",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          -1440,
+          416
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "d8a5e394-da27-4f49-a58b-0a2d1df734d5",
+        "name": "LLM aufrufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1248,
+          416
+        ],
+        "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
+          "method": "POST",
+          "options": {
+            "timeout": 30000
+          },
+          "jsonBody": "={{ JSON.stringify({ model: 'Qwen/Qwen3-32B', messages: [{ role: 'system', content: 'Du analysierst Dokumente für ein digitales Archiv. Antworte NUR mit einem JSON-Objekt, kein Text davor oder danach. /no_think' }, { role: 'user', content: 'Analysiere dieses Dokument und gib zurück:\\n{\\n  \"title\": \"präziser, kurzer Titel auf Deutsch, max. 60 Zeichen\",\\n  \"correspondent\": \"offizieller Name des Absenders/der Firma (oder null)\",\\n  \"document_type\": \"Typ: Rechnung, Vertrag, Bescheid, Brief, Kontoauszug, Quittung, Versicherung oder Sonstiges\",\\n  \"created\": \"Datum des Dokuments YYYY-MM-DD (oder null wenn nicht erkennbar)\",\\n  \"tags\": [\"tag1\", \"tag2\"]\\n}\\nRegeln:\\n- Titel: kurz, präzise, deutsch\\n- Correspondent: offizieller Name der ausstellenden Stelle oder Firma\\n- Tags: 2-5 Stück, deutsch, nur lowercase Buchstaben und Bindestriche\\n- NUR das JSON zurückgeben\\n\\nDokumenttext:\\n' + $json.content }], stream: false, max_tokens: 300 }) }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.VLLM_API_KEY}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "0f1576c8-e5fe-4f69-b969-f9f9c49aa351",
+        "name": "Antwort parsen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1040,
+          416
+        ],
+        "parameters": {
+          "jsCode": "const doc = $('Pro Dokument').item.json;\nlet raw = $input.item.json.choices?.[0]?.message?.content || '';\n\nraw = raw.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();\n\nlet title = doc.currentTitle;\nlet suggestedTags = [];\nlet correspondentName = null;\nlet documentTypeName = null;\nlet created = null;\n\ntry {\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    const parsed = JSON.parse(match[0]);\n    if (parsed.title) title = parsed.title.trim().slice(0, 80);\n    suggestedTags = (parsed.tags || []).map(t => t.toLowerCase().trim().replace(/[^a-z0-9\\-äöüß]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''));\n    if (parsed.correspondent && parsed.correspondent !== 'null') correspondentName = String(parsed.correspondent).trim();\n    if (parsed.document_type && parsed.document_type !== 'null') documentTypeName = String(parsed.document_type).trim();\n    if (parsed.created && parsed.created !== 'null') {\n      const d = new Date(parsed.created);\n      if (!isNaN(d.getTime())) created = parsed.created;\n    }\n  }\n} catch(e) {}\n\nconst tagMap = doc.tagMap || {};\nconst corrMap = doc.corrMap || {};\nconst docTypeMap = doc.docTypeMap || {};\n\nconst existingTagIds = [...doc.currentTags];\nconst newTagNames = [];\nfor (const name of suggestedTags) {\n  if (tagMap[name] !== undefined) {\n    if (!existingTagIds.includes(tagMap[name])) existingTagIds.push(tagMap[name]);\n  } else {\n    newTagNames.push(name);\n  }\n}\n\nlet correspondentId = null;\nlet newCorrespondentName = null;\nif (correspondentName) {\n  const key = correspondentName.toLowerCase();\n  if (corrMap[key] !== undefined) { correspondentId = corrMap[key]; }\n  else { newCorrespondentName = correspondentName; }\n}\n\nlet documentTypeId = null;\nlet newDocumentTypeName = null;\nif (documentTypeName) {\n  const key = documentTypeName.toLowerCase();\n  if (docTypeMap[key] !== undefined) { documentTypeId = docTypeMap[key]; }\n  else { newDocumentTypeName = documentTypeName; }\n}\n\nreturn [{ json: {\n  docId: doc.docId,\n  title,\n  created,\n  existingTagIds,\n  newTagNames,\n  notYetTaggedId: doc.notYetTaggedId,\n  correspondentId,\n  newCorrespondentName,\n  documentTypeId,\n  newDocumentTypeName,\n  tagMap,\n  corrMap,\n  docTypeMap,\n  skipTagCreation: newTagNames.length === 0\n}}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "529edf24-ace4-476f-a1aa-ece880d65db3",
+        "name": "Korrespondent anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -848,
+          416
+        ],
+        "parameters": {
+          "url": "={{ $json.newCorrespondentName ? 'http://paperless:8000/api/correspondents/' : 'http://paperless:8000/api/__skip__/' }}",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ JSON.stringify({ name: $json.newCorrespondentName }) }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "704368a7-57eb-4aba-941e-0c87b8c332d5",
+        "name": "Korrespondent-ID ermitteln",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -640,
+          416
+        ],
+        "parameters": {
+          "jsCode": "const httpResp = $input.item.json;\nconst parseData = $('Antwort parsen').item.json;\n\nlet correspondentId = parseData.correspondentId;\nif (httpResp.id) {\n  correspondentId = httpResp.id;\n} else if (parseData.newCorrespondentName) {\n  correspondentId = parseData.corrMap[parseData.newCorrespondentName.toLowerCase()] || null;\n}\n\nreturn [{ json: { ...parseData, correspondentId } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "ae39cad3-0b63-45ce-94cd-79f22bded518",
+        "name": "Dokumenttyp anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -448,
+          416
+        ],
+        "parameters": {
+          "url": "={{ $json.newDocumentTypeName ? 'http://paperless:8000/api/document_types/' : 'http://paperless:8000/api/__skip__/' }}",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ JSON.stringify({ name: $json.newDocumentTypeName }) }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "a69406cc-d4aa-47dc-b075-21369e4da037",
+        "name": "Dokumenttyp-ID ermitteln",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -240,
+          416
+        ],
+        "parameters": {
+          "jsCode": "const httpResp = $input.item.json;\nconst corrData = $('Korrespondent-ID ermitteln').item.json;\n\nlet documentTypeId = corrData.documentTypeId;\nif (httpResp.id) {\n  documentTypeId = httpResp.id;\n} else if (corrData.newDocumentTypeName) {\n  documentTypeId = corrData.docTypeMap[corrData.newDocumentTypeName.toLowerCase()] || null;\n}\n\nreturn [{ json: { ...corrData, documentTypeId } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "73e48459-5c70-4670-bec8-f98a8f1c588e",
+        "name": "Neue Tags nötig?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -48,
+          416
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 1,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "c1",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "leftValue": "={{ $json.skipTagCreation }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      },
+      {
+        "id": "23902f10-56ef-4e24-85fb-bdfb30ab469f",
+        "name": "Tags aufteilen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -48,
+          592
+        ],
+        "parameters": {
+          "jsCode": "const item = $input.item.json;\nreturn item.newTagNames.map(name => ({ json: { ...item, currentTagName: name } }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0b19c67a-828e-44de-ab44-63ea4605746f",
+        "name": "Pro neuem Tag",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          160,
+          592
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "7daa4f4c-6baf-420e-ae58-7a546b87044e",
+        "name": "Tag anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          368,
+          592
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ JSON.stringify({ name: $json.currentTagName }) }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "a2ed9215-af19-4345-bad3-fe04f95ca95e",
+        "name": "Tag-ID ermitteln",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          560,
+          592
+        ],
+        "parameters": {
+          "jsCode": "const httpResp = $input.item.json;\nconst tagItem = $('Tags aufteilen').item.json;\n\nlet resolvedTagId = null;\nif (httpResp.id) {\n  resolvedTagId = httpResp.id;\n} else {\n  resolvedTagId = (tagItem.tagMap || {})[tagItem.currentTagName] || null;\n}\nreturn [{ json: { ...tagItem, resolvedTagId } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "d64af88a-1ad2-453f-9e04-4c11b88dcead",
+        "name": "Patch vorbereiten",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          160,
+          224
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\n\n// Pfad 1: keine neuen Tags nötig\nif (items[0]?.json?.skipTagCreation) {\n  const d = items[0].json;\n  const patch = { docId: d.docId, title: d.title, finalTagIds: d.existingTagIds };\n  if (d.correspondentId) patch.correspondentId = d.correspondentId;\n  if (d.documentTypeId) patch.documentTypeId = d.documentTypeId;\n  if (d.created) patch.created = d.created;\n  return [{ json: patch }];\n}\n\n// Pfad 2: nach Tag-Erstellung (Items aus inner-loop done)\nconst base = items[0].json;\nconst collectedIds = [...base.existingTagIds];\nfor (const item of items) {\n  const id = item.json.resolvedTagId;\n  if (id && !collectedIds.includes(id)) collectedIds.push(id);\n}\nconst patch = { docId: base.docId, title: base.title, finalTagIds: collectedIds };\nif (base.correspondentId) patch.correspondentId = base.correspondentId;\nif (base.documentTypeId) patch.documentTypeId = base.documentTypeId;\nif (base.created) patch.created = base.created;\nreturn [{ json: patch }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "92448512-d671-4560-a239-f4fc9cd8aad7",
+        "name": "PATCH-Body aufbauen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          368,
+          224
+        ],
+        "parameters": {
+          "jsCode": "const d = $input.item.json;\nconst body = { title: d.title, tags: d.finalTagIds };\nif (d.correspondentId != null) body.correspondent = d.correspondentId;\nif (d.documentTypeId != null) body.document_type = d.documentTypeId;\nif (d.created) body.created = d.created;\nreturn [{ json: { ...d, patchBody: JSON.stringify(body) } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "8eb253f4-7d8e-4886-96fc-e25d8b0a8f3e",
+        "name": "Dokument aktualisieren",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          560,
+          224
+        ],
+        "parameters": {
+          "url": "={{ 'http://paperless:8000/api/documents/' + $json.docId + '/' }}",
+          "method": "PATCH",
+          "options": {},
+          "jsonBody": "={{ $json.patchBody }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "e6a6febe-bf4d-4da6-a672-ee68dd6cadda",
+        "name": "Fertig",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          560,
+          224
+        ],
+        "parameters": {},
+        "typeVersion": 1
+      },
+      {
+        "id": "code-tagging-report",
+        "name": "Tagging-Report aufbauen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          800,
+          224
+        ],
+        "parameters": {
+          "jsCode": "\n// Zähle wie viele Dokumente in diesem Lauf verarbeitet wurden\n// (wir nutzen $execution.id als Proxy, da kein direkter Zähler)\nconst items = $input.all();\nconst count = items.length;\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\nreturn [{ json: { \n  message: `📄 **Paperless KI-Tagging** (${now})\\n${count} Dokument(e) automatisch verschlagwortet.`\n} }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "mm-post-tagging",
+        "name": "Tagging-Report an Mattermost",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1000,
+          224
+        ],
+        "parameters": {
+          "url": "http://mattermost:8065/api/v4/posts",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={ { \"channel_id\": \"cobxa3cfwjdt7rr8wxnr7q9ynr\", \"message\": $json.message } }",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.MATTERMOST_BOT_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "connections": {
+      "Alle 2 Stunden": {
+        "main": [
+          [
+            {
+              "node": "Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Korrespondenten holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Korrespondenten holen": {
+        "main": [
+          [
+            {
+              "node": "Dokumenttypen holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumenttypen holen": {
+        "main": [
+          [
+            {
+              "node": "Neue Dokumente holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Neue Dokumente holen": {
+        "main": [
+          [
+            {
+              "node": "Aufbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Aufbereiten": {
+        "main": [
+          [
+            {
+              "node": "Pro Dokument",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pro Dokument": {
+        "main": [
+          [
+            {
+              "node": "Fertig",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "LLM aufrufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "LLM aufrufen": {
+        "main": [
+          [
+            {
+              "node": "Antwort parsen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Antwort parsen": {
+        "main": [
+          [
+            {
+              "node": "Korrespondent anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Korrespondent anlegen": {
+        "main": [
+          [
+            {
+              "node": "Korrespondent-ID ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Korrespondent-ID ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Dokumenttyp anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumenttyp anlegen": {
+        "main": [
+          [
+            {
+              "node": "Dokumenttyp-ID ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumenttyp-ID ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Neue Tags nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Neue Tags nötig?": {
+        "main": [
+          [
+            {
+              "node": "Patch vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Tags aufteilen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tags aufteilen": {
+        "main": [
+          [
+            {
+              "node": "Pro neuem Tag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pro neuem Tag": {
+        "main": [
+          [
+            {
+              "node": "Patch vorbereiten",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Tag anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tag anlegen": {
+        "main": [
+          [
+            {
+              "node": "Tag-ID ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tag-ID ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Pro neuem Tag",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Patch vorbereiten": {
+        "main": [
+          [
+            {
+              "node": "PATCH-Body aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PATCH-Body aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Dokument aktualisieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokument aktualisieren": {
+        "main": [
+          [
+            {
+              "node": "Tagging-Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tagging-Report aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Tagging-Report an Mattermost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "triggerCount": 1
+  }
+]

@@ -1,0 +1,255 @@
+[
+  {
+    "id": "dockercheck001freiki",
+    "name": "FreiKI Docker Update Check",
+    "active": true,
+    "nodes": [
+      {
+        "id": "663f98b2-ddb6-4840-a858-d27d2000bb91",
+        "name": "Montags 08:00",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -720,
+          -64
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 0 8 * * 1"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "62ced04f-6ec7-4d21-8351-8729804c23d3",
+        "name": "Docker Images prüfen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -288,
+          -64
+        ],
+        "parameters": {
+          "jsCode": "const IMAGES = [\n  { name: 'Portainer',  repo: 'portainer/portainer-ee',                 tag: '2.39.3',              github: 'portainer/portainer' },\n  { name: 'n8n',        repo: 'n8nio/n8n',                               tag: '2.25.6',              github: 'n8n-io/n8n' },\n  { name: 'pgvector',   repo: 'pgvector/pgvector',                       tag: 'pg16',                github: 'pgvector/pgvector' },\n  { name: 'Caddy',      repo: 'library/caddy',                           tag: '2.9.1',               github: 'caddyserver/caddy' },\n  { name: 'Dozzle',     repo: 'amir20/dozzle',                           tag: 'latest',              github: 'amir20/dozzle' },\n  { name: 'Whisper',    repo: 'onerahmet/openai-whisper-asr-webservice', tag: 'v1.9.1',              github: 'ahmetoner/whisper-asr-webservice' },\n  { name: 'SearXNG',    repo: 'searxng/searxng',                         tag: '2026.6.10-de03f4eb1', github: 'searxng/searxng', githubFallback: 'commits' },\n  { name: 'Paperless',  repo: 'ghcr.io/paperless-ngx/paperless-ngx',    tag: 'latest',              github: 'paperless-ngx/paperless-ngx' },\n  { name: 'Mattermost', repo: 'mattermost/mattermost-team-edition',      tag: 'latest',              github: 'mattermost/mattermost' },\n];\n\nconst store = $getWorkflowStaticData('global');\nif (!store.docker_digests) store.docker_digests = {};\n\nconst updates = [];\nconst checked = [];\n\nfor (const img of IMAGES) {\n  try {\n    const url = 'https://hub.docker.com/v2/repositories/' + img.repo + '/tags/' + img.tag;\n    const res = await $helpers.httpRequest({ method: 'GET', url, timeout: 10000 });\n    const digest = res.digest || res.images?.[0]?.digest || res.last_updated || null;\n    const key = img.repo + ':' + img.tag;\n    const stored = store.docker_digests[key];\n\n    if (digest) {\n      if (stored && stored !== digest) updates.push({ ...img, digest, previous: stored });\n      store.docker_digests[key] = digest;\n      checked.push({ name: img.name, key, status: stored ? (stored !== digest ? 'NEU' : 'unveraendert') : 'erstmalig geprueft' });\n    }\n  } catch(e) {\n    checked.push({ name: img.name, status: 'Fehler: ' + e.message });\n  }\n}\n\nreturn [{ json: { updates, count: updates.length, checked } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "0d8cf77e-9172-4b0e-9e4b-772a8a75cf79",
+        "name": "Updates vorhanden?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -64,
+          -64
+        ],
+        "parameters": {
+          "options": {},
+          "conditions": {
+            "options": {
+              "version": 1,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "cond-updates",
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                },
+                "leftValue": "={{ $json.count }}",
+                "rightValue": 0
+              }
+            ]
+          }
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "fb351aac-fb7b-4fce-8042-0475eb1abc22",
+        "name": "Changelogs laden",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          160,
+          -144
+        ],
+        "parameters": {
+          "jsCode": "const { updates } = $input.first().json;\nconst result = [];\n\nfor (const img of updates) {\n  let notes = 'Keine Changelog-Informationen verfügbar.';\n  let latestTag = '–';\n\n  if (img.changelogUrl) {\n    notes = `Release Notes: ${img.changelogUrl}`;\n    latestTag = img.tag;\n  } else if (img.github) {\n    try {\n      const releases = await $helpers.httpRequest({\n        method: 'GET',\n        url: `https://api.github.com/repos/${img.github}/releases?per_page=5`,\n        headers: { 'User-Agent': 'FreiKI-n8n/1.0', 'Accept': 'application/vnd.github.v3+json' },\n        timeout: 10000\n      });\n\n      if (Array.isArray(releases) && releases.length > 0) {\n        latestTag = releases[0].tag_name || '–';\n        notes = releases.slice(0, 3).map(r => {\n          const date = r.published_at?.slice(0, 10) || '?';\n          const body = (r.body || 'Keine Release Notes')\n            .replace(/<!--.*?-->/gs, '').replace(/#{1,6}\\s/g, '').trim().slice(0, 800);\n          return `Version ${r.tag_name} (${date}):\\n${body}`;\n        }).join('\\n\\n---\\n\\n');\n\n      } else if (img.githubFallback === 'commits') {\n        const commits = await $helpers.httpRequest({\n          method: 'GET',\n          url: `https://api.github.com/repos/${img.github}/commits?per_page=10`,\n          headers: { 'User-Agent': 'FreiKI-n8n/1.0', 'Accept': 'application/vnd.github.v3+json' },\n          timeout: 10000\n        });\n        const tags = await $helpers.httpRequest({\n          method: 'GET',\n          url: `https://api.github.com/repos/${img.github}/tags?per_page=1`,\n          headers: { 'User-Agent': 'FreiKI-n8n/1.0', 'Accept': 'application/vnd.github.v3+json' },\n          timeout: 10000\n        });\n        latestTag = tags[0]?.name || '–';\n        if (Array.isArray(commits) && commits.length > 0) {\n          notes = 'Letzte Änderungen (Commits):\\n' + commits.map(c => {\n            const date = c.commit.author?.date?.slice(0, 10) || '?';\n            const msg = c.commit.message.split('\\n')[0].slice(0, 120);\n            return `• ${date}: ${msg}`;\n          }).join('\\n');\n        }\n      }\n    } catch(e) {\n      notes = `Changelog nicht abrufbar: ${e.message}`;\n    }\n  }\n\n  result.push({ name: img.name, repo: img.repo, tag: img.tag, github: img.github, latestTag, notes });\n}\n\nconst promptParts = result.map(r =>\n  `## ${r.name} (${r.repo}:${r.tag})\\nNeuste Version: ${r.latestTag}\\n\\n${r.notes}`\n).join('\\n\\n════════════\\n\\n');\n\nconst prompt = `Du bist ein IT-Administrator-Assistent.\nFolgende Docker-Images haben Updates erhalten. Fasse für jeden die wichtigsten Änderungen in 2–3 Sätzen zusammen.\nBewerte kurz ob ein Update dringend (Sicherheitslücke), empfohlen (wichtige Fixes) oder optional (neue Features) ist.\nWeise explizit auf Breaking Changes hin falls vorhanden.\nSchreibe auf Deutsch, ohne Markdown-Formatierung, keine Codeblöcke.\n\n${promptParts}`;\n\nreturn [{ json: { updates: result, prompt } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "a0578f03-da55-447e-8982-91a77dc2abe2",
+        "name": "KI Zusammenfassung",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          384,
+          -144
+        ],
+        "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
+          "method": "POST",
+          "options": {
+            "timeout": 120000
+          },
+          "jsonBody": "={\n  \"model\": \"Qwen/Qwen3-32B\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": {{ JSON.stringify($json.prompt) }} }\n  ],\n  \"max_tokens\": 1500,\n  \"temperature\": 0.3\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.VLLM_API_KEY}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "b66db8b3-bf9c-41c6-827a-969f32c57910",
+        "name": "Antwort extrahieren",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          608,
+          -144
+        ],
+        "parameters": {
+          "jsCode": "const kiRaw = $('KI Zusammenfassung').first().json;\nconst parsed = typeof kiRaw === 'string' ? JSON.parse(kiRaw) : kiRaw;\nconst body = typeof parsed.body === 'string' ? JSON.parse(parsed.body) : (parsed.body || parsed);\nconst zusammenfassung = body?.choices?.[0]?.message?.content?.trim() || '(Keine KI-Zusammenfassung verfügbar)';\nconst updates = $('Changelogs laden').first().json.updates;\nreturn [{ json: { zusammenfassung, updates } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "312abcb9-d398-497c-965e-c2f1eb59e2c8",
+        "name": "Markdown erstellen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          832,
+          -144
+        ],
+        "parameters": {
+          "jsCode": "const { zusammenfassung, updates } = $input.first().json;\nconst datum = new Date().toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\n\nconst tabelle = updates.map(u =>\n  `| **${u.name}** | \\`${u.repo}:${u.tag}\\` | ${u.latestTag} |`\n).join('\\n');\n\nconst message = [\n  `🐳 **Docker Update-Bericht** – ${datum}`,\n  `${updates.length} Update(s) verfügbar`,\n  '',\n  '| Service | Image | Neue Version |',\n  '|---|---|---|',\n  tabelle,\n  '',\n  '**Was ist neu?**',\n  zusammenfassung,\n  '',\n  '_Bitte Updates manuell prüfen und mit `docker compose up -d [service]` einspielen._'\n].join('\\n');\n\nreturn [{ json: { message } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "558ea737-8bcc-4346-89c9-469f64f6d368",
+        "name": "Docker Update per Mail",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1040,
+          -144
+        ],
+        "webhookId": "f1b93011-5222-4400-ab16-f12fc4dccca5",
+        "parameters": {
+          "options": {},
+          "subject": "={{ $json.subject || '🐳 FreiKI Docker Update' }}",
+          "toEmail": "admin@freiki.com",
+          "fromEmail": "ki_agent@freiki.com"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "beeSlBjHTMsDpZSe",
+            "name": "FreiKI SMTP (ki_agent)"
+          }
+        },
+        "typeVersion": 2.1
+      }
+    ],
+    "connections": {
+      "Montags 08:00": {
+        "main": [
+          [
+            {
+              "node": "Docker Images prüfen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Docker Images prüfen": {
+        "main": [
+          [
+            {
+              "node": "Updates vorhanden?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Updates vorhanden?": {
+        "main": [
+          [
+            {
+              "node": "Changelogs laden",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Changelogs laden": {
+        "main": [
+          [
+            {
+              "node": "KI Zusammenfassung",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "KI Zusammenfassung": {
+        "main": [
+          [
+            {
+              "node": "Antwort extrahieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Antwort extrahieren": {
+        "main": [
+          [
+            {
+              "node": "Markdown erstellen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Markdown erstellen": {
+        "main": [
+          [
+            {
+              "node": "Docker Update per Mail",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate"
+    },
+    "triggerCount": 1
+  }
+]
