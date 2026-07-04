@@ -2415,6 +2415,63 @@ app.get('/api/admin/stats', async (req, res) => {
   }
 });
 
+// ── Health-Check: Infrastruktur-Liveness für Monitoring ──────
+let healthCache = null;
+let healthCacheTs = 0;
+const HEALTH_CACHE_MS = 5000;
+
+async function checkServiceHealth(url, ms = 5000) {
+  try {
+    const r = await fetchWithTimeout(url, {}, ms);
+    return { ok: r.ok, status: r.status };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function checkPostgresHealth() {
+  try {
+    const client = await Promise.race([
+      pgPool.connect(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000)),
+    ]);
+    await client.query('SELECT 1');
+    client.release();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function checkDiskHealth(dir, minFreeBytes) {
+  try {
+    const stats = await fs.promises.statfs(dir);
+    const freeBytes = stats.bsize * stats.bfree;
+    return { ok: freeBytes >= minFreeBytes, freeBytes };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+app.get('/api/health', async (req, res) => {
+  if (healthCache && Date.now() - healthCacheTs < HEALTH_CACHE_MS) {
+    return res.status(healthCache.status).json(healthCache.body);
+  }
+  const checks = {
+    vllm: await checkServiceHealth(`${VLLM_URL}/health`),
+    postgres: await checkPostgresHealth(),
+    diskSpace: await checkDiskHealth('/tmp', 10 * 1024 * 1024 * 1024),
+  };
+  if (PAPERLESS_TOKEN) checks.paperless = await checkServiceHealth(`${PAPERLESS_INTERNAL_URL}/api/`);
+  if (WHISPER_URL) checks.whisper = await checkServiceHealth(`${WHISPER_URL}/health`);
+
+  const allOk = Object.values(checks).every(c => c.ok);
+  const body = { status: allOk ? 'healthy' : 'unhealthy', timestamp: new Date().toISOString(), checks };
+  healthCache = { status: allOk ? 200 : 503, body };
+  healthCacheTs = Date.now();
+  res.status(healthCache.status).json(body);
+});
+
 // ── Zentrale Fehlerbehandlung: liefert immer JSON statt HTML-Fehlerseiten ───
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
