@@ -4,6 +4,7 @@ const multer = require('multer');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync, execFileSync } = require('child_process');
 const mammoth = require('mammoth');
 const pdfParse = require('pdf-parse');
@@ -2443,11 +2444,23 @@ async function checkPostgresHealth() {
   }
 }
 
+function formatBytes(bytes) {
+  return `${(bytes / (1024 ** 3)).toFixed(1)} GB`;
+}
+
 async function checkDiskHealth(dir, minFreeBytes) {
   try {
     const stats = await fs.promises.statfs(dir);
+    const totalBytes = stats.bsize * stats.blocks;
     const freeBytes = stats.bsize * stats.bfree;
-    return { ok: freeBytes >= minFreeBytes, freeBytes };
+    const usedBytes = totalBytes - freeBytes;
+    return {
+      ok: freeBytes >= minFreeBytes,
+      freeBytes,
+      usedPercent: totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0,
+      used: formatBytes(usedBytes),
+      total: formatBytes(totalBytes),
+    };
   } catch (e) {
     return { ok: false, error: e.message };
   }
@@ -2457,16 +2470,23 @@ app.get('/api/health', async (req, res) => {
   if (healthCache && Date.now() - healthCacheTs < HEALTH_CACHE_MS) {
     return res.status(healthCache.status).json(healthCache.body);
   }
+  const diskCheck = await checkDiskHealth('/tmp', 10 * 1024 * 1024 * 1024);
   const checks = {
     vllm: await checkServiceHealth(`${VLLM_URL}/models`, { Authorization: `Bearer ${VLLM_API_KEY}` }),
     postgres: await checkPostgresHealth(),
-    diskSpace: await checkDiskHealth('/tmp', 10 * 1024 * 1024 * 1024),
+    diskSpace: diskCheck,
   };
   if (PAPERLESS_TOKEN) checks.paperless = await checkServiceHealth(`${PAPERLESS_INTERNAL_URL}/api/`);
   if (WHISPER_URL) checks.whisper = await checkServiceHealth(`${WHISPER_URL}/`);
 
   const allOk = Object.values(checks).every(c => c.ok);
-  const body = { status: allOk ? 'healthy' : 'unhealthy', timestamp: new Date().toISOString(), checks };
+  const body = {
+    status: allOk ? 'healthy' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    checks,
+    disk: { usedPercent: diskCheck.usedPercent, used: diskCheck.used, total: diskCheck.total },
+    memory: { used: os.totalmem() - os.freemem(), total: os.totalmem() },
+  };
   healthCache = { status: allOk ? 200 : 503, body };
   healthCacheTs = Date.now();
   res.status(healthCache.status).json(body);
