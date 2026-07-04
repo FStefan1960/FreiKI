@@ -2420,9 +2420,9 @@ let healthCache = null;
 let healthCacheTs = 0;
 const HEALTH_CACHE_MS = 5000;
 
-async function checkServiceHealth(url, ms = 5000) {
+async function checkServiceHealth(url, headers = {}, ms = 5000) {
   try {
-    const r = await fetchWithTimeout(url, {}, ms);
+    const r = await fetchWithTimeout(url, { headers }, ms);
     return { ok: r.ok, status: r.status };
   } catch (e) {
     return { ok: false, error: e.message };
@@ -2458,12 +2458,12 @@ app.get('/api/health', async (req, res) => {
     return res.status(healthCache.status).json(healthCache.body);
   }
   const checks = {
-    vllm: await checkServiceHealth(`${VLLM_URL}/health`),
+    vllm: await checkServiceHealth(`${VLLM_URL}/models`, { Authorization: `Bearer ${VLLM_API_KEY}` }),
     postgres: await checkPostgresHealth(),
     diskSpace: await checkDiskHealth('/tmp', 10 * 1024 * 1024 * 1024),
   };
   if (PAPERLESS_TOKEN) checks.paperless = await checkServiceHealth(`${PAPERLESS_INTERNAL_URL}/api/`);
-  if (WHISPER_URL) checks.whisper = await checkServiceHealth(`${WHISPER_URL}/health`);
+  if (WHISPER_URL) checks.whisper = await checkServiceHealth(`${WHISPER_URL}/`);
 
   const allOk = Object.values(checks).every(c => c.ok);
   const body = { status: allOk ? 'healthy' : 'unhealthy', timestamp: new Date().toISOString(), checks };
