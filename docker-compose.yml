@@ -404,6 +404,24 @@ services:
     networks:
       - ai_network
 
+  # ── API-DOKUMENTATION (Swagger UI) ─────────────────────────────
+  # Bewusst NICHT öffentlich über Caddy – nur über Tailscale erreichbar (wie Kuma/Portainer),
+  # da hier die komplette interne API-Struktur (inkl. Admin-Routen) sichtbar ist. Port ist
+  # explizit an die Tailscale-IP gebunden (nicht 0.0.0.0), zusätzlich zur Firewall.
+  swagger:
+    image: swaggerapi/swagger-ui:v5.32.8
+    container_name: Swagger-UI
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ./openapi.yaml:/spec/openapi.yaml:ro
+    environment:
+      - SWAGGER_JSON=/spec/openapi.yaml
+    ports:
+      - "100.105.90.20:3008:8080"
+    networks:
+      - ai_network
+
   # ── MAILSERVER (SMTP + IMAP) ───────────────────────────────────
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest

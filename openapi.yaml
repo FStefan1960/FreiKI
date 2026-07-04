@@ -1,0 +1,1480 @@
+openapi: 3.0.3
+info:
+  title: FreiKI API
+  description: |
+    **FreiKI** ist ein lokal gehosteter, datenschutzfreundlicher KI-Assistent mit Dokumentenanalyse, RAG, Chat und Integrationen.
+    Diese API ermöglicht die Interaktion mit allen Funktionen von FreiKI.
+
+    ### Authentifizierung
+    - **JWT-Token** (Header: Authorization: Bearer *** für geschützte Endpunkte.
+    - **Login**: POST /api/login gibt JWT zurück.
+    - **Demo-Modus**: Falls APP_DEMO_MODE=true, sind einige Endpunkte ohne Auth zugänglich.
+
+    ### Basis-URL
+    - **Lokal**: http://localhost:3000
+    - **Produktion**: https://<deine-domain>.de
+
+    ### Features
+    - **Chat**: KI-gestützte Konversationen mit verschiedenen Modi (z. B. Leichte Sprache, Zusammenfassen).
+    - **Dokumentenanalyse**: PDF, DOCX, Bilder (OCR), Audio (Transkription).
+    - **Wissensdatenbank (RAG)**: Semantische Suche in hinterlegten Dokumenten.
+    - **Excel-Analyse**: Dynamische Abfragen auf Excel-Dateien via MCP.
+    - **Integration**: Mattermost, Paperless-ngx, SearXNG (Web-Suche).
+
+  version: 1.0.0
+  contact:
+    name: FreiKI Support
+    email: support@freiki.example
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Lokale Entwicklungsumgebung
+  - url: https://freiki.example.de
+    description: Produktionsumgebung
+
+tags:
+  - name: Authentifizierung
+    description: Login, Token-Verwaltung und Benutzerdaten
+  - name: Chat
+    description: KI-Chat, Modi und Historie
+  - name: Dokumentenanalyse
+    description: Upload, OCR, RAG und Wissensbereiche
+  - name: Excel
+    description: Excel-Dateien analysieren und abfragen
+  - name: Sprachfunktionen
+    description: Transkription (Audio zu Text) und Text-to-Speech
+  - name: Integration
+    description: Paperless-ngx, Mattermost, SearXNG
+  - name: Verwaltung
+    description: Admin-Funktionen (Benutzer, Konfiguration, Statistiken)
+  - name: System
+    description: Health-Checks, Tips, Branding
+
+paths:
+  /api/login:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Anmeldung
+      description: |
+        Meldet einen Benutzer an und gibt ein JWT-Token zurück.
+        Im Demo-Modus (APP_DEMO_MODE=true) kann jeder Benutzername/Passwort funktionieren.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: max.mustermann
+                password:
+                  type: string
+                  format: password
+                  example: sicheresPasswort123!
+      responses:
+        "200":
+          description: Erfolgreiche Anmeldung
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT-Token für zukünftige Anfragen
+                    example: eyJhbG...VCJ9...
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Ungültige Anmeldedaten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Zu viele Login-Versuche (Rate-Limit 5 pro 15 Min)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/change-password:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Passwort ändern
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+      responses:
+        "200":
+          description: Passwort erfolgreich geändert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "401":
+          description: Aktuelles Passwort falsch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/me:
+    get:
+      tags:
+        - Authentifizierung
+      summary: Aktueller Benutzer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Benutzerdaten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /api/chat:
+    post:
+      tags:
+        - Chat
+      summary: Chat-Nachricht senden
+      description: |
+        Sendet eine Nachricht an die KI und erhält eine Streaming-Antwort.
+        Unterstützt verschiedene Modi (z. B. standard, leichte_sprache, zusammenfassen).
+        Bis zu 20 Dateien (PDF, DOCX, Bilder, etc.) können mitgesendet werden.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Die Nachricht an die KI
+                  example: Was steht im SGB IX über Eingliederungshilfe?
+                mode:
+                  type: string
+                  description: |
+                    Modus für die Antwort:
+                    - standard: Normale KI-Antwort
+                    - leichte_sprache: Vereinfachte Sprache
+                    - zusammenfassen: Zusammenfassung langer Texte
+                    - uebersetzen: Übersetzung
+                    - 3translate: Übersetzung mit 3 Sprachen
+                    - web_recherche: Aktuelle Infos aus dem Internet
+                    - multidoc: Vergleich mehrerer Dokumente
+                  enum:
+                    - standard
+                    - leichte_sprache
+                    - zusammenfassen
+                    - uebersetzen
+                    - 3translate
+                    - web_recherche
+                    - multidoc
+                  default: standard
+                history:
+                  type: string
+                  description: JSON-String mit vorheriger Chat-Historie
+                  example: '[{"role":"user","content":"Hallo"},{"role":"assistant","content":"Hallo!"}]'
+                file:
+                  type: string
+                  format: binary
+                  description: Einzelne Datei (PDF, DOCX, Bild, etc.)
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Mehrere Dateien (bis zu 20)
+                wissen:
+                  type: string
+                  description: Wissensbereich für RAG (z. B. stvo für Verkehrsregeln)
+                  example: stvo
+                targetLang:
+                  type: string
+                  description: Zielsprache für Übersetzungen
+                  example: en
+      responses:
+        "200":
+          description: |
+            Streaming-Antwort (Server-Sent Events).
+            Der Client muss die Antwort als Stream verarbeiten.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  data: {"choices":[{"delta":{"content":"Hallo"}}]}
+                  data: {"choices":[{"delta":{"content":"! Wie"}}]}
+                  data: [DONE]
+        "400":
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht autorisiert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Zu viele Anfragen (Rate-Limit 100 pro 15 Min)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/modes:
+    get:
+      tags:
+        - Chat
+      summary: Verfügbare Chat-Modi
+      responses:
+        "200":
+          description: Liste der Modi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                      example: leichte_sprache
+                    label:
+                      type: string
+                      example: Leichte Sprache
+                    description:
+                      type: string
+                      example: Vereinfacht komplexe Texte für bessere Verständlichkeit.
+
+  /api/tips:
+    get:
+      tags:
+        - Chat
+      summary: Tipps für Nutzer
+      responses:
+        "200":
+          description: Liste der Tipps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - Sie können Fotos hochladen - FreiKI liest den Text per OCR heraus.
+                  - Mit Leichte Sprache können Sie Texte einfach und verständlich aufbereiten lassen.
+
+  /api/kb-areas:
+    get:
+      tags:
+        - Dokumentenanalyse
+      summary: Verfügbare Wissensbereiche
+      responses:
+        "200":
+          description: Liste der Wissensbereiche
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                      example: stvo
+                    label:
+                      type: string
+                      example: Verkehrsregeln (StVO) - Demo
+
+  /api/kb-ingest-text:
+    post:
+      tags:
+        - Dokumentenanalyse
+      summary: Text in Wissensdatenbank aufnehmen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+                - area
+              properties:
+                text:
+                  type: string
+                area:
+                  type: string
+                  example: stvo
+                metadata:
+                  type: object
+                  example:
+                    source: StVO 2024
+                    date: "2024-01-01"
+      responses:
+        "200":
+          description: Text erfolgreich indexiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  id:
+                    type: string
+        "400":
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/kb-upload:
+    post:
+      tags:
+        - Dokumentenanalyse
+      summary: Dokumente in Wissensdatenbank hochladen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                area:
+                  type: string
+                  example: stvo
+      responses:
+        "200":
+          description: Dokumente erfolgreich hochgeladen und indexiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        filename:
+                          type: string
+                        chunks:
+                          type: integer
+        "400":
+          description: Ungültige Dateien
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/paperless/meta:
+    get:
+      tags:
+        - Dokumentenanalyse
+        - Integration
+      summary: Paperless-ngx Metadaten
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der Dokumente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 42
+                  documents:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PaperlessDocument"
+
+  /api/paperless/document/{id}:
+    get:
+      tags:
+        - Dokumentenanalyse
+        - Integration
+      summary: Paperless-Dokument abrufen
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dokument-Details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaperlessDocument"
+        "404":
+          description: Dokument nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/paperless/search:
+    post:
+      tags:
+        - Dokumentenanalyse
+        - Integration
+      summary: Paperless-Dokumente durchsuchen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: Rechnung 2024
+                limit:
+                  type: integer
+                  default: 10
+      responses:
+        "200":
+          description: Suchergebnisse
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PaperlessDocument"
+
+  /api/paperless/download/{id}:
+    get:
+      tags:
+        - Dokumentenanalyse
+        - Integration
+      summary: Paperless-Dokument herunterladen
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: PDF-Datei des Dokuments
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Dokument nicht gefunden
+
+  /api/excel-upload:
+    post:
+      tags:
+        - Excel
+      summary: Excel-Datei hochladen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Datei erfolgreich hochgeladen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filename:
+                    type: string
+                    example: daten.xlsx
+                  path:
+                    type: string
+                    example: /tmp/excel_uploads/daten.xlsx
+                  size:
+                    type: integer
+                    example: 1024
+        "400":
+          description: Ungültige Datei
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/excel-chat:
+    post:
+      tags:
+        - Excel
+      summary: Excel-Datei abfragen
+      description: Fragt eine hochgeladene Excel-Datei ab (z. B. Was ist der Durchschnitt von Spalte B?). Nutzt MCP.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - filePath
+                - message
+              properties:
+                filePath:
+                  type: string
+                  example: /tmp/excel_uploads/daten.xlsx
+                message:
+                  type: string
+                  example: Was ist der Durchschnitt von Spalte B?
+                history:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        enum:
+                          - user
+                          - assistant
+                      content:
+                        type: string
+      responses:
+        "200":
+          description: Antwort der KI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply:
+                    type: string
+                    example: Der Durchschnitt von Spalte B beträgt 42.5.
+        "400":
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/transcribe:
+    post:
+      tags:
+        - Sprachfunktionen
+      summary: Audio-Datei transkribieren
+      description: Wandelt eine Audio-Datei (MP3, WAV, etc.) in Text um (via Whisper). Das Ergebnis wird per E-Mail gesendet.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Transkription gestartet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Transkription gestartet. Sie erhalten eine E-Mail mit dem Ergebnis.
+        "400":
+          description: Ungültige Datei
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/tts:
+    post:
+      tags:
+        - Sprachfunktionen
+      summary: Text zu Sprache (TTS)
+      description: Wandelt Text in Sprache um (via Piper-TTS). Gibt eine Audio-Datei (WAV) zurück.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  example: Hallo, dies ist ein Test.
+                voice:
+                  type: string
+                  default: thorsten
+                  example: thorsten
+      responses:
+        "200":
+          description: Audio-Datei
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/bot-chat:
+    post:
+      tags:
+        - Integration
+      summary: Mattermost-Bot-Chat
+      description: Wird von n8n aufgerufen, um Fragen im Mattermost-Chat zu beantworten. Nutzt RAG über alle Wissensbereiche.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - user
+              properties:
+                message:
+                  type: string
+                  example: Was steht im SGB IX über Eingliederungshilfe?
+                user:
+                  type: string
+                  example: max.mustermann
+                channel:
+                  type: string
+                  example: allgemein
+      responses:
+        "200":
+          description: Antwort der KI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string
+                    example: Im SGB IX § 1 steht...
+
+  /api/brand:
+    get:
+      tags:
+        - Verwaltung
+      summary: Branding-Konfiguration
+      responses:
+        "200":
+          description: Branding-Daten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandConfig"
+
+  /admin/config:
+    get:
+      tags:
+        - Verwaltung
+      summary: Admin-Konfiguration abrufen
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Aktuelle Konfiguration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appName:
+                    type: string
+                    example: FreiKI
+                  appColor:
+                    type: string
+                    example: "#1F54C0"
+                  mattermostUrl:
+                    type: string
+                    example: https://mattermost.example.de
+                  paperlessUrl:
+                    type: string
+                    example: https://paperless.example.de
+    post:
+      tags:
+        - Verwaltung
+      summary: Admin-Konfiguration aktualisieren
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                appName:
+                  type: string
+                appColor:
+                  type: string
+                appTagline:
+                  type: string
+                mattermostUrl:
+                  type: string
+                paperlessUrl:
+                  type: string
+      responses:
+        "200":
+          description: Konfiguration aktualisiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/admin/areas:
+    get:
+      tags:
+        - Verwaltung
+      summary: Wissensbereiche verwalten
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der Wissensbereiche
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KBArea"
+
+  /api/admin/users:
+    get:
+      tags:
+        - Verwaltung
+      summary: Benutzerliste abrufen
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste aller Benutzer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      tags:
+        - Verwaltung
+      summary: Neuer Benutzer erstellen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+                - firstName
+                - lastName
+                - email
+              properties:
+                username:
+                  type: string
+                  example: max.mustermann
+                password:
+                  type: string
+                  format: password
+                firstName:
+                  type: string
+                  example: Max
+                lastName:
+                  type: string
+                  example: Mustermann
+                email:
+                  type: string
+                  format: email
+                  example: max@example.com
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - user
+                  default: user
+      responses:
+        "201":
+          description: Benutzer erstellt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /api/admin/users/{id}:
+    post:
+      tags:
+        - Verwaltung
+      summary: Benutzer aktualisieren
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum:
+                    - admin
+                    - user
+      responses:
+        "200":
+          description: Benutzer aktualisiert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      tags:
+        - Verwaltung
+      summary: Benutzer löschen
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Benutzer gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/admin/users/{id}/password:
+    post:
+      tags:
+        - Verwaltung
+      summary: Benutzer-Passwort zurücksetzen
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - newPassword
+              properties:
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Passwort zurückgesetzt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/admin/users/{id}/resend-welcome:
+    post:
+      tags:
+        - Verwaltung
+      summary: Willkommens-E-Mail erneut senden
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: E-Mail gesendet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/feedback:
+    post:
+      tags:
+        - Verwaltung
+      summary: Feedback senden
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - message
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bug
+                    - feature
+                    - question
+                    - praise
+                message:
+                  type: string
+                  example: Die OCR-Funktion erkennt handschriftliche Notizen nicht gut.
+                metadata:
+                  type: object
+      responses:
+        "200":
+          description: Feedback gesendet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/extras:
+    get:
+      tags:
+        - Verwaltung
+      summary: Extras abrufen
+      responses:
+        "200":
+          description: Liste der Extras
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  medienspiegel:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        date:
+                          type: string
+                          format: date
+                  gesellschaftstrends:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        description:
+                          type: string
+                  losung:
+                    type: object
+                    properties:
+                      text:
+                        type: string
+                      date:
+                        type: string
+                        format: date
+
+  /api/medienspiegel:
+    get:
+      tags:
+        - Verwaltung
+      summary: Medien-Spiegel abrufen
+      responses:
+        "200":
+          description: Liste der Medien-Spiegel-Einträge
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    title:
+                      type: string
+                    url:
+                      type: string
+                    date:
+                      type: string
+                      format: date
+    post:
+      tags:
+        - Verwaltung
+      summary: Medien-Spiegel-Eintrag hinzufügen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - url
+              properties:
+                title:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+                date:
+                  type: string
+                  format: date
+      responses:
+        "201":
+          description: Eintrag hinzugefügt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  url:
+                    type: string
+
+  /api/gesellschaftstrends:
+    get:
+      tags:
+        - Verwaltung
+      summary: Gesellschaftstrends abrufen
+      responses:
+        "200":
+          description: Liste der Gesellschaftstrends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    title:
+                      type: string
+                    description:
+                      type: string
+    post:
+      tags:
+        - Verwaltung
+      summary: Gesellschaftstrend hinzufügen
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Trend hinzugefügt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+
+  /api/losung:
+    get:
+      tags:
+        - Verwaltung
+      summary: Tageslosung abrufen
+      responses:
+        "200":
+          description: Aktuelle Tageslosung
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                  date:
+                    type: string
+                    format: date
+    post:
+      tags:
+        - Verwaltung
+      summary: Tageslosung aktualisieren
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+      responses:
+        "200":
+          description: Losung aktualisiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/health:
+    get:
+      tags:
+        - System
+      summary: Health-Check
+      description: Prüft den Status aller Abhängigkeiten (vLLM, PostgreSQL, Paperless, etc.). Sollte ohne Auth zugänglich sein.
+      responses:
+        "200":
+          description: Alle Services sind gesund
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheck"
+        "503":
+          description: Ein oder mehrere Services sind nicht verfügbar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheck"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT-Token aus /api/login
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: max.mustermann
+        firstName:
+          type: string
+          example: Max
+        lastName:
+          type: string
+          example: Mustermann
+        email:
+          type: string
+          format: email
+          example: max@example.com
+        role:
+          type: string
+          enum:
+            - admin
+            - user
+          example: user
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        lastLogin:
+          type: string
+          format: date-time
+          example: "2024-07-04T10:00:00Z"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Ungültige Anmeldedaten
+        details:
+          type: object
+          additionalProperties: true
+
+    BrandConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          example: FreiKI
+        color:
+          type: string
+          example: "#1F54C0"
+        colorHover:
+          type: string
+          example: "#1A4AAD"
+        colorActive:
+          type: string
+          example: "#173F95"
+        navy:
+          type: string
+          example: "#14306B"
+        logo:
+          type: string
+          example: /header.png
+        logoSidebar:
+          type: string
+          example: /header.png
+        tagline:
+          type: string
+          example: Ihr souveräner KI-Assistent
+        supportEmail:
+          type: string
+          format: email
+          example: support@freiki.example
+        mattermostUrl:
+          type: string
+          format: uri
+          example: https://mattermost.example.de
+        paperlessUrl:
+          type: string
+          format: uri
+          example: https://paperless.example.de
+        swVersion:
+          type: string
+          example: "1"
+        demoMode:
+          type: boolean
+          example: false
+        footerNote:
+          type: string
+          example: ""
+
+    KBArea:
+      type: object
+      properties:
+        key:
+          type: string
+          example: stvo
+        label:
+          type: string
+          example: Verkehrsregeln (StVO) - Demo
+        table:
+          type: string
+          example: kb_stvo
+
+    PaperlessDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        title:
+          type: string
+          example: Rechnung 2024-001
+        content:
+          type: string
+          example: Rechnung über 100€ für Bürobedarf...
+        created:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        modified:
+          type: string
+          format: date-time
+          example: "2024-01-02T10:00:00Z"
+        tags:
+          type: array
+          items:
+            type: string
+          example:
+            - rechnung
+            - "2024"
+        correspondent:
+          type: string
+          example: Firma XYZ
+        documentType:
+          type: string
+          example: Rechnung
+
+    HealthCheck:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - unhealthy
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-07-04T12:00:00Z"
+        checks:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              ok:
+                type: boolean
+                example: true
+              status:
+                type: integer
+                example: 200
+              latency:
+                type: string
+                example: 120ms
+              error:
+                type: string
+                example: Connection refused
+              freeBytes:
+                type: integer
+                example: 21474836480
+              minFreeBytes:
+                type: integer
+                example: 10737418240
