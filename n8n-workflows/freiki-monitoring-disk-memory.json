@@ -43,7 +43,7 @@
       },
       {
         "parameters": {
-          "jsCode": "\nconst h = $input.first().json;\nconst alerts = [];\n\n// Disk\nif (h.disk) {\n  const pct = h.disk.usedPercent || 0;\n  if (pct > 85) alerts.push(`🚨 Disk: ${pct.toFixed(1)}% belegt (${h.disk.used} / ${h.disk.total})`);\n  else if (pct > 70) alerts.push(`⚠️ Disk: ${pct.toFixed(1)}% belegt`);\n}\n\n// Memory\nif (h.memory) {\n  const pct = (h.memory.used / h.memory.total * 100);\n  if (pct > 90) alerts.push(`🚨 RAM: ${pct.toFixed(1)}% belegt`);\n  else if (pct > 80) alerts.push(`⚠️ RAM: ${pct.toFixed(1)}% belegt`);\n}\n\nreturn [{ json: { hasAlert: alerts.length > 0, alerts } }];\n"
+          "jsCode": "const h = $input.first().json;\nconst alerts = [];\n\n// Disk\nif (h.disk) {\n  const pct = h.disk.usedPercent || 0;\n  if (pct > 85) alerts.push(`🚨 Disk: ${pct.toFixed(1)}% belegt (${h.disk.used} / ${h.disk.total})`);\n  else if (pct > 70) alerts.push(`⚠️ Disk: ${pct.toFixed(1)}% belegt`);\n}\n\n// Memory\nif (h.memory) {\n  const pct = (h.memory.used / h.memory.total * 100);\n  if (pct > 90) alerts.push(`🚨 RAM: ${pct.toFixed(1)}% belegt`);\n  else if (pct > 80) alerts.push(`⚠️ RAM: ${pct.toFixed(1)}% belegt`);\n}\n\n// Dienste (vLLM, Postgres, Paperless, Whisper)\nconst serviceLabels = { vllm: 'vLLM', postgres: 'Postgres', paperless: 'Paperless', whisper: 'Whisper' };\nif (h.checks) {\n  for (const [key, label] of Object.entries(serviceLabels)) {\n    const c = h.checks[key];\n    if (c && c.ok === false) {\n      alerts.push(`🚨 ${label}: nicht erreichbar (${c.error || 'Status ' + c.status})`);\n    }\n  }\n}\n\nreturn [{ json: { hasAlert: alerts.length > 0, alerts } }];"
         },
         "id": "code-check-thresholds",
         "name": "Schwellwerte prüfen",
