@@ -1,0 +1,117 @@
+[
+  {
+    "id": "iyU4M5E3kdmkYUa4",
+    "name": "FreiKI @mention Handler",
+    "active": true,
+    "nodes": [
+      {
+        "id": "6275f4ee-f55b-4aaa-8ce7-a29be8379163",
+        "name": "Mattermost Outgoing Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          176,
+          -16
+        ],
+        "webhookId": "f731f614-9cbd-434c-ac14-f72cb16fc10b",
+        "parameters": {
+          "path": "freiki-bot-mention",
+          "options": {},
+          "httpMethod": "POST"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "33da70c1-81c6-4d34-b852-295030cf9bda",
+        "name": "FreiKI Bot-Chat aufrufen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          400,
+          -16
+        ],
+        "parameters": {
+          "url": "http://FreiKI:3000/api/bot-chat",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"message\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.text.replace(/@freiki\\s*/i, '').trim()) }},\n  \"username\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.user_name) }}\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{$env.BOT_API_KEY}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4
+      },
+      {
+        "id": "df21d6d3-082e-4b56-b52c-de6956edc8e9",
+        "name": "Antwort in Thread posten",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          640,
+          -16
+        ],
+        "parameters": {
+          "url": "https://chat.freiki.com/api/v4/posts",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={\n  \"channel_id\": {{ JSON.stringify($('Mattermost Outgoing Webhook').item.json.body.channel_id) }},\n  \"message\": {{ JSON.stringify($json.answer) }}\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.MATTERMOST_BOT_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4
+      }
+    ],
+    "connections": {
+      "Mattermost Outgoing Webhook": {
+        "main": [
+          [
+            {
+              "node": "FreiKI Bot-Chat aufrufen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FreiKI Bot-Chat aufrufen": {
+        "main": [
+          [
+            {
+              "node": "Antwort in Thread posten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate",
+      "availableInMCP": false
+    },
+    "triggerCount": 1
+  }
+]

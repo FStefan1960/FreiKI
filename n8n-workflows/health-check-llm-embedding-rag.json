@@ -1,0 +1,381 @@
+[
+  {
+    "id": "84KfWwwlzuKSsGzN",
+    "name": "Health-Check: LLM + Embedding + RAG + Login + Archiv",
+    "active": true,
+    "nodes": [
+      {
+        "id": "cron",
+        "name": "Alle 15 Min",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -32,
+          96
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "5,20,35,50 * * * *"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "llm",
+        "name": "Test LLM",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          -80
+        ],
+        "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
+          "method": "POST",
+          "options": {
+            "timeout": 30000
+          },
+          "jsonBody": "{ \"model\": \"Qwen/Qwen3-32B\", \"messages\": [{\"role\": \"user\", \"content\": \"Hallo\"}], \"max_tokens\": 10 }",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.VLLM_API_KEY}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "embed",
+        "name": "Test Embedding",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          96
+        ],
+        "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/embeddings",
+          "method": "POST",
+          "options": {
+            "timeout": 30000
+          },
+          "jsonBody": "{\n  \"model\": \"BAAI/bge-m3\",\n  \"input\": [\"Test\"]\n}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.VLLM_API_KEY}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "rag",
+        "name": "Test RAG",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          272
+        ],
+        "parameters": {
+          "url": "http://FreiKI:3000/api/chat",
+          "method": "POST",
+          "options": {
+            "timeout": 30000,
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            }
+          },
+          "jsonBody": "{\"message\": \"Wie funktioniert die Hilfe-Funktion?\", \"mode\": \"w_hilfe\"}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $(\"Test Login\").item.json.token }}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "auswerten",
+        "name": "Auswerten",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          688,
+          96
+        ],
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst llm    = items[0];\nconst embed  = items[1];\nconst rag    = items[2];\nconst login  = items[3];\nconst archiv = items[4];\n\nconst appName = 'FreiKI';\nconst errors = [];\n\nif (!llm || llm.error || !llm.json?.choices?.[0]) {\n  errors.push('LLM: ' + (llm?.error?.message || JSON.stringify(llm?.json) || 'Keine Antwort'));\n}\nif (!embed || embed.error || !embed.json?.data?.[0]?.embedding?.length) {\n  errors.push('Embedding: ' + (embed?.error?.message || JSON.stringify(embed?.json) || 'Kein Vektor'));\n}\nif (!rag || rag.error) {\n  errors.push('RAG-Chat: ' + (rag?.error?.message || 'Keine Verbindung'));\n} else {\n  const raw = (typeof rag.json === 'string')\n    ? rag.json\n    : (rag.json?.data ?? rag.json?.body ?? JSON.stringify(rag.json ?? ''));\n  let answer = '';\n  for (const line of String(raw).split('\\n')) {\n    if (!line.startsWith('data: ')) continue;\n    const payload = line.slice(6).trim();\n    if (payload === '[DONE]' || !payload) continue;\n    try {\n      const delta = JSON.parse(payload).choices?.[0]?.delta?.content;\n      if (delta) answer += delta;\n    } catch {}\n  }\n  answer = answer.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();\n  if (!answer) errors.push('RAG-Chat: Keine Antwort erhalten (Modus w_hilfe) - LLM, Embedding oder RAG-DB gestört');\n}\nif (!login || login.error || !login.json?.token) {\n  errors.push('Login: ' + (login?.error?.message || JSON.stringify(login?.json) || 'Kein Token'));\n}\nif (!archiv || archiv.error || archiv.json?.count === undefined || archiv.json?.count === 0) {\n  errors.push('Archiv: ' + (archiv?.error?.message || JSON.stringify(archiv?.json) || 'Keine Ergebnisse'));\n}\n\nconst ok = errors.length === 0;\nreturn [{\n  json: {\n    ok, appName, errors,\n    subject: ok\n      ? '[OK] ' + appName + ' Health-Check: Alles in Ordnung'\n      : '[FEHLER] ' + appName + ' Health-Check: ' + errors.length + ' Problem(e)',\n    body: ok\n      ? appName + ': LLM, Embedding, RAG (echter Chat-Request), Login und Archiv laufen einwandfrei.'\n      : appName + ' meldet Probleme:\\n\\n' + errors.join('\\n') + '\\n\\nBitte prüfen.'\n  }\n}];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "mail",
+        "name": "Mail senden",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          1360,
+          96
+        ],
+        "webhookId": "00aaacd6-cdde-4261-8288-4f608e5eb4d8",
+        "parameters": {
+          "text": "={{ $json.body }}",
+          "options": {},
+          "subject": "={{ $json.subject }}",
+          "toEmail": "admin@freiki.com",
+          "fromEmail": "=ki_agent@freiki.com",
+          "emailFormat": "text"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "beeSlBjHTMsDpZSe",
+            "name": "FreiKI SMTP (ki_agent)"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "merge",
+        "name": "Zusammenführen",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          464,
+          80
+        ],
+        "parameters": {
+          "numberInputs": 5
+        },
+        "typeVersion": 3
+      },
+      {
+        "id": "login",
+        "name": "Test Login",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          448
+        ],
+        "parameters": {
+          "url": "http://FreiKI:3000/api/login",
+          "method": "POST",
+          "options": {
+            "timeout": 10000
+          },
+          "jsonBody": "{\"username\": \"healthcheck\", \"password\": \"Hc#Check2026Test\"}",
+          "sendBody": true,
+          "specifyBody": "json"
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "archiv",
+        "name": "Test Archiv",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          224,
+          624
+        ],
+        "parameters": {
+          "url": "https://paperless.freiki.com/api/documents/?query=und&page_size=1",
+          "method": "GET",
+          "options": {
+            "timeout": 15000
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "ifok",
+        "name": "Nur bei Fehler",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1136,
+          96
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "c1",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                },
+                "leftValue": "={{ $json.ok }}",
+                "rightValue": true
+              }
+            ]
+          }
+        },
+        "typeVersion": 2.2
+      }
+    ],
+    "connections": {
+      "Test LLM": {
+        "main": [
+          [
+            {
+              "node": "Zusammenführen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Test Embedding": {
+        "main": [
+          [
+            {
+              "node": "Zusammenführen",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Test RAG": {
+        "main": [
+          [
+            {
+              "node": "Zusammenführen",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Zusammenführen": {
+        "main": [
+          [
+            {
+              "node": "Auswerten",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Auswerten": {
+        "main": [
+          [
+            {
+              "node": "Nur bei Fehler",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Test Login": {
+        "main": [
+          [
+            {
+              "node": "Zusammenführen",
+              "type": "main",
+              "index": 3
+            },
+            {
+              "node": "Test RAG",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Test Archiv": {
+        "main": [
+          [
+            {
+              "node": "Zusammenführen",
+              "type": "main",
+              "index": 4
+            }
+          ]
+        ]
+      },
+      "Alle 15 Min": {
+        "main": [
+          [
+            {
+              "node": "Test LLM",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Test Embedding",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Test Login",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Test Archiv",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nur bei Fehler": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Mail senden",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate"
+    },
+    "triggerCount": 1
+  }
+]
