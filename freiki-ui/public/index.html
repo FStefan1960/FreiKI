@@ -274,6 +274,16 @@
           <div id="ms-content"><span style="color:var(--fk-muted);">Lade…</span></div>
         </div>
       </div>
+      <div id="losung-panel" style="display:none;flex-direction:column;flex:1;min-height:0;">
+        <div class="tool-panel-bar">
+          <button class="tool-panel-back" onclick="closeLosung()">← Zurück zum Chat</button>
+        </div>
+        <div id="losung-body" style="flex:1;overflow-y:auto;padding:24px;max-width:860px;width:100%;box-sizing:border-box;">
+          <h1 style="font-size:20px;margin-bottom:4px;">🙏 Tageslosung</h1>
+          <div id="losung-date" style="font-size:12px;color:var(--fk-muted);margin-bottom:16px;"></div>
+          <div id="losung-content"><span style="color:var(--fk-muted);">Lade…</span></div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -466,6 +476,8 @@ const ICON_MAP = {
   '📚': 'multidoc',
   '🖼️': 'image',
   '🎙️': 'mic',
+  '📅': 'calendar',
+  '🙏': 'book',
 };
 
 // Emoji, die als Text-Badge dargestellt werden (z. B. Flaggen)
@@ -534,6 +546,7 @@ async function loadModes() {
     // Fest eingebaute Panel-Werkzeuge (bei allen Instanzen gleich)
     [
       { panel: '/whisper.html', icon: '🎙️', title: 'Transkription', desc: 'Audio → Text per E-Mail' },
+      { panel: '/excel-chat.html', icon: '📊', title: 'Excel-Chat (Test)', desc: 'Excel-Datei hochladen & per Chat bearbeiten' },
     ].forEach(t => {
       const b = document.createElement('button');
       b.className = 'mode-btn';
@@ -555,7 +568,7 @@ async function loadModes() {
         extras.forEach(t => {
           const b = document.createElement('button');
           b.className = 'mode-btn';
-          b.onclick = () => t.key === 'medienspiegel' ? openMedienspiegel() : t.key === 'gesellschaftstrends' ? openGesellschaftstrends() : t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
+          b.onclick = () => t.key === 'medienspiegel' ? openMedienspiegel() : t.key === 'gesellschaftstrends' ? openGesellschaftstrends() : t.key === 'losung' ? openLosung() : t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
           b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc || ''}</div></div>`;
           ce.appendChild(b);
         });
@@ -644,6 +657,7 @@ function closeAllPanels() {
   document.getElementById('tool-panel').style.display = 'none';
   document.getElementById('medienspiegel-panel').style.display = 'none';
   document.getElementById('gesellschaftstrends-panel').style.display = 'none';
+  document.getElementById('losung-panel').style.display = 'none';
   document.getElementById('paperless-filter-panel').style.display = 'none';
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   closeSidebar();
@@ -653,6 +667,7 @@ function showChat() {
   document.getElementById('tool-panel').style.display = 'none';
   document.getElementById('medienspiegel-panel').style.display = 'none';
   document.getElementById('gesellschaftstrends-panel').style.display = 'none';
+  document.getElementById('losung-panel').style.display = 'none';
   document.getElementById('paperless-filter-panel').style.display = 'none';
   document.getElementById('messages').style.display = '';
   document.querySelector('.input-area').style.display = '';
@@ -711,6 +726,45 @@ function closeGesellschaftstrends() {
 }
 
 function closeMedienspiegel() {
+  showChat();
+}
+
+function openLosung() {
+  closeAllPanels();
+  document.getElementById('losung-panel').style.display = 'flex';
+  document.body.classList.add('tool-open');
+  const content = document.getElementById('losung-content');
+  content.innerHTML = '<span style="color:var(--fk-muted);">Lade…</span>';
+  const token = localStorage.getItem('freiki_token');
+  fetch('/api/losung', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      document.getElementById('losung-date').textContent = data.date ? 'Stand: ' + data.date : '';
+      if (!data.losung) {
+        content.innerHTML = '<span style="color:var(--fk-muted);">Noch keine Losung verfügbar.</span>';
+        return;
+      }
+      content.innerHTML = `
+        <div style="margin-bottom:20px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--fk-muted);margin-bottom:4px;">Losung</div>
+          <p style="font-size:16px;line-height:1.5;">${data.losung}</p>
+          <div style="font-size:12px;color:var(--fk-muted);">${data.losungRef || ''}</div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--fk-muted);margin-bottom:4px;">Lehrtext</div>
+          <p style="font-size:16px;line-height:1.5;">${data.lehrtext}</p>
+          <div style="font-size:12px;color:var(--fk-muted);">${data.lehrtextRef || ''}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--fk-muted);margin-bottom:4px;">Gedanke für den Tag</div>
+          <p style="font-size:15px;line-height:1.6;">${data.gedanken || ''}</p>
+        </div>`;
+      content.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    })
+    .catch(() => { content.innerHTML = '<span style="color:var(--fk-muted);">Fehler beim Laden.</span>'; });
+}
+
+function closeLosung() {
   showChat();
 }
 

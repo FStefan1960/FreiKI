@@ -1,13 +1,13 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 BACKUP_DATE=$(date +%Y-%m-%d_%H-%M)
 BACKUP_DIR="/tmp/freiki-backup-${BACKUP_DATE}"
 BACKUP_FILE="/tmp/freiki-backup-${BACKUP_DATE}.tar.gz"
-REMOTE_USER="frank"
-REMOTE_HOST="fst60-de"
-REMOTE_DIR="/home/frank/freiki-backups"
-SSH_KEY="/home/freiki-admin/.ssh/backup_key"
+GONEO_USER="114598f88090u6"
+GONEO_PASS="E7r7l7e3n1w1e4g"
+GONEO_HOST="450881.test-my-website.de"
+GONEO_DIR="freiki"
 STACK_DIR="/home/freiki-admin/freiki-package"
 
 echo "=== FreiKI Backup ${BACKUP_DATE} ==="
@@ -15,11 +15,10 @@ echo "=== FreiKI Backup ${BACKUP_DATE} ==="
 mkdir -p "${BACKUP_DIR}"
 
 echo "-> Configs sichern..."
-# node_modules ausschließen – kann jederzeit per npm install wiederhergestellt werden
 rsync -a --exclude='node_modules' --exclude='.git' "${STACK_DIR}/" "${BACKUP_DIR}/freiki-package/"
 
 echo "-> PostgreSQL Dump..."
-docker exec PostgreSQL pg_dumpall -U n8n_user --no-role-passwords | gzip > "${BACKUP_DIR}/postgres-dumpall.sql.gz"
+docker exec PostgreSQL pg_dumpall -U freiki_user --no-role-passwords | gzip > "${BACKUP_DIR}/postgres-dumpall.sql.gz"
 
 echo "-> Volumes sichern..."
 for VOLUME in \
@@ -53,9 +52,10 @@ done
 echo "-> Packen..."
 tar czf "${BACKUP_FILE}" -C /tmp "freiki-backup-${BACKUP_DATE}"
 
-echo "-> Übertragen nach ${REMOTE_HOST}..."
-ssh -i "${SSH_KEY}" "${REMOTE_USER}@${REMOTE_HOST}" "mkdir -p ${REMOTE_DIR}"
-scp -i "${SSH_KEY}" "${BACKUP_FILE}" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/"
+echo "-> Übertragen nach goneo..."
+curl --insecure -u "${GONEO_USER}:${GONEO_PASS}" \
+  sftp://${GONEO_HOST}:2222/${GONEO_DIR}/$(basename ${BACKUP_FILE}) \
+  -T "${BACKUP_FILE}" --progress-bar
 
 echo "-> Aufräumen..."
 rm -rf "${BACKUP_DIR}"
@@ -63,6 +63,5 @@ rm -f "${BACKUP_FILE}"
 
 echo "=== Backup abgeschlossen ==="
 
-# Alte Backups auf Zielserver löschen (älter als 14 Tage)
-echo "-> Alte Backups löschen (>14 Tage)..."
-ssh -i "${SSH_KEY}" "${REMOTE_USER}@${REMOTE_HOST}" "find ${REMOTE_DIR} -name '*.tar.gz' -mtime +14 -delete"
+# Alte Backups lokal auf goneo löschen – nicht automatisch möglich per curl
+# → manuelle Bereinigung oder separates Cleanup-Script
