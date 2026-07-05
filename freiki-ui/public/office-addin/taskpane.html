@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<title>FreiKI für Word</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 16px; color: #1a1a1a; background: #fff; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  #login-view input { width: 100%; box-sizing: border-box; padding: 8px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; }
+  button { cursor: pointer; border: none; border-radius: 4px; padding: 8px 12px; font-size: 13px; }
+  .btn-primary { background: #2563eb; color: #fff; width: 100%; }
+  .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+  #mode-view { display: none; }
+  .mode-btn { display: block; width: 100%; text-align: left; background: #f3f4f6; color: #1a1a1a; margin-bottom: 6px; }
+  .mode-btn:hover { background: #e5e7eb; }
+  #status { font-size: 12px; color: #666; margin: 8px 0; min-height: 16px; }
+  #error { font-size: 12px; color: #b91c1c; margin: 8px 0; }
+  #result-box { display: none; margin-top: 12px; }
+  #result-text { width: 100%; height: 160px; box-sizing: border-box; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: vertical; }
+  #insert-btn { margin-top: 8px; background: #16a34a; color: #fff; width: 100%; }
+  #logout-link { font-size: 11px; color: #666; text-decoration: underline; cursor: pointer; margin-top: 16px; display: inline-block; }
+</style>
+</head>
+<body>
+  <h1>FreiKI für Word</h1>
+
+  <div id="login-view">
+    <input type="text" id="username" placeholder="Benutzername" autocomplete="username">
+    <input type="password" id="password" placeholder="Passwort" autocomplete="current-password">
+    <button class="btn-primary" id="login-btn">Anmelden</button>
+  </div>
+
+  <div id="mode-view">
+    <p style="font-size:12px; color:#666;">Text im Dokument markieren, dann wählen:</p>
+    <button class="mode-btn" data-mode="uebersetzen">🌐 Übersetzen (Deutsch)</button>
+    <button class="mode-btn" data-mode="leichte_sprache">✏️ In Leichte Sprache übertragen</button>
+    <button class="mode-btn" data-mode="1zusammenfassen">📝 Zusammenfassen</button>
+    <span id="logout-link">Abmelden</span>
+  </div>
+
+  <div id="status"></div>
+  <div id="error"></div>
+
+  <div id="result-box">
+    <textarea id="result-text" readonly></textarea>
+    <button id="insert-btn">In Dokument einfügen (ersetzt Auswahl)</button>
+  </div>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>
