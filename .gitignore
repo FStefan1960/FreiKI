@@ -1,6 +1,7 @@
 # Secrets
 .env
 *.env
+*.bak_*
 
 # Node
 node_modules/
@@ -22,7 +23,7 @@ caddy-config/
 
 # Instanz-spezifische Dateien (bleiben auf dem Server, werden nicht überschrieben)
 # Kern (muss auf allen Instanzen identisch sein): freiki-ui/server.js,
-# freiki-ui/public/index.html, freiki-ui/public/style.css, freiki-ui/public/sw.js
+# freiki-ui/public/style.css, freiki-ui/public/sw.js
 # Siehe setup/check-core-sync.sh, um eine Instanz gegen origin/main zu prüfen.
 #
 # Extras (kundenspezifische "Plugins"): Manifest + Seite gehören komplett unter
@@ -30,13 +31,19 @@ caddy-config/
 # damit ein einziges Ignore-Pattern das komplette Extra abdeckt.
 docker-compose.yml
 setup/backup.sh
+setup/restore.sh
 caddy/Caddyfile
+freiki-ui/public/index.html
 freiki-ui/public/header.png
 freiki-ui/public/app-header.png
 freiki-ui/public/app-icon-192.png
 freiki-ui/public/freiki-header.png
 freiki-ui/public/apple-touch-icon.png
 freiki-ui/public/favicon-32.png
+freiki-ui/public/korki-logo.png
+freiki-ui/public/korki-logo-transparent.png
+freiki-ui/public/KorKI.png
+freiki-ui/public/logo.png
 freiki-ui/public/icons/
 freiki-ui/public/manifest.json
 freiki-ui/public/extras/
