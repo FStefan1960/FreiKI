@@ -3,10 +3,11 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
 const { loginLimiter } = require('../middlewares/security');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
-router.post('/api/login', loginLimiter, async (req, res) => {
+router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
   try {
@@ -20,9 +21,9 @@ router.post('/api/login', loginLimiter, async (req, res) => {
     console.error('Login error:', e.message);
     res.status(500).json({ error: 'Verbindungsfehler' });
   }
-});
+}));
 
-router.post('/api/change-password', async (req, res) => {
+router.post('/api/change-password', asyncHandler(async (req, res) => {
   const s = getSession(req);
   const { currentPassword, newPassword } = req.body || {};
   if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
@@ -37,9 +38,9 @@ router.post('/api/change-password', async (req, res) => {
     console.error('change-password error:', e.message);
     res.status(500).json({ error: 'Verbindungsfehler' });
   }
-});
+}));
 
-router.get('/api/me', async (req, res) => {
+router.get('/api/me', asyncHandler(async (req, res) => {
   const s = getSession(req);
   if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
   try {
@@ -47,6 +48,6 @@ router.get('/api/me', async (req, res) => {
     if (!profile) return res.status(404).json({ error: 'Unbekannt' });
     res.json(profile);
   } catch (e) { console.error('api/me:', e.message); res.status(500).json({ error: 'Fehler' }); }
-});
+}));
 
 module.exports = router;

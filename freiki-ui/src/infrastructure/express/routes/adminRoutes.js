@@ -9,6 +9,7 @@ const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
 const prompts = require('../../../core/chat/PromptService');
 const chatRepo = require('../../../core/chat/ChatRepository');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
@@ -149,7 +150,7 @@ router.get('/admin/config', (req, res) => {
   res.type('html').send(adminConfigPage(req.query.saved === '1'));
 });
 
-router.post('/admin/config', express.urlencoded({ extended: true }), async (req, res) => {
+router.post('/admin/config', express.urlencoded({ extended: true }), asyncHandler(async (req, res) => {
   if (!adminSession(req)) return res.status(403).send('Kein Zugriff');
   try {
     await updateBrandConfig(req.body);
@@ -158,21 +159,21 @@ router.post('/admin/config', express.urlencoded({ extended: true }), async (req,
     console.error('Fehler beim Speichern der Konfiguration:', e.message);
     res.status(500).send('Fehler beim Speichern');
   }
-});
+}));
 
 router.get('/api/admin/areas', (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   res.json(prompts.modesConfig.filter(prompts.isWissenMode).map(m => ({ key: m.key, title: m.title })));
 });
 
-router.get('/api/admin/users', async (req, res) => {
+router.get('/api/admin/users', asyncHandler(async (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   try {
     res.json({ users: await users.listAll() });
   } catch (e) { console.error('admin/users GET:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
-});
+}));
 
-router.post('/api/admin/users', async (req, res) => {
+router.post('/api/admin/users', asyncHandler(async (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { username, role, use, manage, first_name, last_name, funktion, email, use_paperless, password } = req.body || {};
   if (!users.isValidUsername(username)) return res.status(400).json({ error: 'Benutzername: 3–64 Zeichen, nur Buchstaben, Zahlen und ._-' });
@@ -185,9 +186,9 @@ router.post('/api/admin/users', async (req, res) => {
     if (e.code === '23505') return res.status(400).json({ error: 'Benutzername existiert bereits' });
     console.error('admin/users POST:', e.message); res.status(500).json({ error: 'Anlegen fehlgeschlagen' });
   }
-});
+}));
 
-router.post('/api/admin/users/:id', async (req, res) => {
+router.post('/api/admin/users/:id', asyncHandler(async (req, res) => {
   const admin = adminSession(req);
   if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const id = parseInt(req.params.id, 10);
@@ -202,9 +203,9 @@ router.post('/api/admin/users/:id', async (req, res) => {
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     res.json({ ok: true });
   } catch (e) { console.error('admin/users update:', e.message); res.status(500).json({ error: 'Speichern fehlgeschlagen' }); }
-});
+}));
 
-router.post('/api/admin/users/:id/password', async (req, res) => {
+router.post('/api/admin/users/:id/password', asyncHandler(async (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { password } = req.body || {};
   if (!password || password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
@@ -213,9 +214,9 @@ router.post('/api/admin/users/:id/password', async (req, res) => {
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     res.json({ ok: true });
   } catch (e) { console.error('admin/users password:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
-});
+}));
 
-router.post('/api/admin/users/:id/resend-welcome', async (req, res) => {
+router.post('/api/admin/users/:id/resend-welcome', asyncHandler(async (req, res) => {
   if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   try {
     const result = await AuthService.resendWelcome(parseInt(req.params.id, 10));
@@ -223,9 +224,9 @@ router.post('/api/admin/users/:id/resend-welcome', async (req, res) => {
     if (result.error === 'no-email') return res.status(400).json({ error: 'Keine E-Mail-Adresse hinterlegt' });
     res.json({ ok: true });
   } catch (e) { console.error('resend-welcome:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
-});
+}));
 
-router.delete('/api/admin/users/:id', async (req, res) => {
+router.delete('/api/admin/users/:id', asyncHandler(async (req, res) => {
   const admin = adminSession(req);
   if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const id = parseInt(req.params.id, 10);
@@ -235,7 +236,7 @@ router.delete('/api/admin/users/:id', async (req, res) => {
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     res.json({ ok: true });
   } catch (e) { console.error('admin/users DELETE:', e.message); res.status(500).json({ error: 'Löschen fehlgeschlagen' }); }
-});
+}));
 
 // ── Medienspiegel / Gesellschaftstrends / Tageslosung: Admin-seitiges Schreiben ──
 router.post('/api/admin/medienspiegel', (req, res) => {
@@ -294,7 +295,7 @@ async function pollGpuCache() {
 setInterval(pollGpuCache, 60_000);
 pollGpuCache();
 
-router.get('/api/admin/stats', async (req, res) => {
+router.get('/api/admin/stats', asyncHandler(async (req, res) => {
   const s = adminSession(req);
   if (!s) return res.status(403).json({ error: 'Kein Zugriff' });
   try {
@@ -307,6 +308,6 @@ router.get('/api/admin/stats', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'DB-Fehler' });
   }
-});
+}));
 
 module.exports = router;

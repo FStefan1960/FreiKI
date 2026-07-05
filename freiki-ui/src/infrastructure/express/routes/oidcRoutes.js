@@ -1,6 +1,7 @@
 const express = require('express');
 const { config } = require('../../../shared/config');
 const Mattermost = require('../../../core/integrations/MattermostService');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.get('/oauth/authorize', (req, res) => {
   res.set('Content-Type', 'text/html').send(Mattermost.loginPageHtml(null, req.query));
 });
 
-router.post('/oauth/authorize', async (req, res) => {
+router.post('/oauth/authorize', asyncHandler(async (req, res) => {
   const { username, password, client_id, redirect_uri, state } = req.body || {};
   if (!Mattermost.isValidClient(client_id, redirect_uri)) {
     return res.status(400).send('Ungültiger client_id oder redirect_uri');
@@ -31,7 +32,7 @@ router.post('/oauth/authorize', async (req, res) => {
     console.error('oauth/authorize Fehler:', e.message);
     res.status(500).send('Serverfehler');
   }
-});
+}));
 
 router.post('/oauth/token', (req, res) => {
   const { grant_type, code, redirect_uri, client_id, client_secret } = req.body || {};

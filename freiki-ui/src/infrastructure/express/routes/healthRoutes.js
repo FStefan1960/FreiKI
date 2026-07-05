@@ -4,6 +4,7 @@ const fs = require('fs');
 const { config } = require('../../../shared/config');
 const pool = require('../../database/postgres/pool');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ async function checkDiskHealth(dir, minFreeBytes) {
   }
 }
 
-router.get('/api/health', async (req, res) => {
+router.get('/api/health', asyncHandler(async (req, res) => {
   if (healthCache && Date.now() - healthCacheTs < HEALTH_CACHE_MS) {
     return res.status(healthCache.status).json(healthCache.body);
   }
@@ -80,6 +81,6 @@ router.get('/api/health', async (req, res) => {
   healthCache = { status: allOk ? 200 : 503, body };
   healthCacheTs = Date.now();
   res.status(healthCache.status).json(body);
-});
+}));
 
 module.exports = router;

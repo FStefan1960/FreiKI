@@ -1,19 +1,20 @@
 const express = require('express');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
 const Paperless = require('../../../core/integrations/PaperlessService');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
-router.get('/api/paperless/meta', async (req, res) => {
+router.get('/api/paperless/meta', asyncHandler(async (req, res) => {
   try {
     res.json(await Paperless.getMeta());
   } catch (e) {
     console.error('paperless/meta Fehler:', e.message);
     res.status(500).json({ error: 'Paperless nicht erreichbar' });
   }
-});
+}));
 
-router.get('/api/paperless/document/:id', async (req, res) => {
+router.get('/api/paperless/document/:id', asyncHandler(async (req, res) => {
   if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
   try {
     const doc = await Paperless.getDocument(req.params.id);
@@ -22,9 +23,9 @@ router.get('/api/paperless/document/:id', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Paperless nicht erreichbar' });
   }
-});
+}));
 
-router.get('/api/paperless/download/:id', async (req, res) => {
+router.get('/api/paperless/download/:id', asyncHandler(async (req, res) => {
   if (!getSession(req)) return res.status(401).end();
   try {
     const result = await Paperless.downloadDocument(req.params.id);
@@ -35,9 +36,9 @@ router.get('/api/paperless/download/:id', async (req, res) => {
   } catch (e) {
     res.status(500).end();
   }
-});
+}));
 
-router.post('/api/paperless/search', async (req, res) => {
+router.post('/api/paperless/search', asyncHandler(async (req, res) => {
   if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
   try {
     res.json(await Paperless.searchDocuments(req.body || {}));
@@ -45,6 +46,6 @@ router.post('/api/paperless/search', async (req, res) => {
     console.error('paperless/search Fehler:', e.message);
     res.status(500).json({ error: 'Paperless nicht erreichbar' });
   }
-});
+}));
 
 module.exports = router;

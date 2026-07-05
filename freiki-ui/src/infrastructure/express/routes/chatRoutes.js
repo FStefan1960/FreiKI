@@ -11,6 +11,7 @@ const ChatService = require('../../../core/chat/ChatService');
 const kb = require('../../../core/knowledge/KBService');
 const users = require('../../../core/auth/UserRepository');
 const { sendToN8n } = require('../../../core/integrations/N8nService');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.get('/api/tips', (_req, res) => {
   } catch (e) { res.json({ tips: [] }); }
 });
 
-router.get('/api/modes', async (req, res) => {
+router.get('/api/modes', asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const session = getSession(req);
   const isAdmin = session?.role === 'admin';
@@ -56,9 +57,9 @@ router.get('/api/modes', async (req, res) => {
     return res.json(visible.filter(m => !prompts.isWissenMode(m) || allowed.includes(normArea(m.key))));
   }
   res.json(visible);
-});
+}));
 
-router.post('/api/feedback', async (req, res) => {
+router.post('/api/feedback', asyncHandler(async (req, res) => {
   const payload = {
     ...req.body,
     event: 'feedback',
@@ -67,9 +68,9 @@ router.post('/api/feedback', async (req, res) => {
   console.log(`Feedback: ${payload.type}`);
   await sendToN8n(payload);
   res.json({ ok: true });
-});
+}));
 
-router.post('/api/chat', chatUpload, async (req, res) => {
+router.post('/api/chat', chatUpload, asyncHandler(async (req, res) => {
   const session = getSession(req);
   if (!session) {
     (req.files?.['file'] || []).forEach(f => fs.unlinkSync(f.path));
@@ -78,9 +79,9 @@ router.post('/api/chat', chatUpload, async (req, res) => {
   }
   req.session = session;
   return ChatService.handleChat(req, res);
-});
+}));
 
-router.post('/api/hilfe-chat', async (req, res) => {
+router.post('/api/hilfe-chat', asyncHandler(async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'Keine Nachricht' });
   try {
@@ -91,10 +92,10 @@ router.post('/api/hilfe-chat', async (req, res) => {
     console.error('Hilfe-Chat Fehler:', e.message);
     res.status(500).json({ error: e.message });
   }
-});
+}));
 
 // Bot-Chat (z.B. Mattermost via n8n): RAG über ALLE Wissensbereiche, API-Key statt Session
-router.post('/api/bot-chat', async (req, res) => {
+router.post('/api/bot-chat', asyncHandler(async (req, res) => {
   if (!config.BOT_API_KEY || req.headers['x-api-key'] !== config.BOT_API_KEY) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
@@ -113,6 +114,6 @@ router.post('/api/bot-chat', async (req, res) => {
     console.error('bot-chat Fehler:', e.message);
     res.status(500).json({ error: 'Fehler bei der Bot-Anfrage: ' + e.message });
   }
-});
+}));
 
 module.exports = router;

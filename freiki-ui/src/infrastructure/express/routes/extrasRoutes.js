@@ -4,6 +4,7 @@ const path = require('path');
 const fetch = require('node-fetch');
 const { config } = require('../../../shared/config');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ jsonFileRoute('/api/gesellschaftstrends', 'gesellschaftstrends.json');
 jsonFileRoute('/api/losung', 'losung.json');
 
 // Piktogramm-Suche (ARASAAC)
-router.get('/api/pictograms', async (req, res) => {
+router.get('/api/pictograms', asyncHandler(async (req, res) => {
   const q = (req.query.q || '').trim();
   const lang = (req.query.lang || 'de').trim();
   if (!q) return res.status(400).json({ error: 'Kein Suchbegriff' });
@@ -55,6 +56,6 @@ router.get('/api/pictograms', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
+}));
 
 module.exports = router;

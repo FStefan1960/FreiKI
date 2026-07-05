@@ -5,10 +5,11 @@ const { uploadAudio } = require('../../../infrastructure/storage/FileStorage');
 const users = require('../../../core/auth/UserRepository');
 const { transcribeAndEmail } = require('../../../core/speech/TranscriptionService');
 const TTSService = require('../../../core/speech/TTSService');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
-router.post('/api/transcribe', uploadAudio.single('audio'), async (req, res) => {
+router.post('/api/transcribe', uploadAudio.single('audio'), asyncHandler(async (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'Keine Audiodatei' });
 
@@ -29,9 +30,9 @@ router.post('/api/transcribe', uploadAudio.single('audio'), async (req, res) => 
   res.json({ ok: true, message: 'Datei empfangen. Das Transkript wird per E-Mail gesendet.' });
 
   transcribeAndEmail(file, email); // fire-and-forget
-});
+}));
 
-router.post('/api/tts', async (req, res) => {
+router.post('/api/tts', asyncHandler(async (req, res) => {
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'Kein Text' });
 
@@ -41,6 +42,6 @@ router.post('/api/tts', async (req, res) => {
   res.setHeader('Content-Type', 'audio/mpeg');
   res.setHeader('Cache-Control', 'no-store');
   result.body.pipe(res);
-});
+}));
 
 module.exports = router;

@@ -7,6 +7,7 @@ const { uploadKB } = require('../../../infrastructure/storage/FileStorage');
 const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
+const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/api/kb-areas', (req, res) => {
 
 // Paperless-ngx-Ingest: nimmt bereits OCR'ten Text entgegen (z.B. von n8n) und
 // verlinkt jeden Chunk per source_url auf das Originaldokument in Paperless
-router.post('/api/kb-ingest-text', async (req, res) => {
+router.post('/api/kb-ingest-text', asyncHandler(async (req, res) => {
   if (!config.KB_INGEST_API_KEY || req.headers['x-api-key'] !== config.KB_INGEST_API_KEY) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
@@ -36,9 +37,9 @@ router.post('/api/kb-ingest-text', async (req, res) => {
     console.error('kb-ingest-text Fehler:', e.message);
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Einlesen fehlgeschlagen: ' + e.message });
   }
-});
+}));
 
-router.post('/api/kb-upload', uploadKB.array('files', 20), async (req, res) => {
+router.post('/api/kb-upload', uploadKB.array('files', 20), asyncHandler(async (req, res) => {
   const session = getSession(req);
   if (!session || !['admin', 'manager'].includes(session.role)) {
     return res.status(403).json({ error: 'Keine Berechtigung. Nur Admins und Manager können Dokumente einlesen.' });
@@ -92,6 +93,6 @@ router.post('/api/kb-upload', uploadKB.array('files', 20), async (req, res) => {
     send({ type: 'error', msg: 'Fehler: ' + e.message });
   }
   res.end();
-});
+}));
 
 module.exports = router;
