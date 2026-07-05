@@ -1,8 +1,8 @@
-# FreiKI/KorKI – Neue Instanz aufsetzen
+# FreiKI/KorKI/FrankKI – Neue Instanz aufsetzen
 
-**Stand Juni 2026**
+**Stand 2026-07-05**
 
-Diese Anleitung beschreibt, was bei einer neuen Installation (z. B. FrankKI oder Kundensystem) angepasst werden muss. `server.js` bleibt kundenneutral – alle instanzspezifischen Inhalte stecken in externen Dateien.
+Diese Anleitung beschreibt, was bei einer neuen Installation (z. B. für einen weiteren Kunden) angepasst werden muss. `server.js` bzw. `src/` bleibt kundenneutral – alle instanzspezifischen Inhalte stecken in externen, gitignorten Dateien.
 
 ---
 
@@ -12,16 +12,17 @@ Diese Anleitung beschreibt, was bei einer neuen Installation (z. B. FrankKI oder
 |---|---|---|
 | `docker-compose.yml` | Server | nein (gitignore) |
 | `.env` | Server | nein (gitignore) |
-| `public/app-header.png` | Server | nein (gitignore) |
-| `public/app-icon-192.png` | Server | nein (gitignore) |
-| `public/apple-touch-icon.png` | Server | nein (gitignore) |
-| `public/favicon-32.png` | Server | nein (gitignore) |
-| `public/manifest.json` | Server | nein (gitignore) |
-| `areas.json` | Server | nein (gitignore) |
-| `welcome.md` | Server | nein (gitignore) |
-| `tips.md` | Server | nein (gitignore) |
-| `prompts/w_*.md` | Server | nein (gitignore für `w_*`) |
-| `prompts/0chat.md` usw. | Repo | ja – gilt für alle Instanzen |
+| `freiki-ui/public/app-header.png` | Server | nein (gitignore) |
+| `freiki-ui/public/app-icon-192.png` | Server | nein (gitignore) |
+| `freiki-ui/public/apple-touch-icon.png` | Server | nein (gitignore) |
+| `freiki-ui/public/manifest.json` | Server | wird dynamisch generiert, nicht gepflegt |
+| `freiki-ui/areas.json` | Server | nein (gitignore) |
+| `freiki-ui/welcome.md` | Server | nein (gitignore) |
+| `freiki-ui/tips.md` | Server | nein (gitignore) |
+| `freiki-ui/losung.json` / `medienspiegel.json` / `gesellschaftstrends.json` | Server | nein (gitignore, Laufzeitdaten von n8n) |
+| `freiki-ui/prompts/w_*.md` | Server | nein (gitignore für `w_*`, instanzspezifische Wissensbereiche) |
+| `freiki-ui/prompts/0chat.md` usw. (Basismodi) | Repo | ja – gilt für alle Instanzen |
+| `freiki-ui/src/` bzw. `freiki-ui/server.js` (Code) | Repo | ja – gilt für alle Instanzen (FreiKI kanonisch, siehe [[feedback_develop_in_freiki]]) |
 
 ---
 
@@ -46,33 +47,33 @@ nano .env
 Wichtige Variablen:
 
 ```bash
-APP_NAME=FrankKI
-APP_URL=https://frankki.fst60.de
+APP_NAME=NeueInstanz
+APP_URL=https://neue-instanz.example.com
 JWT_SECRET=<einzigartiger_zufaelliger_string_min_32_zeichen>
 
-# LLM: bei GPU → vLLM; ohne GPU → externer API-Anbieter
+# LLM: bei eigener GPU → lokales vLLM; ohne GPU → externer API-Anbieter
+# (FreiKI: DeepInfra/Qwen3-32B; KorKI: lokales vLLM/Qwen3-32B-AWQ; FrankKI: Mistral-API)
 VLLM_URL=https://api.mistral.ai/v1      # Beispiel Mistral API
 VLLM_API_KEY=<api_key>
-VLLM_MODEL=mistral-small-latest
+VLLM_MODEL=mistral-medium-latest
 
-# Embedding (ohne GPU: externer Dienst oder lokales Modell auf CPU)
+# Embedding (ohne GPU: externer Dienst; bei lokalem vLLM: eigener Embedding-Container)
 VLLM_EMBED_URL=http://vllm-embedding:8000
 
 PG_HOST=PostgreSQL
-PG_DB=flowise
-PG_USER_KB=n8n_user
+PG_DB=freiki
+PG_USER_KB=freiki_user
 PG_PASS_KB=<passwort>
 ```
+
+**Hinweis:** `PG_DB=freiki` (nicht `flowise` — Flowise/AnythingLLM wurden nie produktiv genutzt und sind fester Bestandteil keiner Instanz).
 
 ### Schritt 3: docker-compose.yml anpassen
 
 Ausgehend von der Vorlage im Repo – instanzspezifisch anpassen:
-- GPU-Services (`vllm`, `vllm_embedding`) → nur bei GPU-Server
+- `vllm`, `vllm_embedding` → nur bei eigenem GPU-Server, sonst entfernen (externer API-Anbieter reicht über `.env`)
+- Mattermost → nur wenn Team-Chat gewünscht (FrankKI/BeB-KI hat keins)
 - Ports falls nötig anpassen
-- Dienstnamen/Volumes bei Bedarf umbenennen
-
-**Demo-/Cloud-Instanz ohne GPU** – diese Services entfallen:
-- `vllm`, `vllm_embedding` → durch externen API-Anbieter ersetzt (nur `.env` ändern, kein Code-Umbau)
 - `portainer`, `dozzle` → optional
 
 ### Schritt 4: Logos und Branding einspielen
@@ -82,12 +83,13 @@ Ausgehend von der Vorlage im Repo – instanzspezifisch anpassen:
 scp logo-banner.png user@server:~/freiki-package/freiki-ui/public/app-header.png
 scp logo-icon.png user@server:~/freiki-package/freiki-ui/public/app-icon-192.png
 scp logo-icon.png user@server:~/freiki-package/freiki-ui/public/apple-touch-icon.png
-scp favicon.png user@server:~/freiki-package/freiki-ui/public/favicon-32.png
 ```
 
 Empfohlene Größen:
 - `app-header.png`: 800×200 px (Banner)
 - `app-icon-192.png`: 192×192 px (quadratisch)
+
+`manifest.json`, `brand.css` und `sw.js` werden zur Laufzeit aus den `APP_*`-Variablen der `.env` bzw. der Admin-UI-Konfiguration generiert — nicht manuell anlegen.
 
 ### Schritt 5: Instanzspezifische Textdateien anlegen
 
@@ -98,10 +100,6 @@ cp freiki-ui/instance-template/welcome.md freiki-ui/welcome.md
 
 # Tipp des Tages
 cp freiki-ui/instance-template/tips.md freiki-ui/tips.md
-
-# manifest.json
-cp freiki-ui/public/manifest.json.example freiki-ui/public/manifest.json
-# → name, short_name, theme_color anpassen
 ```
 
 ### Schritt 6: Wissensbereiche einrichten
@@ -131,7 +129,6 @@ CREATE TABLE kb_neuerbereich (
   metadata JSONB DEFAULT '{}',
   embedding vector(1024)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON kb_neuerbereich TO n8n_user;
 ```
 
 ### Schritt 7: Caddyfile anpassen
@@ -147,44 +144,40 @@ cp caddy/Caddyfile.example caddy/Caddyfile
 docker compose up -d
 ```
 
-Beim ersten Start wird die Tabelle `korki_users` / `freiki_users` automatisch angelegt.
+Beim ersten Start wird die Tabelle `freiki_users` automatisch angelegt (einheitlicher Name auf allen Instanzen, kein `korki_users`).
 
 ### Schritt 9: Ersten Admin-User anlegen
 
 ```bash
-docker exec -it PostgreSQL psql -U n8n_user -d flowise
+docker exec -it PostgreSQL psql -U freiki_user -d freiki
 ```
 
 ```sql
--- Hash vorher erzeugen:
--- docker run --rm python:3 python3 -c "import bcrypt; print(bcrypt.hashpw(b'IhrPasswort', bcrypt.gensalt(10)).decode())"
+-- Hash IMMER via Node.js/bcryptjs erzeugen, nie Python (siehe Projekt-Konvention):
+-- docker exec -it FreiKI node -e "const bcrypt=require('bcryptjs'); console.log(bcrypt.hashSync('IhrPasswort', 10));"
 
-INSERT INTO korki_users (username, password_hash, role)
-VALUES ('admin', '$2b$10$...', 'admin');
+INSERT INTO freiki_users (username, password_hash, role)
+VALUES ('admin', '$2a$10$...', 'admin');
 ```
 
 ### Schritt 10: Branding in Admin-UI setzen
 
-Nach dem ersten Login: Admin-UI → Konfiguration:
+Nach dem ersten Login: Admin-UI → Konfiguration (`/admin/config`):
 - App-Name, Tagline, Farben eintragen
-- Cache-Version auf 1 setzen
+- Cache-Version (`swVersion`) auf 1 setzen
 
 ---
 
 ## 3. n8n-Workflows einrichten (optional)
 
-Für Paperless-Integration und Monitoring:
+Für Paperless-Integration, Monitoring, Tageslosung/Medienspiegel/Gesellschaftstrends-Extras:
 
-```bash
-# Workflow importieren
-docker exec -it n8n n8n import:workflow --input=/path/to/workflow.json
-```
-
-Vorlagen in `freiki-package/setup/`:
-- `paperless-freiki-tag-sync-workflow.json` → täglich, legt Paperless-Tags an
-- `paperless-freiki-sync-workflow.json` → alle 15 Min, Dokumente → KB
-
-URLs und API-Keys in den Workflows anpassen (n8n-UI → Workflow → Knoten editieren).
+Workflows per n8n-API von einer bestehenden Instanz exportieren und importieren (siehe [[feedback_n8n_sql_statt_cli]] — CLI-Import/Export war unzuverlässig, lieber über die REST-API `/api/v1/workflows`). Beim Übernehmen von einer anderen Instanz immer prüfen:
+- Login-Node nutzt das richtige Service-Konto/Passwort dieser Instanz
+- LLM-Aufrufe zeigen auf den richtigen Provider dieser Instanz (nicht versehentlich fremden API-Key übernehmen)
+- Organisationsspezifische Prompts generisch formulieren, nicht 1:1 von einer anderen Instanz übernehmen
+- Schedule-Trigger wirklich auf "täglich zu Uhrzeit X" prüfen (`field: days` + `triggerAtHour`/`triggerAtMinute`), nicht nur am Node-Namen ablesen — `field: hours` ohne `hoursInterval` läuft z. B. stündlich, nicht täglich
+- `NODE_FUNCTION_ALLOW_BUILTIN` in der n8n-Umgebung muss die vom Workflow per `require()` genutzten Node-Built-ins enthalten (z. B. `https,http`), sonst blockiert n8ns Sandbox den Code-Node
 
 Nach Anlage des n8n-API-Keys:
 ```bash
@@ -197,29 +190,29 @@ N8N_API_KEY=<key>
 ## 4. Checkliste neue Instanz
 
 - [ ] Repo geklont
-- [ ] `.env` vollständig befüllt (insb. `JWT_SECRET`, `APP_URL`, LLM-Credentials)
+- [ ] `.env` vollständig befüllt (insb. `JWT_SECRET`, `APP_URL`, `PG_DB=freiki`, LLM-Credentials)
 - [ ] `docker-compose.yml` instanzspezifisch angepasst
 - [ ] Logos eingespielt (`app-header.png`, `app-icon-192.png`)
-- [ ] `welcome.md`, `tips.md`, `manifest.json` angepasst
+- [ ] `welcome.md`, `tips.md` angepasst
 - [ ] `Caddyfile` mit Domain konfiguriert
 - [ ] Stack gestartet: `docker compose up -d`
-- [ ] Ersten Admin-User angelegt (SQL)
+- [ ] Ersten Admin-User angelegt (SQL, Hash via Node.js/bcryptjs)
 - [ ] Branding in Admin-UI gesetzt (Name, Farben, Cache-Version)
 - [ ] Wissensbereiche: `areas.json` + `prompts/w_*.md` + Icons + KB-Tabellen
 - [ ] Paperless: Tags in Paperless anlegen, n8n-Workflows importieren und aktivieren
 - [ ] Mailserver: DNS-Records prüfen, DKIM eintragen
-- [ ] Backup-Script einrichten und testen
+- [ ] Backup-Script einrichten und testen (`setup/backup.sh`/`setup/restore.sh`, IONOS HiDrive — eigener SSH-Key + eigener Unterordner je Instanz, siehe [`docs/Restore-Anleitung.md`](Restore-Anleitung.md))
 - [ ] Uptime Kuma konfigurieren
 
 ---
 
 ## 5. Instanz-Übersicht
 
-| Instanz | Server | Domain | Modell | Status |
+| Instanz | Hoster | Domain | Modell | Status |
 |---|---|---|---|---|
-| FreiKI | Hetzner | freiki.frank-stefan.de | Qwen 2.5 32B (vLLM, GPU) | produktiv / Demo |
-| KorKI | Hetzner | assi.diakonie-kork-ki.de | Qwen 2.5 32B (vLLM, GPU) | produktiv |
-| FrankKI | fst60.de | frankki.fst60.de | Mistral API | in Planung |
+| FreiKI | IONOS VPS | app.freiki.com | Qwen3-32B via DeepInfra API | produktiv / Demo (modularisierter Code) |
+| KorKI | IONOS VPS (GPU) | assi.diakonie-kork-ki.de | Qwen3-32B-AWQ via lokales vLLM | produktiv (Diakonie Kork) |
+| FrankKI / BeB-KI | IONOS VPS | ki.fst60.de | Mistral API (mistral-medium-latest) | produktiv (BeB e.V.) |
 
 ---
 

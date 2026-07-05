@@ -1,0 +1,278 @@
+[
+  {
+    "id": "K6baSUzFjOhwkaJQ",
+    "name": "Paperless -> FreiKI Sync",
+    "active": true,
+    "nodes": [
+      {
+        "id": "schedule-trigger-freiki",
+        "name": "Alle 15 Minuten",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -560,
+          80
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 15
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "http-get-tags",
+        "name": "Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -336,
+          80
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=100",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "http-get-documents",
+        "name": "Dokumente holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -128,
+          80
+        ],
+        "parameters": {
+          "url": "={{ 'http://paperless:8000/api/documents/?tags__id__all=' + (($('Tags holen').first().json.results || []).find(t => t.name.toLowerCase() === 'ready-for-rag') || {}).id + '&page_size=100' }}",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "code-filter-prepare",
+        "name": "Bereich ableiten & filtern",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          112,
+          80
+        ],
+        "parameters": {
+          "jsCode": "const tagList = $('Tags holen').first().json.results || [];\n\n// ready-for-rag Tag finden\nconst readyTag = tagList.find(t => t.name.toLowerCase() === 'ready-for-rag');\nif (!readyTag) throw new Error('Tag \"ready-for-rag\" nicht in Paperless gefunden');\nconst readyId = readyTag.id;\n\n// Bereichs-Tags: alles außer ready-for-rag\nconst tagMap = {};\nfor (const t of tagList) {\n  if (t.id !== readyId) tagMap[t.id] = t.name.toLowerCase().replace(/[^a-z0-9]/g, '');\n}\n\nconst docs = $input.first().json.results || [];\nconst out = [];\nfor (const doc of docs) {\n  if (!doc.tags.includes(readyId)) continue;\n  const bereichTagId = doc.tags.find(t => tagMap[t]);\n  if (!bereichTagId) continue;\n  out.push({\n    json: {\n      id: doc.id,\n      bereich: tagMap[bereichTagId],\n      text: doc.content || '',\n      source: doc.title,\n      source_url: `https://paperless.freiki.com/documents/${doc.id}/details`,\n      readyId,\n      newTags: doc.tags.filter(id => id !== readyId)\n    }\n  });\n}\nreturn out;"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "http-post-freiki",
+        "name": "An FreiKI schicken",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          320,
+          80
+        ],
+        "parameters": {
+          "url": "http://freiki-ui:3000/api/kb-ingest-text",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ { bereich: $json.bereich, text: $json.text, source: $json.source, source_url: $json.source_url } }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{$env.KB_INGEST_API_KEY}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "http-remove-ready",
+        "name": "ready-for-rag entfernen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          544,
+          80
+        ],
+        "parameters": {
+          "url": "={{ \"http://paperless:8000/api/documents/\" + $('Bereich ableiten & filtern').item.json.id + \"/\" }}",
+          "method": "PATCH",
+          "options": {},
+          "jsonBody": "={{ { tags: $('Bereich ableiten & filtern').item.json.newTags } }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "code-sync-report",
+        "name": "Sync-Report aufbauen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          760,
+          80
+        ],
+        "parameters": {
+          "jsCode": "\nconst items = $input.all();\nconst count = items.length;\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\nconst bereiche = [...new Set(items.map(i => i.json?.bereich).filter(Boolean))];\nlet msg = `🔄 **RAG-Sync FreiKI** (${now})\\n`;\nif (count > 0) {\n  msg += `${count} Dokument(e) ins Wissen aufgenommen.\\n`;\n  if (bereiche.length) msg += `Bereiche: ${bereiche.join(', ')}`;\n} else {\n  msg += 'Keine neuen Dokumente.';\n}\nreturn [{ json: { message: msg } }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "mm-post-sync",
+        "name": "Sync-Report an Mattermost",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          960,
+          80
+        ],
+        "parameters": {
+          "url": "http://mattermost:8065/api/v4/posts",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={ { \"channel_id\": \"cobxa3cfwjdt7rr8wxnr7q9ynr\", \"message\": $json.message } }",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{$env.MATTERMOST_BOT_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "connections": {
+      "Alle 15 Minuten": {
+        "main": [
+          [
+            {
+              "node": "Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Dokumente holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dokumente holen": {
+        "main": [
+          [
+            {
+              "node": "Bereich ableiten & filtern",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bereich ableiten & filtern": {
+        "main": [
+          [
+            {
+              "node": "An FreiKI schicken",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "An FreiKI schicken": {
+        "main": [
+          [
+            {
+              "node": "ready-for-rag entfernen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "ready-for-rag entfernen": {
+        "main": [
+          [
+            {
+              "node": "Sync-Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sync-Report aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Sync-Report an Mattermost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate"
+    },
+    "triggerCount": 1
+  }
+]

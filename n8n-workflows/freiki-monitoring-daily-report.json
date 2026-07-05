@@ -1,0 +1,307 @@
+[
+  {
+    "id": "freiki-monitoring-daily",
+    "name": "FreiKI Monitoring – Täglicher Report",
+    "active": true,
+    "nodes": [
+      {
+        "id": "trigger-daily",
+        "name": "Täglich 07:00",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -1008,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 7 * * *"
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "code-services",
+        "name": "Services definieren",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -800,
+          0
+        ],
+        "parameters": {
+          "jsCode": "\nconst services = [\n  { name: 'FreiKI App',   url: 'http://freiki-ui:3000/api/brand' },\n  { name: 'n8n',          url: 'http://n8n:5678/healthz' },\n  { name: 'Mattermost',   url: 'http://mattermost:8065/api/v4/system/ping' },\n  { name: 'Whisper',      url: 'http://whisper:9000/' },\n];\nreturn [{ json: { services } }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "split-services",
+        "name": "Pro Service",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          -608,
+          0
+        ],
+        "parameters": {
+          "options": {},
+          "fieldToSplitOut": "services"
+        },
+        "typeVersion": 1
+      },
+      {
+        "id": "http-check",
+        "name": "Service prüfen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -400,
+          0
+        ],
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "options": {
+            "timeout": 5000,
+            "response": {
+              "response": {
+                "neverError": true,
+                "fullResponse": true
+              }
+            }
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "code-aggregate",
+        "name": "Ergebnisse aggregieren",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -208,
+          0
+        ],
+        "parameters": {
+          "jsCode": "\nconst items = $input.all();\nconst serviceNames = $('Pro Service').all().map(i => i.json.name);\n\nconst lines = items.map((item, idx) => {\n  const name = serviceNames[idx] || '?';\n  const ok = !item.json.error && item.json.statusCode < 400;\n  return (ok ? '✅' : '❌') + ' ' + name;\n});\n\nreturn [{ json: { statusLines: lines } }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "http-paperless-count",
+        "name": "Paperless Dokumente zählen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -208,
+          208
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/documents/?page_size=1",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "http-paperless-tags",
+        "name": "Paperless Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -208,
+          400
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=100",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "code-build-report",
+        "name": "Report aufbauen",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          256,
+          208
+        ],
+        "parameters": {
+          "jsCode": "\nconst statusLines = $('Ergebnisse aggregieren').first().json.statusLines || [];\nconst totalDocs = $('Paperless Dokumente zählen').first().json.count || 0;\nconst tags = $('Paperless Tags holen').first().json.results || [];\n\nconst readyTag = tags.find(t => t.name === 'ready-for-rag');\nconst notYetTag = tags.find(t => t.name === 'not-yet-tagged');\n\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\n\nlet msg = `<h3>📊 FreiKI System-Report – ${now}</h3>`;\nmsg += `<p><strong>Services:</strong><br>${statusLines.join('<br>')}</p>`;\nmsg += `<p><strong>Paperless:</strong><br>`;\nmsg += `Dokumente gesamt: <strong>${totalDocs}</strong><br>`;\nif (readyTag) msg += `Ausstehend (ready-for-rag): <strong>${readyTag.document_count ?? 0}</strong><br>`;\nif (notYetTag) msg += `Zu taggen (not-yet-tagged): <strong>${notYetTag.document_count ?? 0}</strong><br>`;\nmsg += `</p>`;\n\nreturn [{ json: { message: msg } }];\n"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "mm-post-report",
+        "name": "Report per Mail",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [
+          480,
+          208
+        ],
+        "webhookId": "b575655b-59b9-446c-a695-fc74c31a8d3f",
+        "parameters": {
+          "html": "={{ $json.message }}",
+          "options": {},
+          "subject": "={{ $json.subject || 'FreiKI Tagesbericht' }}",
+          "toEmail": "admin@freiki.com",
+          "fromEmail": "ki_agent@freiki.com"
+        },
+        "credentials": {
+          "smtp": {
+            "id": "beeSlBjHTMsDpZSe",
+            "name": "FreiKI SMTP (ki_agent)"
+          }
+        },
+        "typeVersion": 2.1
+      },
+      {
+        "id": "124fe59d-dec6-4c58-afb3-8830d185a292",
+        "name": "Merge",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          32,
+          192
+        ],
+        "parameters": {
+          "mode": "combine",
+          "options": {},
+          "combineBy": "combineByPosition",
+          "numberInputs": 3
+        },
+        "typeVersion": 3.2
+      }
+    ],
+    "connections": {
+      "Täglich 07:00": {
+        "main": [
+          [
+            {
+              "node": "Services definieren",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Paperless Dokumente zählen",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Paperless Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Services definieren": {
+        "main": [
+          [
+            {
+              "node": "Pro Service",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pro Service": {
+        "main": [
+          [
+            {
+              "node": "Service prüfen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Service prüfen": {
+        "main": [
+          [
+            {
+              "node": "Ergebnisse aggregieren",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ergebnisse aggregieren": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paperless Dokumente zählen": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Paperless Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Merge",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "Report aufbauen": {
+        "main": [
+          [
+            {
+              "node": "Report per Mail",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge": {
+        "main": [
+          [
+            {
+              "node": "Report aufbauen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "binaryMode": "separate"
+    },
+    "triggerCount": 1
+  }
+]
