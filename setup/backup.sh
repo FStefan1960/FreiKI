@@ -3,22 +3,24 @@ set -euo pipefail
 
 # --- Konfiguration ---
 BACKUP_DATE=$(date +%Y-%m-%d_%H-%M)
-BACKUP_ROOT="/home/aiadmin/backups"
-BACKUP_DIR="${BACKUP_ROOT}/korki-${BACKUP_DATE}"
-BACKUP_FILE="${BACKUP_ROOT}/korki-backup-${BACKUP_DATE}.tar.zst"
-LOG_FILE="/home/aiadmin/korki-backup.log"
+BACKUP_ROOT="/home/freiki-admin/backups"   # nicht /tmp: dort landen App-Uploads, siehe /api/health;
+                                            # /var/backups + /var/log gehören root, freiki-admin hat kein sudo
+BACKUP_DIR="${BACKUP_ROOT}/freiki-${BACKUP_DATE}"
+BACKUP_FILE="${BACKUP_ROOT}/freiki-backup-${BACKUP_DATE}.tar.zst"
+LOG_FILE="/home/freiki-admin/freiki-backup.log"
 MAX_BACKUPS=7
-STACK_DIR="/home/aiadmin/freiki-package"
-NOTIFY_EMAIL="admin@diakonie-kork-ki.de"
+STACK_DIR="/home/freiki-admin/freiki-package"
+NOTIFY_EMAIL="admin@freiki.com"
 
-# IONOS HiDrive (2026-07-05: löst Goneo ab), Key-basiert statt Passwort,
-# dedizierter Key nur für diesen Zweck. Gemeinsamer HiDrive-Account für alle
-# Instanzen, aber eigener Unterordner je Instanz und eigener SSH-Key je Server.
+# IONOS HiDrive (2026-07-05: löst Goneo ab, war Frank Stefans Privatkonto) --
+# Key-basiert statt Passwort, dedizierter Key nur für diesen Zweck, kein Secrets-File nötig.
+# Ein gemeinsamer HiDrive-Account für alle Instanzen, aber je Instanz ein eigener Unterordner
+# und ein eigener SSH-Key (siehe MEMORY: pro Server eigener Key, damit einzeln widerrufbar).
 HIDRIVE_USER="freiki-admin"
-HIDRIVE_KEY="/home/aiadmin/.ssh/hidrive_backup_key"
+HIDRIVE_KEY="/home/freiki-admin/.ssh/hidrive_backup_key"
 HIDRIVE_SFTP_HOST="sftp.hidrive.ionos.com"
 HIDRIVE_RSYNC_HOST="rsync.hidrive.ionos.com"
-HIDRIVE_DIR="users/freiki-admin/backups/korki"
+HIDRIVE_DIR="users/freiki-admin/backups/freiki"
 SSH_OPTS="-o IdentitiesOnly=yes -i ${HIDRIVE_KEY} -o StrictHostKeyChecking=accept-new"
 
 # .env enthält teils unquotierte Werte mit Leerzeichen (z.B. APP_TAGLINE) -> nicht sourcen,
@@ -41,9 +43,9 @@ export LOG_FILE
 
 notify() {
   local subject="$1" message="$2"
-  # curl kann den EHLO-Hostnamen nicht überschreiben; der Server-Hostname "korki" (kein FQDN)
+  # curl kann den EHLO-Hostnamen nicht überschreiben; der Server-Hostname "freiki" (kein FQDN)
   # wird vom Mailserver mit "Helo command rejected: Invalid name" abgelehnt -> smtplib mit
-  # explizitem local_hostname (= eigener Mail-Domain) statt curl.
+  # explizitem local_hostname statt curl.
   python3 - "$SMTP_HOST" "$SMTP_PORT" "$SMTP_USER" "$SMTP_PASS" "$SMTP_FROM" "$NOTIFY_EMAIL" "$subject" "$message" << 'PYEOF' || log "WARNUNG: Mail-Benachrichtigung fehlgeschlagen"
 import smtplib, sys
 from email.mime.text import MIMEText
@@ -52,7 +54,7 @@ msg = MIMEText(message)
 msg['Subject'] = subject
 msg['From'] = sender
 msg['To'] = rcpt
-s = smtplib.SMTP(host, int(port), local_hostname=host, timeout=15)
+s = smtplib.SMTP(host, int(port), local_hostname='mail.freiki.com', timeout=15)
 s.starttls()
 s.login(user, pw)
 s.sendmail(sender, [rcpt], msg.as_string())
@@ -64,7 +66,7 @@ cleanup_remote() {
   local listing old_files f
   listing=$(sftp $SSH_OPTS -b <(printf 'cd %s\nls -1\n' "${HIDRIVE_DIR}") "${HIDRIVE_USER}@${HIDRIVE_SFTP_HOST}" 2>/dev/null) \
     || { log "WARNUNG: Remote-Listing fehlgeschlagen, überspringe Bereinigung"; return; }
-  old_files=$(echo "$listing" | grep -E '^korki-backup-.*\.tar\.zst$' | sort | head -n -"${MAX_BACKUPS}" || true)
+  old_files=$(echo "$listing" | grep -E '^freiki-backup-.*\.tar\.zst$' | sort | head -n -"${MAX_BACKUPS}" || true)
   if [ -z "$old_files" ]; then
     log "   Keine alten Backups zu löschen."
     return
@@ -78,7 +80,7 @@ cleanup_remote() {
 }
 
 # --- Backup ---
-log "=== KorKI Backup ${BACKUP_DATE} ==="
+log "=== FreiKI Backup ${BACKUP_DATE} ==="
 mkdir -p "$BACKUP_DIR"
 START_TIME=$(date +%s)
 
@@ -117,12 +119,9 @@ VOLUMES=(
   freiki-package_mattermost_client_plugins
   freiki-package_kuma_data
   freiki-package_portainer_data
-  freiki-package_hermes_data
-  # bewusst NICHT gesichert: freiki-package_whisper_cache, freiki-package_vllm_cache,
-  # freiki-package_embedding_cache (lokale LLM-Modell-Gewichte/Caches, neu herunterladbar,
-  # keine Nutzerdaten -- ausdrückliche Vorgabe: LLM-Modelle nie mitsichern).
-  # anythingllm_db/anythingllm_storage gehören zu keinem freiki-package-Service, bewusst
-  # ignoriert (ungenutzter Rest, nicht Teil von docker-compose.yml).
+  # bewusst NICHT gesichert: freiki-package_whisper_cache (Modell-Cache, neu herunterladbar,
+  # keine Nutzerdaten) und freiki-package_flowise_data (toter Volume-Rest, Flowise-Service
+  # deaktiviert) -- auf KorKI/FrankKI ggf. auch lokale vLLM-Modell-Volumes ausschließen
 )
 FAIL_MARKER="$BACKUP_DIR/.volume-failures"
 : > "$FAIL_MARKER"
@@ -139,7 +138,7 @@ done < "$FAIL_MARKER"
 rm -f "$FAIL_MARKER"
 
 log "-> Packen..."
-if ! tar c -C "$BACKUP_ROOT" "korki-${BACKUP_DATE}" | zstd -T0 -19 -o "$BACKUP_FILE"; then
+if ! tar c -C "$BACKUP_ROOT" "freiki-${BACKUP_DATE}" | zstd -T0 -19 -o "$BACKUP_FILE"; then
   log "FEHLER: Packen fehlgeschlagen"
   FAILURES+=("pack")
 fi
@@ -164,9 +163,9 @@ DURATION=$(( $(date +%s) - START_TIME ))
 
 if [ "${#FAILURES[@]}" -eq 0 ]; then
   log "=== Backup erfolgreich abgeschlossen (Dauer: ${DURATION}s) ==="
-  notify "✅ KorKI Backup Erfolgreich" "KorKI Backup ${BACKUP_DATE} abgeschlossen (Dauer: ${DURATION}s)."
+  notify "✅ FreiKI Backup Erfolgreich" "FreiKI Backup ${BACKUP_DATE} abgeschlossen (Dauer: ${DURATION}s)."
 else
   log "=== Backup FEHLGESCHLAGEN (Dauer: ${DURATION}s): ${FAILURES[*]} ==="
-  notify "❌ KorKI Backup Fehlgeschlagen" "KorKI Backup ${BACKUP_DATE} hatte Fehler: ${FAILURES[*]}. Prüfe ${LOG_FILE}."
+  notify "❌ FreiKI Backup Fehlgeschlagen" "FreiKI Backup ${BACKUP_DATE} hatte Fehler: ${FAILURES[*]}. Prüfe ${LOG_FILE}."
   exit 1
 fi
