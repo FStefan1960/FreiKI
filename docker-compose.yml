@@ -32,7 +32,9 @@ volumes:
   mail_state:
   mail_logs:
   mail_config:
+  embedding_cache:
   portainer_data:
+  hermes_data:
 
 services:
 
@@ -80,11 +82,6 @@ services:
       - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
       - N8N_SECURE_COOKIE=false
       - NODE_FUNCTION_ALLOW_BUILTIN=https,http
-      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
-      - VLLM_API_KEY=${VLLM_API_KEY}
-      - KB_INGEST_API_KEY=${KB_INGEST_API_KEY}
-      - BOT_API_KEY=${BOT_API_KEY}
-      - MATTERMOST_BOT_TOKEN=${MATTERMOST_BOT_TOKEN}
     volumes:
       - n8n_storage:/home/node/.n8n
     networks:
@@ -113,6 +110,24 @@ services:
       - public_network
       - ai_network
 
+  # ── KI INFERENZ (Embedding, CPU) ──────────────────────────────
+  infinity_embedding:
+    build: ./embedding
+    image: bge-m3-cpu:latest
+    container_name: vLLM-Embedding
+    labels:
+      - "de.diakonie-kork.name=KI-Embedding (infinity-emb)"
+      - "de.diakonie-kork.desc=BGE-M3 – Semantische Suche, CPU-Betrieb"
+    restart: unless-stopped
+    environment:
+      - EMBED_MODEL=BAAI/bge-m3
+      - EMBED_API_KEY=${VLLM_API_KEY}
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - embedding_cache:/root/.cache/huggingface
+    networks:
+      - ai_network
+
   # ── FREIKI UI ─────────────────────────────────────────────────
   freiki-ui:
     build: ./freiki-ui
@@ -130,8 +145,7 @@ services:
       - ./freiki-ui/tips.md:/app/tips.md
       - ./freiki-ui/areas.json:/app/areas.json
       - ./freiki-ui/losung.json:/app/losung.json
-      - ./freiki-ui/medienspiegel.json:/app/medienspiegel.json
-      - ./freiki-ui/gesellschaftstrends.json:/app/gesellschaftstrends.json
+      - ./freiki-ui/KorKI_Benutzerhandbuch.pdf:/app/KorKI_Benutzerhandbuch.pdf
     dns:
       - 1.1.1.1
     environment:
@@ -145,9 +159,9 @@ services:
       - HILFE_KB_TABLE=${HILFE_KB_TABLE}
       - FLOWISE_URL=http://Flowise:3000
       - PG_HOST=PostgreSQL
-      - PG_DB=${POSTGRES_DB}
-      - PG_USER_KB=${POSTGRES_USER}
-      - PG_PASS_KB=${POSTGRES_PASSWORD}
+      - PG_DB=${PG_DB:-freiki}
+      - PG_USER_KB=${PG_USER_KB:-freiki_user}
+      - PG_PASS_KB=${PG_PASS_KB}
       - WHISPER_URL=http://whisper:9000
       - PIPER_URL=http://piper:8000
       - TTS_VOICE=thorsten
@@ -408,24 +422,6 @@ services:
     networks:
       - ai_network
 
-  # ── API-DOKUMENTATION (Swagger UI) ─────────────────────────────
-  # Bewusst NICHT öffentlich über Caddy – nur über Tailscale erreichbar (wie Kuma/Portainer),
-  # da hier die komplette interne API-Struktur (inkl. Admin-Routen) sichtbar ist. Port ist
-  # explizit an die Tailscale-IP gebunden (nicht 0.0.0.0), zusätzlich zur Firewall.
-  swagger:
-    image: swaggerapi/swagger-ui:v5.32.8
-    container_name: Swagger-UI
-    restart: unless-stopped
-    logging: *default-logging
-    volumes:
-      - ./openapi.yaml:/spec/openapi.yaml:ro
-    environment:
-      - SWAGGER_JSON=/spec/openapi.yaml
-    ports:
-      - "100.105.90.20:3008:8080"
-    networks:
-      - ai_network
-
   # ── MAILSERVER (SMTP + IMAP) ───────────────────────────────────
   mailserver:
     image: docker.io/mailserver/docker-mailserver:latest
@@ -462,4 +458,33 @@ services:
     cap_add:
       - NET_ADMIN
     networks:
+      - public_network
+
+  # ── HERME AGENT (Nous Research) ────────────────────────────────
+  hermes:
+    image: nousresearch/hermes-agent:v2026.6.5
+    container_name: Hermes
+    restart: unless-stopped
+    logging: *default-logging
+    command: gateway run
+    volumes:
+      - hermes_data:/opt/data
+    environment:
+      - HERMES_DASHBOARD=1
+      - HERMES_DASHBOARD_HOST=0.0.0.0
+      - HERMES_DASHBOARD_PORT=9119
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_USER}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_PASSWORD}
+      - API_SERVER_ENABLED=true
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_PORT=8642
+      - API_SERVER_KEY=${HERMES_API_KEY}
+      - OPENAI_BASE_URL=${HERMES_LLM_BASE_URL}
+      - OPENAI_API_KEY=${HERMES_LLM_API_KEY}
+      - TERMINAL_SSH_HOST=${TERMINAL_SSH_HOST}
+      - TERMINAL_SSH_USER=${TERMINAL_SSH_USER}
+      - TERMINAL_SSH_PORT=${TERMINAL_SSH_PORT}
+      - TERMINAL_SSH_KEY=${TERMINAL_SSH_KEY}
+    networks:
+      - ai_network
       - public_network
