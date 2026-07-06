@@ -47,11 +47,14 @@ notify() {
   python3 - "$SMTP_HOST" "$SMTP_PORT" "$SMTP_USER" "$SMTP_PASS" "$SMTP_FROM" "$NOTIFY_EMAIL" "$subject" "$message" << 'PYEOF' || log "WARNUNG: Mail-Benachrichtigung fehlgeschlagen"
 import smtplib, sys
 from email.mime.text import MIMEText
+from email.utils import formatdate, make_msgid
 host, port, user, pw, sender, rcpt, subject, message = sys.argv[1:9]
 msg = MIMEText(message)
 msg['Subject'] = subject
 msg['From'] = sender
 msg['To'] = rcpt
+msg['Date'] = formatdate(localtime=True)
+msg['Message-ID'] = make_msgid()
 s = smtplib.SMTP(host, int(port), local_hostname=host, timeout=15)
 s.starttls()
 s.login(user, pw)
