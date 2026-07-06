@@ -1,0 +1,166 @@
+[
+  {
+    "id": "freiki-monitoring-disk",
+    "name": "FreiKI Monitoring – Disk & Memory Alert",
+    "active": true,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 30
+              }
+            ]
+          }
+        },
+        "id": "trigger-30min",
+        "name": "Alle 30 Minuten",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -600,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "url": "http://freiki-ui:3000/api/health",
+          "options": {
+            "timeout": 5000
+          }
+        },
+        "id": "http-health",
+        "name": "FreiKI Health holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -400,
+          0
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const h = $input.first().json;\nconst alerts = [];\n\n// Disk\nif (h.disk) {\n  const pct = h.disk.usedPercent || 0;\n  if (pct > 85) alerts.push(`🚨 Disk: ${pct.toFixed(1)}% belegt (${h.disk.used} / ${h.disk.total})`);\n  else if (pct > 70) alerts.push(`⚠️ Disk: ${pct.toFixed(1)}% belegt`);\n}\n\n// Memory\nif (h.memory) {\n  const pct = (h.memory.used / h.memory.total * 100);\n  if (pct > 90) alerts.push(`🚨 RAM: ${pct.toFixed(1)}% belegt`);\n  else if (pct > 80) alerts.push(`⚠️ RAM: ${pct.toFixed(1)}% belegt`);\n}\n\n// Dienste (vLLM, Postgres, Paperless, Whisper)\nconst serviceLabels = { vllm: 'vLLM', postgres: 'Postgres', paperless: 'Paperless', whisper: 'Whisper' };\nif (h.checks) {\n  for (const [key, label] of Object.entries(serviceLabels)) {\n    const c = h.checks[key];\n    if (c && c.ok === false) {\n      alerts.push(`🚨 ${label}: nicht erreichbar (${c.error || 'Status ' + c.status})`);\n    }\n  }\n}\n\nreturn [{ json: { hasAlert: alerts.length > 0, alerts } }];"
+        },
+        "id": "code-check-thresholds",
+        "name": "Schwellwerte prüfen",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -200,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $json.hasAlert }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if-alert",
+        "name": "Alert nötig?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "fromEmail": "ki_agent@freiki.com",
+          "toEmail": "admin@freiki.com",
+          "subject": "🔔 FreiKI Ressourcen-Alert",
+          "options": {},
+          "message": "={{ $json.alerts.join('\\n') }}"
+        },
+        "name": "Alert an Mail",
+        "type": "n8n-nodes-base.emailSend",
+        "typeVersion": 2.1,
+        "position": [
+          200,
+          -100
+        ],
+        "id": "mm-post-alert",
+        "credentials": {
+          "smtp": {
+            "id": "beeSlBjHTMsDpZSe",
+            "name": "FreiKI SMTP (ki_agent)"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Alle 30 Minuten": {
+        "main": [
+          [
+            {
+              "node": "FreiKI Health holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "FreiKI Health holen": {
+        "main": [
+          [
+            {
+              "node": "Schwellwerte prüfen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schwellwerte prüfen": {
+        "main": [
+          [
+            {
+              "node": "Alert nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alert nötig?": {
+        "main": [
+          [
+            {
+              "node": "Alert an Mail",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "triggerCount": 1
+  }
+]

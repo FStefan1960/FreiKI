@@ -1,0 +1,169 @@
+[
+  {
+    "id": "19YTRAUMpoH3mywV",
+    "name": "FreiKI Paperless Tags synchronisieren",
+    "active": true,
+    "nodes": [
+      {
+        "id": "schedule-trigger-tagsync",
+        "name": "Täglich",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -500,
+          80
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 24
+              }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "http-get-areas",
+        "name": "KB-Bereiche holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -280,
+          80
+        ],
+        "parameters": {
+          "url": "http://freiki-ui:3000/api/kb-areas",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-API-Key",
+                "value": "={{$env.KB_INGEST_API_KEY}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "http-get-tags",
+        "name": "Paperless Tags holen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -60,
+          80
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/?page_size=100",
+          "options": {},
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      },
+      {
+        "id": "code-find-missing",
+        "name": "Fehlende Tags ermitteln",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          160,
+          80
+        ],
+        "parameters": {
+          "jsCode": "const areas = $('KB-Bereiche holen').first().json.areas || [];\nconst existingTags = $input.first().json.results || [];\nconst existingNames = existingTags.map(t => t.name.toLowerCase());\n\nconst missing = areas.filter(a => !existingNames.includes(a));\nreturn missing.map(name => ({ json: { name } }));"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "http-create-tag",
+        "name": "Tag in Paperless anlegen",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          380,
+          80
+        ],
+        "parameters": {
+          "url": "http://paperless:8000/api/tags/",
+          "method": "POST",
+          "options": {},
+          "jsonBody": "={{ { name: $json.name } }}",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        },
+        "typeVersion": 4.2
+      }
+    ],
+    "connections": {
+      "Täglich": {
+        "main": [
+          [
+            {
+              "node": "KB-Bereiche holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "KB-Bereiche holen": {
+        "main": [
+          [
+            {
+              "node": "Paperless Tags holen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Paperless Tags holen": {
+        "main": [
+          [
+            {
+              "node": "Fehlende Tags ermitteln",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fehlende Tags ermitteln": {
+        "main": [
+          [
+            {
+              "node": "Tag in Paperless anlegen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "triggerCount": 1
+  }
+]
