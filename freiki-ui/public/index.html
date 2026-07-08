@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css?v=17">
   <link rel="stylesheet" href="/brand.css">
   <script src="/marked.min.js"></script>
@@ -430,10 +429,12 @@ function historyKey(mode) {
 
 function saveHistory(mode) {
   try {
-    // Nur Rolle + Inhalt speichern, keine langen Datei-Inhalte (> 500 Zeichen kürzen)
-    const slim = chatHistory.map(m => ({
+    // Nur Rolle + Inhalt speichern, keine langen Datei-Inhalte (> 500 Zeichen kürzen) —
+    // die letzte Nachricht bleibt aber immer vollständig erhalten
+    const lastIndex = chatHistory.length - 1;
+    const slim = chatHistory.map((m, i) => ({
       role: m.role,
-      content: m.content.length > 500 ? m.content.slice(0, 500) + ' [...]' : m.content
+      content: i < lastIndex && m.content.length > 500 ? m.content.slice(0, 500) + ' [...]' : m.content
     }));
     localStorage.setItem(historyKey(mode), JSON.stringify(slim));
   } catch(e) {}
@@ -567,7 +568,7 @@ async function loadModes() {
         tabExtras.style.display = '';
         extras.forEach(t => {
           const b = document.createElement('button');
-          b.className = 'mode-btn';
+          b.className = 'mode-btn' + (t.external ? ' mode-btn-web' : '');
           b.onclick = () => t.key === 'medienspiegel' ? openMedienspiegel() : t.key === 'gesellschaftstrends' ? openGesellschaftstrends() : t.key === 'losung' ? openLosung() : t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
           b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc || ''}</div></div>`;
           ce.appendChild(b);

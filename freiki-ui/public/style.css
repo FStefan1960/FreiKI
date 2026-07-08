@@ -362,6 +362,8 @@ body {
 .mode-btn-web:hover { background: #fed7aa; color: #7c2d12; }
 .mode-btn-web.active { background: #fed7aa; color: #7c2d12; }
 .mode-btn-web.active::before { background: #ea580c; }
+.mode-btn-web .mode-icon { background: #fed7aa; }
+.mode-btn-web .mode-icon img { filter: invert(37%) sepia(94%) saturate(1804%) hue-rotate(1deg) brightness(97%) contrast(94%); }
 
 /* Icon tile */
 .mode-icon {
@@ -376,6 +378,7 @@ body {
   font-size: 15px;
   flex-shrink: 0;
   transition: background 0.15s;
+  box-shadow: 6px 6px 14px rgba(16,32,64,0.25);
 }
 .mode-icon img,
 .chat-header-icon img {
@@ -647,6 +650,7 @@ body {
   cursor: pointer;
   text-decoration: none;
   transition: background 0.15s, transform 0.15s;
+  box-shadow: 6px 6px 14px rgba(16,32,64,0.25);
 }
 .header-icon-btn:hover { background: var(--fk-primary); transform: translateY(-1px); }
 .header-icon-btn-text { font-family: inherit; font-size: 16px; font-weight: 800; line-height: 1; border: none; }
@@ -723,6 +727,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  background-color: var(--fk-canvas);
+  background-image: linear-gradient(rgba(244, 246, 250, 0.86), rgba(244, 246, 250, 0.86)), url('/chat-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .welcome {
@@ -790,6 +799,7 @@ body {
   justify-content: center;
   font-size: 13px;
   flex-shrink: 0;
+  box-shadow: 6px 6px 14px rgba(16,32,64,0.25);
 }
 .message.user .message-avatar { background: var(--fk-primary); color: #fff; font-weight: 700; font-size: 11px; }
 .message.ai .message-avatar  { background: var(--fk-primary); color: #fff; font-weight: 700; font-size: 15px; }
@@ -798,12 +808,26 @@ body {
 
 .message-bubble {
   position: relative;
-  padding: 11px 14px;
+  padding: 30px;
   border-radius: 14px;
   font-size: var(--fk-fs-body);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+  box-shadow: 6px 6px 14px rgba(16,32,64,0.25);
+}
+
+.message-bubble ul,
+.message-bubble ol {
+  padding-left: 20px;
+  white-space: normal;
+}
+.message-bubble li {
+  white-space: normal;
+  margin-bottom: 4px;
+}
+.message-bubble li p {
+  margin: 0;
 }
 
 .message.user .message-bubble {
@@ -816,7 +840,6 @@ body {
   color: var(--fk-ink);
   border: 1px solid var(--fk-border);
   border-bottom-left-radius: 4px;
-  box-shadow: var(--fk-shadow-card);
 }
 
 .file-badge {
@@ -891,7 +914,7 @@ body {
 /* ── Input Area ── */
 .input-area {
   padding: 12px 26px 20px;
-  background: var(--fk-surface);
+  background: #EAF0FC;
   border-top: 1px solid var(--fk-border);
 }
 

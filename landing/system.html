@@ -4,22 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FreiKI – Systemüberblick & Datenschutz</title>
+<meta name="description" content="FreiKI: die quelloffene, DSGVO-konforme KI-Infrastruktur auf Ihrem eigenen dedizierten Server – Chat, Wissenssuche, Übersetzung und mehr, ohne Lizenzkosten und ohne dass Daten Ihre Organisation verlassen.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="FreiKI – Ihre Daten. Ihr Server.">
+<meta property="og:description" content="Die quelloffene, DSGVO-konforme KI-Infrastruktur auf Ihrem eigenen dedizierten Server – komplett ohne Lizenzkosten.">
+<meta property="og:image" content="https://freiki.com/og-image.png">
+<meta property="og:url" content="https://freiki.com/system.html">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <style>
+  @font-face {
+    font-family: 'Hanken Grotesk';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  @font-face {
+    font-family: 'Hanken Grotesk';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
   :root {
-    --fk-primary: #1F54C0;
-    --fk-navy: #14306B;
-    --fk-ink: #15294A;
-    --fk-text-muted: #5A6B82;
-    --fk-canvas: #F4F6FA;
-    --fk-line: #E3E8F0;
-    --fk-green-bg: #EAF7EE;
-    --fk-green-border: #CDE9D7;
-    --fk-green-text: #1F7A45;
+    --fk-primary: #1E3A8A;
+    --fk-primary-hover: #17306F;
+    --fk-navy: #101E42;
+    --fk-ink: #0F172A;
+    --fk-text-muted: #475569;
+    --fk-canvas: #F8FAFC;
+    --fk-line: #E2E8F0;
+    --fk-green-bg: #ECFDF5;
+    --fk-green-border: #A7F3D0;
+    --fk-green-text: #047857;
+    --fk-green-accent: #10B981;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body {
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     background: #fff;
     color: var(--fk-ink);
     line-height: 1.55;
@@ -45,11 +72,39 @@
   nav.top .links { display: flex; gap: 22px; font-size: 14px; font-weight: 600; }
   nav.top .links a { text-decoration: none; color: var(--fk-text-muted); }
   nav.top .links a:hover { color: var(--fk-primary); }
-  @media (max-width: 760px) { nav.top .links { display: none; } }
+  nav.top .right { display: flex; align-items: center; gap: 14px; }
+  .nav-cta {
+    display: inline-block; background: var(--fk-primary); color: #fff;
+    text-decoration: none; font-weight: 700; font-size: 13px;
+    padding: 9px 16px; border-radius: 9px; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .nav-cta:hover { background: var(--fk-primary-hover); }
+  .nav-toggle {
+    display: none; flex-direction: column; justify-content: center; gap: 4px;
+    width: 34px; height: 34px; background: none; border: 1px solid var(--fk-line);
+    border-radius: 8px; cursor: pointer; padding: 0;
+  }
+  .nav-toggle span { display: block; width: 16px; height: 2px; background: var(--fk-ink); margin: 0 auto; }
+  .mobile-menu {
+    display: none; flex-direction: column; padding: 10px 24px 16px;
+    border-top: 1px solid var(--fk-line); background: #fff;
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+    box-shadow: 0 8px 16px rgba(15,23,42,0.08);
+  }
+  .mobile-menu a {
+    padding: 10px 0; font-size: 14.5px; font-weight: 600; color: var(--fk-ink);
+    text-decoration: none; border-bottom: 1px solid var(--fk-line);
+  }
+  .mobile-menu.open { display: flex; }
+  @media (max-width: 760px) {
+    nav.top .links { display: none; }
+    .nav-toggle { display: flex; }
+  }
 
   /* Hero */
   header.hero {
-    background: linear-gradient(180deg, #F4F6FA 0%, #FFFFFF 100%);
+    background: linear-gradient(180deg, var(--fk-canvas) 0%, #FFFFFF 100%);
     padding: 72px 0 56px;
     text-align: center;
   }
@@ -70,15 +125,35 @@
     max-width: 620px;
     margin: 0 auto 28px;
   }
-  .badge-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .badge-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 28px; }
   .badge {
     display: inline-flex; align-items: center; gap: 8px;
     background: var(--fk-green-bg); border: 1px solid var(--fk-green-border);
     color: var(--fk-green-text); border-radius: 999px;
     padding: 8px 16px; font-size: 13px; font-weight: 600;
   }
+
+  /* Hero CTA box */
+  .hero-cta-box {
+    max-width: 520px; margin: 0 auto;
+    background: var(--fk-canvas); border: 1px solid var(--fk-line);
+    border-radius: 16px; padding: 20px 26px;
+    display: flex; align-items: center; gap: 14px;
+    text-decoration: none; text-align: left;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .hero-cta-box:hover { border-color: var(--fk-primary); transform: translateY(-1px); }
+  .hero-cta-box .icon {
+    width: 42px; height: 42px; flex: none; border-radius: 10px;
+    background: #fff; border: 1px solid var(--fk-line);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .hero-cta-box .txt strong { display: block; font-size: 14.5px; color: var(--fk-ink); }
+  .hero-cta-box .txt span { display: block; font-size: 13px; color: var(--fk-text-muted); margin-top: 2px; }
+  .hero-cta-box .arrow { margin-left: auto; color: var(--fk-primary); font-weight: 700; font-size: 18px; flex: none; }
+
   .contact-hint {
-    margin-top: 24px; font-size: 14px; color: var(--fk-text-muted);
+    margin-top: 18px; font-size: 13.5px; color: var(--fk-text-muted);
   }
   .contact-hint a { color: var(--fk-primary); font-weight: 600; text-decoration: none; }
   .contact-hint a:hover { text-decoration: underline; }
@@ -125,6 +200,41 @@
   .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
   .card p { font-size: 14px; color: var(--fk-text-muted); }
 
+  /* Bento grid (Funktionen) */
+  .bento { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .bento .tile {
+    background: #fff; border: 1px solid var(--fk-line); border-radius: 16px;
+    padding: 24px; display: flex; flex-direction: column;
+  }
+  .bento .tile.large { grid-column: span 2; }
+  .bento .tile.small { grid-column: span 1; align-items: flex-start; }
+  .bento .tile:hover { border-color: var(--fk-primary); box-shadow: 0 6px 18px rgba(30,58,138,0.08); }
+  .bento .tile .icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: #EAF0FE; color: var(--fk-primary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; margin-bottom: 14px; transition: transform 0.15s;
+  }
+  .bento .tile:hover .icon { transform: translateY(-2px); }
+  .bento .tile h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .bento .tile.large h3 { font-size: 18px; }
+  .bento .tile p { font-size: 13.5px; color: var(--fk-text-muted); }
+  .bento .tile.large .demo {
+    margin-top: 16px; background: var(--fk-canvas); border: 1px solid var(--fk-line);
+    border-radius: 12px; padding: 14px 16px; font-size: 13px;
+  }
+  .bento .tile.large .demo .q { color: var(--fk-ink); font-weight: 600; margin-bottom: 6px; }
+  .bento .tile.large .demo .a { color: var(--fk-text-muted); }
+  .bento .tile.large .demo .src {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+    font-size: 12px; font-weight: 700; color: var(--fk-primary);
+    background: #EAF0FE; border-radius: 8px; padding: 4px 10px;
+  }
+  @media (max-width: 760px) {
+    .bento { grid-template-columns: 1fr; }
+    .bento .tile.large { grid-column: span 1; }
+  }
+
   /* Office comparison (slide 2 analogy) */
   .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 760px) { .compare { grid-template-columns: 1fr; } }
@@ -150,6 +260,31 @@
   .flow .step .e img { width: 22px; height: 22px; vertical-align: middle; }
   .flow .arrow { color: var(--fk-text-muted); font-size: 18px; }
   .flow-note { text-align: center; font-size: 14px; color: var(--fk-text-muted); max-width: 560px; margin: 0 auto; }
+
+  /* RAG flow (wider, 3-step) */
+  .rag-flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 8px 0 26px; }
+  .rag-flow .step {
+    flex: 1 1 200px; max-width: 260px;
+    background: #fff; border: 1px solid var(--fk-line); border-radius: 14px;
+    padding: 20px 18px; text-align: center;
+  }
+  .rag-flow .step .n {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--fk-primary); color: #fff;
+    font-size: 12.5px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+  }
+  .rag-flow .step .e { font-size: 26px; margin-bottom: 8px; }
+  .rag-flow .step h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 4px; }
+  .rag-flow .step p { font-size: 12.5px; color: var(--fk-text-muted); }
+  .rag-flow .arrow { align-self: center; color: var(--fk-text-muted); font-size: 20px; }
+  @media (max-width: 700px) { .rag-flow .arrow { transform: rotate(90deg); } }
+
+  .callout {
+    background: var(--fk-navy); color: #fff; border-radius: 16px;
+    padding: 28px 32px; text-align: center; font-size: 19px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .callout span { color: var(--fk-green-accent); }
 
   /* Table */
   table.models { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 12px; overflow: hidden; }
@@ -189,8 +324,10 @@
     display: inline-block; background: var(--fk-primary); color: #fff;
     text-decoration: none; font-weight: 700; font-size: 16px;
     padding: 14px 32px; border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(31,84,192,0.25);
+    box-shadow: 0 4px 10px rgba(30,58,138,0.3);
+    transition: background 0.15s, transform 0.15s;
   }
+  .cta:hover { background: var(--fk-primary-hover); transform: translateY(-1px); }
   .closing .tags { margin-top: 24px; font-size: 13px; color: #8FB1F2; }
 
   footer.site { text-align: center; padding: 28px 0; font-size: 12px; color: #93A1B5; }
@@ -212,21 +349,46 @@
       <a href="#kosten">Kosten</a>
       <a href="#faq">FAQ</a>
     </div>
+    <div class="right">
+      <a class="nav-cta" href="mailto:info@freiki.com">Testzugang anfragen</a>
+      <button class="nav-toggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileMenu" onclick="var m=document.getElementById('mobileMenu');var open=m.classList.toggle('open');this.setAttribute('aria-expanded',open);">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#funktionen">Funktionen</a>
+    <a href="#wissen">Wissen</a>
+    <a href="#teamchat">Team-Chat</a>
+    <a href="#dms">Dokumente</a>
+    <a href="#agenten">Agenten</a>
+    <a href="#datenschutz">Datenschutz</a>
+    <a href="#architektur">Architektur</a>
+    <a href="#kosten">Kosten</a>
+    <a href="#faq">FAQ</a>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap">
     <img class="hero-logo" src="/freiki-mark.svg" alt="FreiKI">
-    <h1>FreiKI. Ihre Daten. Ihr Server.</h1>
-    <p class="lead">FreiKI läuft bei Ihnen auf einem dedizierten Server – quelloffen, ohne Lizenzkosten, ohne dass Daten Ihre Organisation verlassen.</p>
+    <h1>Ihre Daten. Ihr Server. FreiKI.</h1>
+    <p class="lead">Die quelloffene, DSGVO-konforme KI-Infrastruktur auf Ihrem eigenen dedizierten Server – komplett ohne Lizenzkosten.</p>
     <div class="badge-row">
-      <span class="badge">🇩🇪 Server in Deutschland</span>
-      <span class="badge">🔒 DSGVO / DSG-EKD-konform</span>
-      <span class="badge">🧠 Lokales LLM</span>
-      <span class="badge">⚙️ Open Source</span>
+      <span class="badge"><span aria-hidden="true">🇩🇪</span> Server in Deutschland</span>
+      <span class="badge"><span aria-hidden="true">🔒</span> DSGVO / DSG-EKD-konform</span>
+      <span class="badge"><span aria-hidden="true">🧠</span> Lokales LLM</span>
+      <span class="badge"><span aria-hidden="true">⚙️</span> Open Source</span>
     </div>
-    <p class="contact-hint">Bei Interesse Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver.</p>
+    <a class="hero-cta-box" href="mailto:info@freiki.com">
+      <span class="icon" aria-hidden="true">✉️</span>
+      <span class="txt">
+        <strong>Testzugang anfordern</strong>
+        <span>Schreiben Sie kurz an info@freiki.com für Ihr Passwort zum Testserver.</span>
+      </span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+    <p class="contact-hint">Öffnet sich bei Ihnen kein Mail-Programm? Adresse direkt: <a href="mailto:info@freiki.com">info@freiki.com</a></p>
   </div>
 </header>
 
@@ -238,14 +400,14 @@
     <p class="intro">Der Unterschied zwischen einer Cloud-KI und FreiKI lässt sich ganz ohne Fachbegriffe erklären.</p>
     <div class="compare">
       <div class="box bad">
-        <div class="emoji">☁️</div>
-        <h3>API-KI (z. B. ChatGPT)</h3>
+        <div class="emoji" aria-hidden="true">☁️</div>
+        <h3>API-KI (z. B. ChatGPT) – Das fremde Büro</h3>
         <p><strong>Das fremde Büro.</strong> Sie schicken Ihre Frage per Brief an ein Büro im Ausland. Das Büro liest alles – und schickt eine Antwort zurück. Ob Kopien gemacht oder Infos weitergegeben werden, wissen Sie nicht.</p>
         <p class="tag">⚠ Daten verlassen Ihre Organisation</p>
       </div>
       <div class="box good">
-        <div class="emoji">🏢</div>
-        <h3>FreiKI</h3>
+        <div class="emoji" aria-hidden="true">🏢</div>
+        <h3>FreiKI – Der eigene Mitarbeiter</h3>
         <p><strong>Der eigene Mitarbeiter.</strong> Sie flüstern Ihre Frage einem Mitarbeiter zu, der exklusiv für Sie in einem abgesicherten Büro sitzt. Er antwortet sofort – und verlässt dieses Büro niemals.</p>
         <p class="tag">✓ Daten bleiben bei Ihnen</p>
       </div>
@@ -253,25 +415,68 @@
   </div>
 </section>
 
-<!-- 3. Funktionen -->
+<!-- 3. Funktionen (Bento-Grid) -->
 <section id="funktionen" class="tint">
   <div class="wrap">
     <span class="eyebrow">Funktionen</span>
     <h2 class="title">Was FreiKI kann</h2>
     <p class="intro">Ein Werkzeugkasten statt eines einzelnen Chatfensters – jeder Baustein lässt sich einzeln freischalten.</p>
-    <div class="grid cols-3">
-      <div class="card"><div class="icon">💬</div><h3>Chat</h3><p>Freies Gespräch mit dem lokalen LLM</p></div>
-      <div class="card"><div class="icon">🎙️</div><h3>Transkription</h3><p>Audio → Text → Audio, inkl. Vorlesen</p></div>
-      <div class="card"><div class="icon">🔎</div><h3>Websuche</h3><p>Interne Recherche via SearXNG</p></div>
-      <div class="card"><div class="icon">🇩🇪</div><h3>Übersetzen ins Deutsche</h3><p>Texte, Dokumente und Fotos aus über 100 Sprachen ins Deutsche übertragen</p></div>
-      <div class="card"><div class="icon">🌍</div><h3>Übersetzen in andere Sprachen</h3><p>Von Deutsch in über 100 Sprachen – für international zusammengesetzte Teams</p></div>
-      <div class="card"><div class="icon">📤</div><h3>Wissen hinterlegen</h3><p>Unternehmenswissen einfach befragen</p></div>
-      <div class="card"><div class="icon">📷</div><h3>Texterkennung (OCR)</h3><p>Text aus Fotos und eingescannten Dokumenten erkennen, kopieren und weiterverarbeiten</p></div>
-      <div class="card"><div class="icon">📄</div><h3>MultiDoc</h3><p>Mehrere Dokumente gleichzeitig vergleichen oder zusammenfassen</p></div>
-      <div class="card"><div class="icon">🗣️</div><h3>Leichte Sprache</h3><p>Texte einfach und verständlich</p></div>
-      <div class="card"><div class="icon">🖼️</div><h3>Piktogramme</h3><p>Bildkarten (ARASAAC) herunterladen oder drucken</p></div>
-      <div class="card"><div class="icon">💬</div><h3>Team-Chat</h3><p>Integrierter Mattermost-Chat – KI-Assistent direkt im Team erreichbar</p></div>
-      <div class="card"><div class="icon">📄</div><h3>Dokumentenmanagement</h3><p>KI-gestütztes Archiv mit Volltextsuche</p></div>
+    <div class="bento">
+      <div class="tile large">
+        <div class="icon" aria-hidden="true">💬</div>
+        <h3>Chat &amp; Wissen (RAG)</h3>
+        <p>Freies Gespräch mit dem lokalen LLM – und auf Wunsch direkt mit Antworten aus Ihrem hinterlegten Unternehmenswissen, inklusive Quellenangabe.</p>
+        <div class="demo">
+          <div class="q">„Wie ist unsere Regelung zu Dienstreisen?“</div>
+          <div class="a">„Laut Reisekostenrichtlinie … Erstattung erfolgt binnen 14 Tagen.“</div>
+          <div class="src">📄 Quelle: Reisekostenrichtlinie_2026.pdf</div>
+        </div>
+      </div>
+      <div class="tile large">
+        <div class="icon" aria-hidden="true">🌍</div>
+        <h3>Übersetzung &amp; Leichte Sprache</h3>
+        <p>Texte, Dokumente und Fotos zwischen Deutsch und über 100 Sprachen übertragen – oder direkt in leicht verständliche Sprache umformulieren. Wichtig für internationale Teams, Ämter und Kirchengemeinden.</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">🎙️</div>
+        <h3>Transkription</h3>
+        <p>Audio → Text → Audio, inkl. Vorlesen</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">🔎</div>
+        <h3>Websuche</h3>
+        <p>Interne Recherche via SearXNG</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">📷</div>
+        <h3>Texterkennung (OCR)</h3>
+        <p>Text aus Fotos und Scans erkennen</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">📄</div>
+        <h3>MultiDoc</h3>
+        <p>Mehrere Dokumente vergleichen</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">💬</div>
+        <h3>Team-Chat</h3>
+        <p>Mattermost mit FreiKI-Bot im Team</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">🖼️</div>
+        <h3>Piktogramme</h3>
+        <p>ARASAAC-Bildkarten drucken</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">📄</div>
+        <h3>Dokumentenmanagement</h3>
+        <p>KI-Archiv mit Volltextsuche</p>
+      </div>
+      <div class="tile small">
+        <div class="icon" aria-hidden="true">🔧</div>
+        <h3>Eigene Workflows möglich</h3>
+        <p>Automatisierung nach Bedarf via n8n</p>
+      </div>
     </div>
   </div>
 </section>
@@ -282,20 +487,46 @@
     <span class="eyebrow">Wissen (RAG)</span>
     <h2 class="title">Unternehmenswissen bewahren und erschließen</h2>
     <p class="intro">Handbücher, Richtlinien, interne Dokumentationen – meist verteilt über viele Ordner und Köpfe. FreiKI macht dieses Wissen durchsuchbar und für alle nutzbar.</p>
-    <div class="grid cols-3">
+
+    <div class="rag-flow">
+      <div class="step">
+        <div class="n" aria-hidden="true">1</div>
+        <div class="e" aria-hidden="true">📤</div>
+        <h4>Dokumente hochladen</h4>
+        <p>Handbücher, Richtlinien und Notizen einfach ablegen.</p>
+      </div>
+      <span class="arrow">→</span>
+      <div class="step">
+        <div class="n" aria-hidden="true">2</div>
+        <div class="e" aria-hidden="true">🔐</div>
+        <h4>Sichere lokale Indexierung</h4>
+        <p>Vektor-Suche läuft ausschließlich auf Ihrem eigenen Server.</p>
+      </div>
+      <span class="arrow">→</span>
+      <div class="step">
+        <div class="n" aria-hidden="true">3</div>
+        <div class="e" aria-hidden="true">💬</div>
+        <h4>Mitarbeiter fragen</h4>
+        <p>Antworten mit Quellenangabe – in über 100 Sprachen.</p>
+      </div>
+    </div>
+
+    <div class="callout">Mitarbeiter gehen, <span>Wissen bleibt.</span></div>
+
+    <div class="grid cols-3" style="margin-top: 36px;">
       <div class="card">
-        <div class="icon">🗄️</div>
+        <div class="icon" aria-hidden="true">🗄️</div>
         <h3>Wissen bewahren</h3>
         <p>Erfahrung und Fachwissen gehen nicht verloren, wenn Mitarbeitende das Unternehmen verlassen – Dokumente und Prozesse bleiben dauerhaft auffindbar.</p>
       </div>
       <div class="card">
-        <div class="icon">🔍</div>
+        <div class="icon" aria-hidden="true">🔍</div>
         <h3>Wissen erschließen</h3>
         <p>Statt mühsam in Ordnerstrukturen zu suchen, stellt man die Frage direkt – FreiKI durchsucht alle freigegebenen Dokumente und liefert die passende Antwort mit Quellenangabe.</p>
       </div>
       <div class="card">
-        <div class="icon">🤝</div>
-        <h3>Onboarding & Sprachvielfalt</h3>
+        <div class="icon" aria-hidden="true">🤝</div>
+        <h3>Onboarding &amp; Sprachvielfalt</h3>
         <p>Neue und internationale Mitarbeitende finden sich schneller zurecht: Fragen zu internen Abläufen lassen sich jederzeit stellen – in über 100 Sprachen beantwortet.</p>
       </div>
     </div>
@@ -312,17 +543,17 @@
     <p class="intro">FreiKI integriert <strong>Paperless-ngx</strong> als vollständig selbst gehostetes Dokumentenmanagementsystem. Dokumente werden eingescannt oder per Mail angeliefert – die KI übernimmt den Rest.</p>
     <div class="grid cols-3">
       <div class="card">
-        <div class="icon">🏷️</div>
+        <div class="icon" aria-hidden="true">🏷️</div>
         <h3>Automatisches Verschlagworten</h3>
         <p>Eingehende Dokumente werden von FreiKI gelesen, erkannt und automatisch mit Titeln, Tags und Dokumenttypen versehen – kein manuelles Einsortieren mehr.</p>
       </div>
       <div class="card">
-        <div class="icon">🔍</div>
+        <div class="icon" aria-hidden="true">🔍</div>
         <h3>Volltextsuche im Archiv</h3>
         <p>Alle archivierten Dokumente sind sofort durchsuchbar – per Freitext oder direkt aus dem FreiKI-Chat heraus über die integrierten Wissensbereiche.</p>
       </div>
       <div class="card">
-        <div class="icon">🔒</div>
+        <div class="icon" aria-hidden="true">🔒</div>
         <h3>Dokumente verlassen Ihr Haus nicht</h3>
         <p>Weder für die Texterkennung noch für die KI-Analyse wird ein externer Dienst genutzt. Alles läuft auf Ihrer Infrastruktur – DSGVO-konform und ohne Cloudabhängigkeit.</p>
       </div>
@@ -338,17 +569,17 @@
     <p class="intro">FreiKI bringt jetzt einen vollständig selbst gehosteten Team-Chat mit: <strong>Mattermost</strong> (Open Source). Teamkommunikation und KI-Unterstützung laufen auf derselben Infrastruktur – datenschutzkonform und ohne Cloud-Abhängigkeit.</p>
     <div class="grid cols-3">
       <div class="card">
-        <div class="icon">🔒</div>
+        <div class="icon" aria-hidden="true">🔒</div>
         <h3>Kein Slack, kein Teams – Ihre Daten bleiben bei Ihnen</h3>
         <p>Bei Slack, Microsoft Teams oder Google Chat liegen Ihre Gespräche auf fremden Servern – oft in den USA. Mattermost läuft ausschließlich auf Ihrer eigenen Infrastruktur. Niemand außer Ihrer Organisation kann auf die Chats zugreifen.</p>
       </div>
       <div class="card">
-        <div class="icon">🇩🇪</div>
+        <div class="icon" aria-hidden="true">🇩🇪</div>
         <h3>DSGVO-konform ohne Kompromisse</h3>
         <p>Keine Drittanbieter, keine Datenweitergabe, kein Auftragsverarbeitungsvertrag mit einem US-Konzern nötig. Mattermost läuft auf demselben deutschen Server wie FreiKI – datenschutzrechtlich sauber von Anfang an.</p>
       </div>
       <div class="card">
-        <div class="icon">🤖</div>
+        <div class="icon" aria-hidden="true">🤖</div>
         <h3>FreiKI-Bot direkt im Chat</h3>
         <p>Die KI ist mitten im Team-Gespräch erreichbar – Antworten inklusive Quellenangaben aus den internen Wissensbereichen, ohne dass Ihre Fragen das Haus verlassen.</p>
       </div>
@@ -364,17 +595,17 @@
     <p class="intro">Über die eingebaute Automatisierungs-Engine n8n lassen sich eigene KI-Agenten bauen, die selbstständig arbeiten – ganz ohne Klick in der Oberfläche.</p>
     <div class="grid cols-3">
       <div class="card">
-        <div class="icon">📬</div>
+        <div class="icon" aria-hidden="true">📬</div>
         <h3>Abwesenheitsassistent</h3>
         <p>Liest eingehende Mails, ignoriert Newsletter, leitet wichtige Anfragen ans Sekretariat weiter und beantwortet den Rest automatisch mit einer passenden Abwesenheitsinfo.</p>
       </div>
       <div class="card">
-        <div class="icon">📡</div>
-        <h3>Selbstständige Recherche & Meldungen</h3>
+        <div class="icon" aria-hidden="true">📡</div>
+        <h3>Selbstständige Recherche &amp; Meldungen</h3>
         <p>Agenten durchsuchen eigenständig das Internet – z. B. nach aktuellen Wetterwarnungen oder NINA-Katastrophenschutzmeldungen – und stellen relevante Hinweise automatisch per E-Mail oder Team-Chat zu.</p>
       </div>
       <div class="card">
-        <div class="icon">🚨</div>
+        <div class="icon" aria-hidden="true">🚨</div>
         <h3>Eskalations-Workflow</h3>
         <p>Die KI bewertet die Dringlichkeit einer Anfrage und löst bei Bedarf sofort eine Benachrichtigung aus – statt auf die normale Bearbeitung zu warten.</p>
       </div>
@@ -389,13 +620,13 @@
     <h2 class="title">Wie eine Mietwerkstatt – nur für KI</h2>
     <p class="intro">Stellen Sie sich FreiKI wie eine Mietwerkstatt vor: Sie nutzen Chat, Wissenssuche, Übersetzung, Transkription – so viele Teilwerkstätten, wie Sie brauchen. Wenn Sie gehen, weiß niemand, was Sie darin gemacht haben.</p>
     <div class="flow">
-      <div class="step"><span class="e">💬</span>Frage gestellt</div>
+      <div class="step"><span class="e" aria-hidden="true">💬</span>Frage gestellt</div>
       <span class="arrow">→</span>
-      <div class="step"><span class="e"><img src="/freiki-mark.svg" alt=""></span>FreiKI antwortet</div>
+      <div class="step"><span class="e" aria-hidden="true"><img src="/freiki-mark.svg" alt=""></span>FreiKI antwortet</div>
       <span class="arrow">→</span>
-      <div class="step"><span class="e">🧹</span>Verlauf gelöscht</div>
+      <div class="step"><span class="e" aria-hidden="true">🧹</span>Verlauf gelöscht</div>
       <span class="arrow">→</span>
-      <div class="step"><span class="e">⬜</span>Leerer Speicher</div>
+      <div class="step"><span class="e" aria-hidden="true">⬜</span>Leerer Speicher</div>
     </div>
     <p class="flow-note">Anfragen werden serverseitig nicht gespeichert. Der Chatverlauf bleibt ausschließlich in Ihrem Browser erhalten.</p>
   </div>
@@ -409,21 +640,21 @@
     <p class="flow-note" style="text-align:left; margin: -8px 0 18px; max-width: none;">(Infos für IT-Spezialisten)</p>
     <p class="intro">Vollständig containerisiert (Docker), alle Komponenten Open Source – extern nur über einen einzigen, TLS-gesicherten Zugang erreichbar.</p>
     <div class="grid cols-3">
-      <div class="card"><div class="icon">🌐</div><h3>Caddy</h3><p>Reverse Proxy mit TLS, einziger externer Zugang.</p></div>
-      <div class="card"><div class="icon">🖥️</div><h3>FreiKI-UI</h3><p>Node.js/Express-Backend, Login &amp; Bereichsrechte.</p></div>
-      <div class="card"><div class="icon">🔍</div><h3>pgvector-RAG</h3><p>Direkte Vektorsuche im Backend – ohne Middleware.</p></div>
-      <div class="card"><div class="icon">🧠</div><h3>vLLM + LLM</h3><p>Lokaler Inferenzserver auf eigener GPU.</p></div>
-      <div class="card"><div class="icon">🗄️</div><h3>PostgreSQL + pgvector</h3><p>Vektordatenbank für die Wissenssuche.</p></div>
-      <div class="card"><div class="icon">🎙️</div><h3>Whisper + Piper + Tesseract</h3><p>Transkription (Audio → Text), Sprachausgabe (Text → Audio) &amp; Texterkennung (OCR).</p></div>
-      <div class="card"><div class="icon">🔎</div><h3>SearXNG</h3><p>Datenschutzkonforme Metasuche.</p></div>
-      <div class="card"><div class="icon">⚙️</div><h3>n8n</h3><p>Automatisierung, Mails &amp; eigene Agenten.</p></div>
-      <div class="card"><div class="icon">💬</div><h3>Mattermost</h3><p>Self-hosted Team-Chat mit SSO und eingebautem FreiKI-Bot.</p></div>
-      <div class="card"><div class="icon">📄</div><h3>Paperless-ngx</h3><p>KI-gestütztes Dokumentenmanagement.</p></div>
-      <div class="card"><div class="icon">📊</div><h3>Uptime Kuma</h3><p>Internes Monitoring aller Dienste mit E-Mail-Benachrichtigung bei Ausfall.</p></div>
-      <div class="card"><div class="icon">✉️</div><h3>Mailserver</h3><p>Eigener SMTP/IMAP-Server – kein externer Maildienst, Mails verlassen die Infrastruktur nicht.</p></div>
-      <div class="card"><div class="icon">🐳</div><h3>Portainer</h3><p>Container-Management – Übersicht und Steuerung aller Docker-Dienste über eine Web-Oberfläche.</p></div>
-      <div class="card"><div class="icon">📋</div><h3>Dozzle</h3><p>Echtzeit-Log-Viewer für alle Container – schnelle Fehleranalyse ohne SSH.</p></div>
-      <div class="card"><div class="icon">🔐</div><h3>Tailscale</h3><p>Abgesicherter Fernzugriff für Administration.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🌐</div><h3>Caddy</h3><p>Reverse Proxy mit TLS, einziger externer Zugang.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🖥️</div><h3>FreiKI-UI</h3><p>Node.js/Express-Backend, Login &amp; Bereichsrechte.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🔍</div><h3>pgvector-RAG</h3><p>Direkte Vektorsuche im Backend – ohne Middleware.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🧠</div><h3>vLLM + LLM</h3><p>Lokaler Inferenzserver auf eigener GPU.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🗄️</div><h3>PostgreSQL + pgvector</h3><p>Vektordatenbank für die Wissenssuche.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🎙️</div><h3>Whisper + Piper + Tesseract</h3><p>Transkription (Audio → Text), Sprachausgabe (Text → Audio) &amp; Texterkennung (OCR).</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🔎</div><h3>SearXNG</h3><p>Datenschutzkonforme Metasuche.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">⚙️</div><h3>n8n</h3><p>Automatisierung, Mails &amp; eigene Agenten.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">💬</div><h3>Mattermost</h3><p>Self-hosted Team-Chat mit SSO und eingebautem FreiKI-Bot.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">📄</div><h3>Paperless-ngx</h3><p>KI-gestütztes Dokumentenmanagement.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">📊</div><h3>Uptime Kuma</h3><p>Internes Monitoring aller Dienste mit E-Mail-Benachrichtigung bei Ausfall.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">✉️</div><h3>Mailserver</h3><p>Eigener SMTP/IMAP-Server – kein externer Maildienst, Mails verlassen die Infrastruktur nicht.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🐳</div><h3>Portainer</h3><p>Container-Management – Übersicht und Steuerung aller Docker-Dienste über eine Web-Oberfläche.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">📋</div><h3>Dozzle</h3><p>Echtzeit-Log-Viewer für alle Container – schnelle Fehleranalyse ohne SSH.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🔐</div><h3>Tailscale</h3><p>Abgesicherter Fernzugriff für Administration.</p></div>
     </div>
   </div>
 </section>
@@ -496,6 +727,8 @@
   </div>
 </section>
 
+<div class="contact-strip">Lust, FreiKI live zu testen? Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver.</div>
+
 <!-- 9. FAQ -->
 <section id="faq" class="tint">
   <div class="wrap">
@@ -527,11 +760,21 @@
     <h2>Datenschutz, Unabhängigkeit und volle Kontrolle – KI in Ihrer eigenen Organisation.</h2>
     <p class="sub">Bei Interesse Anfrage an <a href="mailto:info@freiki.com" style="color:#fff; text-decoration: underline;">info@freiki.com</a>. Dann bekommen Sie ein Passwort für den Testserver.</p>
     <a class="cta" href="mailto:info@freiki.com">Zugang anfragen →</a>
+    <p class="sub" style="margin-top:14px; font-size: 13px;">Adresse direkt: info@freiki.com</p>
     <div class="tags">Deutscher Server · DSGVO/DSG-EKD-konform · Ohne Lizenzrisiken · Open Source</div>
   </div>
 </section>
 
 <footer class="site">FreiKI · <a href="/impressum.html" style="color:inherit;">Impressum</a></footer>
+
+<script>
+  document.getElementById('mobileMenu').addEventListener('click', function(e) {
+    if (e.target.tagName === 'A') {
+      this.classList.remove('open');
+      document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false');
+    }
+  });
+</script>
 
 </body>
 </html>
