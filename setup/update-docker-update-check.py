@@ -82,7 +82,23 @@ with urllib.request.urlopen(req) as r:
 nodes = current["nodes"]
 images_js = json.dumps(images, indent=2, ensure_ascii=False)
 
+# Zweiteilige Pruefung pro Image:
+#   1) Digest-Check (wie bisher) -- erkennt, ob der gepinnte Tag heimlich neu gebaut wurde
+#   2) Versions-Check (neu, seit 2026-07-09) -- vergleicht den gepinnten Tag per Semver gegen
+#      alle auf Docker Hub vorhandenen Tags und erkennt so echte neue Releases, selbst wenn der
+#      gepinnte Tag (z.B. "2.25.6") selbst nie neu gebaut wird. Ohne diesen Teil hat der Check das
+#      n8n-Sicherheitsupdate 2.25.6 -> 2.29.8 nie gemeldet, siehe Postmortem 2026-07-08/09.
 new_js = f"""const IMAGES = {images_js};
+
+function parseSemver(t) {{
+  const m = /^v?(\\d+)\\.(\\d+)\\.(\\d+)$/.exec(t || '');
+  if (!m) return null;
+  return [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)];
+}}
+function cmpSemver(a, b) {{
+  for (let i = 0; i < 3; i++) {{ if (a[i] !== b[i]) return a[i] - b[i]; }}
+  return 0;
+}}
 
 const store = $getWorkflowStaticData('global');
 if (!store.docker_digests) store.docker_digests = {{}};
@@ -91,21 +107,47 @@ const updates = [];
 const checked = [];
 
 for (const img of IMAGES) {{
+  let digestChanged = false;
+  let newerVersion = null;
+
   try {{
     const url = 'https://hub.docker.com/v2/repositories/' + img.repo + '/tags/' + img.tag;
     const res = await $helpers.httpRequest({{ method: 'GET', url, timeout: 10000 }});
     const digest = res.digest || res.images?.[0]?.digest || res.last_updated || null;
     const key = img.repo + ':' + img.tag;
     const stored = store.docker_digests[key];
-
     if (digest) {{
-      if (stored && stored !== digest) updates.push({{ ...img, digest, previous: stored }});
+      if (stored && stored !== digest) digestChanged = true;
       store.docker_digests[key] = digest;
-      checked.push({{ name: img.name, key, status: stored ? (stored !== digest ? 'NEU' : 'unveraendert') : 'erstmalig geprueft' }});
     }}
-  }} catch(e) {{
-    checked.push({{ name: img.name, status: 'Fehler: ' + e.message }});
+  }} catch (e) {{
+    checked.push({{ name: img.name, status: 'Digest-Fehler: ' + e.message }});
+    continue;
   }}
+
+  const pinned = parseSemver(img.tag);
+  if (pinned) {{
+    try {{
+      const tagsRes = await $helpers.httpRequest({{
+        method: 'GET',
+        url: 'https://hub.docker.com/v2/repositories/' + img.repo + '/tags?page_size=100&ordering=last_updated',
+        timeout: 15000
+      }});
+      let best = null;
+      for (const r of (tagsRes.results || [])) {{
+        const v = parseSemver(r.name);
+        if (v && cmpSemver(v, pinned) > 0 && (!best || cmpSemver(v, best) > 0)) best = v;
+      }}
+      if (best) newerVersion = best.join('.');
+    }} catch (e) {{
+      checked.push({{ name: img.name, status: 'Versions-Fehler: ' + e.message }});
+    }}
+  }}
+
+  if (digestChanged || newerVersion) {{
+    updates.push({{ ...img, newerVersion, reason: digestChanged && newerVersion ? 'digest+version' : (digestChanged ? 'digest' : 'version') }});
+  }}
+  checked.push({{ name: img.name, tag: img.tag, newerVersion: newerVersion || '\\u2013', status: newerVersion ? 'NEUE VERSION' : (digestChanged ? 'DIGEST GEAENDERT' : 'aktuell') }});
 }}
 
 return [{{ json: {{ updates, count: updates.length, checked }} }}];"""
