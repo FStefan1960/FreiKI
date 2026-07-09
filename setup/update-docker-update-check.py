@@ -88,6 +88,11 @@ images_js = json.dumps(images, indent=2, ensure_ascii=False)
 #      alle auf Docker Hub vorhandenen Tags und erkennt so echte neue Releases, selbst wenn der
 #      gepinnte Tag (z.B. "2.25.6") selbst nie neu gebaut wird. Ohne diesen Teil hat der Check das
 #      n8n-Sicherheitsupdate 2.25.6 -> 2.29.8 nie gemeldet, siehe Postmortem 2026-07-08/09.
+#
+# WICHTIG: this.helpers.httpRequest verwenden, NICHT $helpers.httpRequest -- seit dem n8n-Upgrade
+# auf 2.29.8 laeuft der Code-Node ueber den Task Runner, dort existiert kein globales $helpers
+# mehr ("$helpers is not defined" bei jedem Image). this.helpers ist die aktuell dokumentierte,
+# funktionierende Syntax.
 new_js = f"""const IMAGES = {images_js};
 
 function parseSemver(t) {{
@@ -112,7 +117,7 @@ for (const img of IMAGES) {{
 
   try {{
     const url = 'https://hub.docker.com/v2/repositories/' + img.repo + '/tags/' + img.tag;
-    const res = await $helpers.httpRequest({{ method: 'GET', url, timeout: 10000 }});
+    const res = await this.helpers.httpRequest({{ method: 'GET', url, timeout: 10000 }});
     const digest = res.digest || res.images?.[0]?.digest || res.last_updated || null;
     const key = img.repo + ':' + img.tag;
     const stored = store.docker_digests[key];
@@ -128,7 +133,7 @@ for (const img of IMAGES) {{
   const pinned = parseSemver(img.tag);
   if (pinned) {{
     try {{
-      const tagsRes = await $helpers.httpRequest({{
+      const tagsRes = await this.helpers.httpRequest({{
         method: 'GET',
         url: 'https://hub.docker.com/v2/repositories/' + img.repo + '/tags?page_size=100&ordering=last_updated',
         timeout: 15000
