@@ -4,6 +4,7 @@ const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { fetchWithTimeout } = require('../../shared/utils/text');
 const prompts = require('./PromptService');
 const chatRepo = require('./ChatRepository');
+const sensitiveLog = require('../audit/SensitiveQueryLog');
 const documents = require('../documents/DocumentService');
 const kb = require('../knowledge/KBService');
 const { webSearch } = require('../integrations/SearXNGService');
@@ -123,6 +124,11 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
           : `Bitte verarbeite folgenden Inhalt:\n\n${fileContent}`;
       }
     }
+
+    // Prüft Nachricht + ggf. zusammengeführten Dateiinhalt (OCR/MultiDoc) -- bewusst NACH dem
+    // Zusammenführen, nicht auf dem rohen "message"-Feld, sonst wird bei Zusammenfassen/MultiDoc
+    // nur die kurze Anweisung geprüft statt des eigentlichen Dokumentinhalts.
+    sensitiveLog.checkAndLog(req.session, 'chat', userMessage);
 
     if (useWebSearch && !fileContent && userMessage) {
       console.log('Starte Web-Suche...');

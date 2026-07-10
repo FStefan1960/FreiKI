@@ -77,6 +77,7 @@
     .role-pill.admin{background:#fee2e2;color:#991b1b}
     .role-pill.manager{background:#e0e7ff;color:#3730a3}
     .role-pill.default{background:#f1f5f9;color:#475569}
+    .role-pill.high_risk{background:#fef3c7;color:#92400e}
     /* Edit-Modal */
     .modal-ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
     .modal-ov.show{display:flex}
@@ -129,7 +130,7 @@
       <div><label>Nachname</label><input type="text" id="n-last" autocomplete="off"></div>
       <div><label>Funktion</label><input type="text" id="n-funktion" autocomplete="off"></div>
       <div><label>E-Mail</label><input type="text" id="n-email" autocomplete="off"></div>
-      <div><label>Rolle</label><select id="n-role"><option value="default">User</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+      <div><label>Rolle</label><select id="n-role"><option value="default">User</option><option value="high_risk">High-risk</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
       <div><label>Nutzen</label><div id="n-use"></div></div>
       <div><label>Paperless-Zugriff</label><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="n-paperless"> Archiv durchsuchen</label></div>
       <div id="n-manage-cell"><label>Verwalten</label><div id="n-manage"></div></div>
@@ -219,7 +220,7 @@ async function load(){
 }
 
 let USERS=[];
-function roleLabel(r){ return r==='admin'?'Admin':r==='manager'?'Manager':'User'; }
+function roleLabel(r){ return r==='admin'?'Admin':r==='manager'?'Manager':r==='high_risk'?'High-risk':'User'; }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 function renderTable(users){ USERS=users; renderRows(); }
@@ -271,7 +272,7 @@ function buildEditCard(u){
     field('E-Mail', textInput('email'));
 
     const selR=document.createElement('select');
-    [['default','User'],['manager','Manager'],['admin','Admin']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;if(v===u.role)o.selected=true;selR.appendChild(o);});
+    [['default','User'],['high_risk','High-risk'],['manager','Manager'],['admin','Admin']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;if(v===u.role)o.selected=true;selR.appendChild(o);});
     field('Rolle', selR);
 
     const useHost=document.createElement('div'); makeMultiSelect(useHost,u.use,(v)=>{state.use=v;markDirty();});

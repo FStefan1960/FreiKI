@@ -19,6 +19,7 @@ const config = {
 
   SEARXNG_URL: process.env.SEARXNG_URL || 'http://searxng:8080',
   N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || '',
+  N8N_DAILY_REPORT_WEBHOOK_URL: process.env.N8N_DAILY_REPORT_WEBHOOK_URL || '',
   WHISPER_URL: process.env.WHISPER_URL || 'http://whisper:9000',
   PIPER_URL: process.env.PIPER_URL || 'http://piper:8000',
   TTS_VOICE: process.env.TTS_VOICE || 'thorsten',

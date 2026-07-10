@@ -23,6 +23,44 @@ router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
   }
 }));
 
+router.post('/api/login/verify-2fa', loginLimiter, asyncHandler(async (req, res) => {
+  const { pendingToken, code } = req.body || {};
+  if (!pendingToken || !code) return res.status(400).json({ error: 'Code erforderlich' });
+  try {
+    const result = await AuthService.verifyTwoFactor(pendingToken, code);
+    if (result.error) {
+      console.warn(`2FA-Verifizierung fehlgeschlagen von ${req.ip}`);
+      return res.status(401).json({ error: 'Ungültiger Code' });
+    }
+    res.json(result);
+  } catch (e) {
+    console.error('verify-2fa error:', e.message);
+    res.status(500).json({ error: 'Verbindungsfehler' });
+  }
+}));
+
+router.post('/api/2fa/setup', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    const result = await AuthService.start2FASetup(s.uid);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(result);
+  } catch (e) { console.error('2fa/setup:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
+router.post('/api/2fa/confirm', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const { code } = req.body || {};
+  if (!code) return res.status(400).json({ error: 'Code erforderlich' });
+  try {
+    const result = await AuthService.confirm2FASetup(s.uid, code);
+    if (result.error) return res.status(400).json({ error: result.error === 'invalid-code' ? 'Ungültiger Code' : 'Kein Setup gestartet' });
+    res.json(result);
+  } catch (e) { console.error('2fa/confirm:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
 router.post('/api/change-password', asyncHandler(async (req, res) => {
   const s = getSession(req);
   const { currentPassword, newPassword } = req.body || {};

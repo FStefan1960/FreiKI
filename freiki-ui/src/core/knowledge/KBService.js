@@ -142,7 +142,7 @@ async function answerBotChat(message, username) {
       [username]
     );
     const u = userRows[0];
-    if (u && u.role === 'default' && u.use_areas && u.use_areas.length) {
+    if (u && (u.role === 'default' || u.role === 'high_risk') && u.use_areas && u.use_areas.length) {
       allowedAreaKeys = u.use_areas.map(normArea);
     }
   }

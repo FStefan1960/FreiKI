@@ -455,6 +455,8 @@ body {
 
 .user-name { font-size: var(--fk-fs-sub); font-weight: 600; color: var(--fk-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.user-avatar.role-high_risk { background: #d97706; }
+
 .logout-btn {
   flex-shrink: 0;
   background: none;

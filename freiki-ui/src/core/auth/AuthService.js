@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const users = require('./UserRepository');
-const { signToken } = require('./AuthMiddleware');
+const { signToken, signPendingToken, verifyPendingToken } = require('./AuthMiddleware');
+const totp = require('./TotpService');
 const { sendWelcomeMail } = require('../integrations/EmailService');
 const { generatePassword } = require('../../shared/utils/text');
 
@@ -9,8 +10,67 @@ async function login(username, password) {
   if (!u || u.suspended) return { error: 'invalid' };
   const ok = await bcrypt.compare(password, u.password_hash || '');
   if (!ok) return { error: 'invalid' };
+
+  if (u.totp_enabled) {
+    return { requires2fa: true, pendingToken: signPendingToken(u) };
+  }
+
   const token = signToken(u);
-  return { token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas };
+  const result = { token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas };
+  // Rolle verlangt 2FA, aber noch nicht eingerichtet: Login gelingt (sonst kein Weg zum
+  // Einrichten), Frontend muss den Setup-Dialog erzwingen, bevor der Nutzer weiterarbeitet.
+  if (totp.requires2FA(u.role)) result.mustSetup2fa = true;
+  return result;
+}
+
+// Zweiter Login-Schritt bei bereits aktiviertem 2FA: prüft TOTP-Code oder Backup-Code
+// gegen den Pending-Token aus login(), stellt erst danach das volle Session-Token aus.
+async function verifyTwoFactor(pendingToken, code) {
+  const pending = verifyPendingToken(pendingToken);
+  if (!pending) return { error: 'invalid-pending' };
+  const u = await users.findById(pending.uid);
+  if (!u || u.suspended || !u.totp_enabled) return { error: 'invalid-pending' };
+
+  if (totp.verifyToken(u.totp_secret, code)) {
+    const token = signToken(u);
+    return { token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas };
+  }
+
+  const { valid, remaining } = await totp.consumeBackupCode(u.totp_backup_codes, code);
+  if (valid) {
+    await users.updateBackupCodes(u.id, remaining);
+    const token = signToken(u);
+    return {
+      token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
+      backupCodeUsed: true, backupCodesRemaining: remaining.length,
+    };
+  }
+  return { error: 'invalid-code' };
+}
+
+// Setup Schritt 1: Secret erzeugen (noch nicht aktiv), QR-Code zur Anzeige zurückgeben.
+async function start2FASetup(uid) {
+  const u = await users.findById(uid);
+  if (!u) return { error: 'no-session' };
+  const { secret, otpauth } = totp.generateSecret(u.username, 'KorKI');
+  await users.setPendingTotpSecret(uid, secret);
+  const qrCode = await totp.qrDataUrl(otpauth);
+  return { secret, qrCode };
+}
+
+// Setup Schritt 2: Code bestätigen, Backup-Codes erzeugen und 2FA scharf schalten.
+async function confirm2FASetup(uid, code) {
+  const u = await users.findById(uid);
+  if (!u || !u.totp_secret) return { error: 'no-pending-setup' };
+  if (!totp.verifyToken(u.totp_secret, code)) return { error: 'invalid-code' };
+  const { plain, hashed } = await totp.generateBackupCodes();
+  await users.enableTotp(uid, hashed);
+  return { ok: true, backupCodes: plain };
+}
+
+async function disable2FA(uid) {
+  await users.disableTotp(uid);
+  return { ok: true };
 }
 
 async function changePassword(uid, currentPassword, newPassword) {
@@ -59,4 +119,7 @@ async function resendWelcome(id) {
   return { ok: true };
 }
 
-module.exports = { login, changePassword, createUser, resetPassword, resendWelcome };
+module.exports = {
+  login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA,
+  changePassword, createUser, resetPassword, resendWelcome,
+};

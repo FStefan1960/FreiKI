@@ -7,6 +7,7 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { uploadExcel, isValidFileId } = require('../../../core/excel/ExcelValidator');
 const { runExcelChat } = require('../../../core/excel/ExcelService');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
+const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
 
 const router = express.Router();
 
@@ -34,6 +35,8 @@ router.post('/api/excel-chat', async (req, res, next) => {
 
   const filePath = path.join('/tmp/excel_uploads/', fileId + '.xlsx');
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Datei nicht gefunden oder abgelaufen. Bitte erneut hochladen.' });
+
+  sensitiveLog.checkAndLog(s, 'excel-chat', message);
 
   try {
     const messages = [

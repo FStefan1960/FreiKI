@@ -1,7 +1,19 @@
 const pool = require('../../infrastructure/database/postgres/pool');
 
-const VALID_ROLES = ['admin', 'manager', 'default'];
+const VALID_ROLES = ['admin', 'manager', 'high_risk', 'default'];
 const cleanAreas = (a) => Array.isArray(a) ? a.map(x => String(x).trim()).filter(Boolean) : [];
+
+// freiki_users wird nicht von dieser App angelegt (historisch per Einmal-Skript erzeugt,
+// siehe MEMORY project_korki_eigene_userdb) -- Spalten-Erweiterungen daher idempotent per
+// ALTER TABLE IF NOT EXISTS, analog zu ensureSchema() in ChatRepository/AdminAuditRepository.
+async function ensureSchema() {
+  await pool.query(`
+    ALTER TABLE freiki_users
+      ADD COLUMN IF NOT EXISTS totp_secret TEXT,
+      ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS totp_backup_codes JSONB NOT NULL DEFAULT '[]'
+  `);
+}
 
 function findByUsername(username) {
   return pool.query('SELECT * FROM freiki_users WHERE lower(username)=lower($1)', [username])
@@ -62,11 +74,44 @@ async function remove(id) {
   return rowCount > 0;
 }
 
+async function listAdminEmails() {
+  const { rows } = await pool.query(
+    "SELECT email FROM freiki_users WHERE role='admin' AND suspended=false AND email IS NOT NULL AND email <> ''"
+  );
+  return rows.map((r) => r.email);
+}
+
+// ── 2FA (TOTP) ────────────────────────────────────────────────
+// Secret wird bereits beim Setup-Start geschrieben (aber totp_enabled bleibt false),
+// damit /api/2fa/confirm nur noch den Code prüfen muss statt den Secret erneut zu übergeben.
+async function setPendingTotpSecret(id, secret) {
+  await pool.query('UPDATE freiki_users SET totp_secret=$1 WHERE id=$2', [secret, id]);
+}
+
+async function enableTotp(id, hashedBackupCodes) {
+  await pool.query(
+    'UPDATE freiki_users SET totp_enabled=true, totp_backup_codes=$1::jsonb WHERE id=$2',
+    [JSON.stringify(hashedBackupCodes), id]
+  );
+}
+
+async function disableTotp(id) {
+  await pool.query(
+    "UPDATE freiki_users SET totp_enabled=false, totp_secret=NULL, totp_backup_codes='[]' WHERE id=$1",
+    [id]
+  );
+}
+
+async function updateBackupCodes(id, hashedBackupCodes) {
+  await pool.query('UPDATE freiki_users SET totp_backup_codes=$1::jsonb WHERE id=$2', [JSON.stringify(hashedBackupCodes), id]);
+}
+
 const isValidUsername = (s) => typeof s === 'string' && s.trim().length >= 3 && s.trim().length <= 64 && /^[a-zA-Z0-9._\-äöüÄÖÜß]+$/.test(s.trim());
 const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 module.exports = {
-  VALID_ROLES, findByUsername, findById, findProfileById, findLiveAreasById,
-  listAll, create, update, updatePasswordHash, remove,
+  VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById,
+  listAll, create, update, updatePasswordHash, remove, listAdminEmails,
+  setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes,
   isValidUsername, isValidEmail, cleanAreas,
 };

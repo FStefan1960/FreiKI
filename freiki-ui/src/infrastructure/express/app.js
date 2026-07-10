@@ -6,6 +6,9 @@ const { securityHeaders, apiLimiter } = require('./middlewares/security');
 const { startUploadCleanupSchedule } = require('../storage/FileStorage');
 const pool = require('../database/postgres/pool');
 const chatRepo = require('../../core/chat/ChatRepository');
+const auditLog = require('../../core/audit/AdminAuditRepository');
+const sensitiveLog = require('../../core/audit/SensitiveQueryLog');
+const users = require('../../core/auth/UserRepository');
 
 validateEnv();
 
@@ -51,8 +54,12 @@ async function start() {
   }
 
   await chatRepo.ensureSchema();
+  await auditLog.ensureSchema();
+  await sensitiveLog.ensureSchema();
+  await users.ensureSchema();
   await loadBrandConfig();
   startUploadCleanupSchedule();
+  sensitiveLog.startDailyReportSchedule();
 
   app.listen(config.PORT, () => console.log(`${getBrandConfig().name} UI läuft auf Port ${config.PORT}`));
 }
