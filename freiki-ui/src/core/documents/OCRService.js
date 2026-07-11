@@ -1,11 +1,21 @@
 const fs = require('fs');
 const path = require('path');
-const tesseract = require('node-tesseract-ocr');
 const { execFileSync } = require('child_process');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
 
-const OCR_LANG_OPTS = { lang: 'deu+eng', oem: 1, psm: 3 };
+const TESSERACT_ARGS = ['-l', 'deu+eng', '--oem', '1', '--psm', '3'];
+
+// execFile statt der node-tesseract-ocr-Bibliothek (die exec() mit string-konkateniertem
+// Shell-Befehl nutzt - GHSA-8j44-735h-w4w2, Command Injection, kein Fix verfügbar). Mit
+// execFile gibt es keine Shell-Interpretation, also keine Injection-Klasse, unabhängig
+// davon ob imagePath je aus Nutzereingabe stammen könnte.
+function tesseractRecognize(imagePath) {
+  return execFileSync('tesseract', [imagePath, 'stdout', ...TESSERACT_ARGS], {
+    timeout: 60000,
+    maxBuffer: 20 * 1024 * 1024,
+  }).toString('utf8');
+}
 
 // Rendert alle Seiten eines PDFs als PNG in ein Temp-Verzeichnis und OCRt sie.
 async function ocrPdf(pdfPath) {
@@ -14,9 +24,7 @@ async function ocrPdf(pdfPath) {
   try {
     execFileSync('pdftoppm', ['-r', '200', '-png', pdfPath, `${pngDir}/page`], { timeout: 60000 });
     const pages = fs.readdirSync(pngDir).filter(f => f.endsWith('.png')).sort();
-    const ocrResults = await Promise.all(pages.map(p =>
-      tesseract.recognize(path.join(pngDir, p), OCR_LANG_OPTS)
-    ));
+    const ocrResults = pages.map(p => tesseractRecognize(path.join(pngDir, p)));
     return { text: ocrResults.join('\n\n').trim(), pageCount: pages.length };
   } finally {
     fs.rmSync(pngDir, { recursive: true, force: true });
@@ -32,7 +40,7 @@ async function ocrImage(imagePath) {
     console.warn('Auto-Orient fehlgeschlagen, nutze Original:', rotErr.message);
     fs.copyFileSync(imagePath, rotatedPath);
   }
-  const ocrRaw = await tesseract.recognize(rotatedPath, OCR_LANG_OPTS);
+  const ocrRaw = tesseractRecognize(rotatedPath);
   try { fs.unlinkSync(rotatedPath); } catch (_) {}
 
   let cleaned = ocrRaw.trim();
