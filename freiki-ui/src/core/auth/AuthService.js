@@ -73,6 +73,17 @@ async function disable2FA(uid) {
   return { ok: true };
 }
 
+// Selbstbedienung bei Gerätewechsel: Nutzer kann sein 2FA selbst neu einrichten (neues
+// Secret + neue Backup-Codes), ohne einen Admin zu bemühen. Zum Schutz gegen ein entwendetes
+// Session-Token wird das aktuelle Passwort erneut verlangt, bevor der Setup-Flow startet.
+async function requestReinit2FA(uid, currentPassword) {
+  const u = await users.findById(uid);
+  if (!u) return { error: 'no-session' };
+  const ok = await bcrypt.compare(currentPassword || '', u.password_hash || '');
+  if (!ok) return { error: 'wrong-current' };
+  return start2FASetup(uid);
+}
+
 async function changePassword(uid, currentPassword, newPassword) {
   const u = await users.findById(uid);
   if (!u) return { error: 'no-session' };
@@ -120,6 +131,6 @@ async function resendWelcome(id) {
 }
 
 module.exports = {
-  login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA,
+  login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA, requestReinit2FA,
   changePassword, createUser, resetPassword, resendWelcome,
 };

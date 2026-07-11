@@ -61,6 +61,19 @@ router.post('/api/2fa/confirm', asyncHandler(async (req, res) => {
   } catch (e) { console.error('2fa/confirm:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
 
+router.post('/api/2fa/reinit', loginLimiter, asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const { currentPassword } = req.body || {};
+  if (!currentPassword) return res.status(400).json({ error: 'Aktuelles Passwort erforderlich' });
+  try {
+    const result = await AuthService.requestReinit2FA(s.uid, currentPassword);
+    if (result.error === 'wrong-current') return res.status(401).json({ error: 'Aktuelles Passwort falsch' });
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(result);
+  } catch (e) { console.error('2fa/reinit:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
 router.post('/api/change-password', asyncHandler(async (req, res) => {
   const s = getSession(req);
   const { currentPassword, newPassword } = req.body || {};

@@ -210,6 +210,9 @@ Wie jedes KI-System kann FreiKI Fehler machen oder Informationen erfinden (sogen
 ### Personenbezogene Daten
 Beachten Sie die internen Richtlinien Ihrer Organisation. Auch wenn FreiKI die Daten nicht weitergibt, sollten Sie nicht mehr personenbezogene Informationen eingeben als für die jeweilige Aufgabe notwendig ist.
 
+### Automatisierte Prüfung auf sensible Inhalte
+Eingaben im Chat und im Excel-Chat werden automatisiert auf bestimmte Stichworte geprüft (u. a. zu Diagnosen, Medikamenten, psychischen Erkrankungen, Sucht, Behinderung/Pflege). Bei einem Treffer wird ausschließlich protokolliert, **wer wann welches Werkzeug genutzt hat** – niemals der Inhalt der Eingabe selbst. Diese Protokollierung dient der Rechenschaftspflicht nach Art. 5 Abs. 2 und Art. 32 DSGVO sowie der Umsetzung der internen Dienstanweisung, wonach besonders schützenswerte Daten (Art. 9 DSGVO) grundsätzlich nicht in FreiKI eingegeben werden dürfen.
+
 ### Web-Recherche
 Nur dieser Modus überträgt Anfragen ins Internet. Alle anderen Werkzeuge laufen vollständig intern.
 
