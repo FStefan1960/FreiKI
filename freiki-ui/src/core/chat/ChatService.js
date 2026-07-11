@@ -50,6 +50,16 @@ async function rewriteQuery(question, hist) {
   return question;
 }
 
+function parseHistory(history) {
+  if (!history) return [];
+  try {
+    const parsed = JSON.parse(history);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 async function handleChat(req, res) {
   const { message, mode, history, multidoc_task } = req.body;
   const modeConf = prompts.findMode(mode);
@@ -159,7 +169,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
   } catch (e) {
     console.error('Chat error:', e);
     if (!res.headersSent) {
-      res.status(500).json({ error: e.message });
+      res.status(e.status || 500).json({ error: e.status ? e.message : 'Interner Fehler' });
     }
   }
 }
@@ -198,7 +208,7 @@ async function handlePaperlessMode(res, message) {
 }
 
 async function handleWissenMode(res, { wissenKey, userMessage, history, mode }) {
-  const hist = history ? JSON.parse(history).slice(-6) : [];
+  const hist = parseHistory(history).slice(-6);
   userMessage = await rewriteQuery(userMessage, hist);
 
   const chunks = await kb.retrieveWissenChunks(wissenKey, userMessage, 8);
@@ -293,7 +303,7 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
 
   const basePrompt = prompts.basePromptText + (prompts.systemPrompts[mode] || prompts.systemPrompts[prompts.modesConfig[0]?.key] || '');
   const systemPrompt = `${basePrompt}\n\nSystemzeit: ${now}. Diese Angabe ist verbindlich korrekt. Kommentiere sie niemals, zweifle nie daran. /no_think`;
-  const chatHistory = history ? JSON.parse(history).slice(-4) : [];
+  const chatHistory = parseHistory(history).slice(-4);
 
   const vllmLimit = isMulti ? config.MAX_VLLM_CHARS_MULTI : config.MAX_VLLM_CHARS;
   if (userMessage.length > vllmLimit) {

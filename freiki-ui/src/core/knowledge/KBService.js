@@ -77,6 +77,7 @@ async function ingestText(bereich, text, source, sourceUrl) {
 // Retrieval für den "Wissen"-Modus im interaktiven Chat (Streaming-Antwort lebt in ChatService)
 async function retrieveWissenChunks(wissenKey, queryText, limit = 8) {
   const table = kbAreas.getTable(wissenKey);
+  if (!table) throw Object.assign(new Error('Unbekannter Wissensbereich: ' + wissenKey), { status: 400 });
   const [queryEmbedding] = await getEmbeddings([queryText]);
   const vecStr = '[' + queryEmbedding.join(',') + ']';
   const client = await pool.connect();

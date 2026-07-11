@@ -89,8 +89,8 @@ router.post('/api/hilfe-chat', asyncHandler(async (req, res) => {
     if (result.error) return res.status(result.status || 500).json({ error: result.error });
     res.json(result);
   } catch (e) {
-    console.error('Hilfe-Chat Fehler:', e.message);
-    res.status(500).json({ error: e.message });
+    console.error('Hilfe-Chat Fehler:', e);
+    res.status(500).json({ error: 'Interner Fehler' });
   }
 }));
 
@@ -111,8 +111,8 @@ router.post('/api/bot-chat', asyncHandler(async (req, res) => {
     });
     res.json(result);
   } catch (e) {
-    console.error('bot-chat Fehler:', e.message);
-    res.status(500).json({ error: 'Fehler bei der Bot-Anfrage: ' + e.message });
+    console.error('bot-chat Fehler:', e);
+    res.status(500).json({ error: 'Fehler bei der Bot-Anfrage' });
   }
 }));
 

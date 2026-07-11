@@ -39,7 +39,13 @@ app.use(require('./routes/healthRoutes'));
 app.use(errorHandler);
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  console.error('Uncaught Exception – beende Prozess:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection – beende Prozess:', reason);
+  process.exit(1);
 });
 
 async function start() {

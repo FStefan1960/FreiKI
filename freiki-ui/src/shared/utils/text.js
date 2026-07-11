@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const crypto = require('crypto');
 
 function fetchWithTimeout(url, options, ms = 120_000) {
   return fetch(url, { ...options, signal: AbortSignal.timeout(ms) });
@@ -51,7 +52,7 @@ function htmlAttrEscape(s) {
 function generatePassword(length = 10) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let pw = '';
-  for (let i = 0; i < length; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < length; i++) pw += chars[crypto.randomInt(chars.length)];
   return pw;
 }
 
