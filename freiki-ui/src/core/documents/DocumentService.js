@@ -67,6 +67,8 @@ async function extractForMultidoc(files) {
         text = await extractDocxText(f.path);
       } else if (ext === '.pdf') {
         text = (await extractPdfText(f.path, extractRawViaPdfParse, isShortText)).text;
+      } else if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+        text = await ocr.ocrImage(f.path);
       } else {
         text = fs.readFileSync(f.path, 'utf-8');
       }
