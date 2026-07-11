@@ -190,8 +190,18 @@ router.get('/admin/config', (req, res) => {
   res.type('html').send(adminConfigPage(req.query.saved === '1'));
 });
 
+// Ab hier: alle Routen erfordern eine Admin-Session. Neue öffentliche Routen müssen
+// VOR dieser Zeile registriert werden (wie /admin/config GET oben), sonst greift
+// die Middleware auch für sie.
+function requireAdmin(req, res, next) {
+  const admin = adminSession(req);
+  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
+  req.admin = admin;
+  next();
+}
+router.use(requireAdmin);
+
 router.post('/admin/config', asyncHandler(async (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Kein Zugriff' });
   try {
     await updateBrandConfig(req.body);
     res.json({ ok: true });
@@ -202,27 +212,23 @@ router.post('/admin/config', asyncHandler(async (req, res) => {
 }));
 
 router.get('/api/admin/areas', (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   res.json(prompts.modesConfig.filter(prompts.isWissenMode).map(m => ({ key: m.key, title: m.title })));
 });
 
 router.get('/api/admin/users', asyncHandler(async (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   try {
     res.json({ users: await users.listAll() });
   } catch (e) { console.error('admin/users GET:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
 }));
 
 router.post('/api/admin/users', asyncHandler(async (req, res) => {
-  const admin = adminSession(req);
-  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { username, role, use, manage, first_name, last_name, funktion, email, use_paperless, password } = req.body || {};
   if (!users.isValidUsername(username)) return res.status(400).json({ error: 'Benutzername: 3–64 Zeichen, nur Buchstaben, Zahlen und ._-' });
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
   if (password && password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
   try {
     const result = await AuthService.createUser({ username, role, use, manage, first_name, last_name, funktion, email, use_paperless, password });
-    auditLog.log(admin, 'user.create', { id: result.id, username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless });
+    auditLog.log(req.admin, 'user.create', { id: result.id, username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless });
     res.json({ ok: true, id: result.id, mailSent: result.mailSent });
   } catch (e) {
     if (e.code === '23505') return res.status(400).json({ error: 'Benutzername existiert bereits' });
@@ -231,14 +237,12 @@ router.post('/api/admin/users', asyncHandler(async (req, res) => {
 }));
 
 router.post('/api/admin/users/:id', asyncHandler(async (req, res) => {
-  const admin = adminSession(req);
-  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Ungültige Nutzer-ID' });
   const { role, use, manage, suspended, first_name, last_name, funktion, email, use_paperless } = req.body || {};
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
   // Selbstschutz: eigenes Konto nicht sperren / nicht zu Nicht-Admin herabstufen
-  if (id === admin.uid && (suspended === true || (role && role !== 'admin')))
+  if (id === req.admin.uid && (suspended === true || (role && role !== 'admin')))
     return res.status(400).json({ error: 'Das eigene Admin-Konto kann nicht gesperrt oder herabgestuft werden.' });
   try {
     const before = await users.findById(id);
@@ -252,15 +256,13 @@ router.post('/api/admin/users/:id', asyncHandler(async (req, res) => {
       if (use !== undefined && JSON.stringify(newUse) !== JSON.stringify(before.use_areas || [])) changes.use_areas = { from: before.use_areas || [], to: newUse };
       const newManage = users.cleanAreas(manage);
       if (manage !== undefined && JSON.stringify(newManage) !== JSON.stringify(before.manage_areas || [])) changes.manage_areas = { from: before.manage_areas || [], to: newManage };
-      if (Object.keys(changes).length) auditLog.log(admin, 'user.update', { id, username: before.username }, changes);
+      if (Object.keys(changes).length) auditLog.log(req.admin, 'user.update', { id, username: before.username }, changes);
     }
     res.json({ ok: true });
   } catch (e) { console.error('admin/users update:', e.message); res.status(500).json({ error: 'Speichern fehlgeschlagen' }); }
 }));
 
 router.post('/api/admin/users/:id/password', asyncHandler(async (req, res) => {
-  const admin = adminSession(req);
-  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { password } = req.body || {};
   if (!password || password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
   const id = parseInt(req.params.id, 10);
@@ -268,55 +270,48 @@ router.post('/api/admin/users/:id/password', asyncHandler(async (req, res) => {
     const ok = await AuthService.resetPassword(id, password);
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     const target = await users.findProfileById(id);
-    auditLog.log(admin, 'user.password_reset', { id, username: target?.username });
+    auditLog.log(req.admin, 'user.password_reset', { id, username: target?.username });
     res.json({ ok: true });
   } catch (e) { console.error('admin/users password:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
 }));
 
 router.post('/api/admin/users/:id/resend-welcome', asyncHandler(async (req, res) => {
-  const admin = adminSession(req);
-  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const id = parseInt(req.params.id, 10);
   try {
     const result = await AuthService.resendWelcome(id);
     if (result.error === 'not-found') return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     if (result.error === 'no-email') return res.status(400).json({ error: 'Keine E-Mail-Adresse hinterlegt' });
     const target = await users.findProfileById(id);
-    auditLog.log(admin, 'user.resend_welcome', { id, username: target?.username });
+    auditLog.log(req.admin, 'user.resend_welcome', { id, username: target?.username });
     res.json({ ok: true });
   } catch (e) { console.error('resend-welcome:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
 }));
 
 router.post('/api/admin/users/:id/reset-2fa', asyncHandler(async (req, res) => {
-  const admin = adminSession(req);
-  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const id = parseInt(req.params.id, 10);
   try {
     const target = await users.findById(id);
     if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     await AuthService.disable2FA(id);
-    auditLog.log(admin, 'user.2fa_reset', { id, username: target.username });
+    auditLog.log(req.admin, 'user.2fa_reset', { id, username: target.username });
     res.json({ ok: true });
   } catch (e) { console.error('reset-2fa:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
 }));
 
 router.delete('/api/admin/users/:id', asyncHandler(async (req, res) => {
-  const admin = adminSession(req);
-  if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   const id = parseInt(req.params.id, 10);
-  if (id === admin.uid) return res.status(400).json({ error: 'Das eigene Konto kann nicht gelöscht werden.' });
+  if (id === req.admin.uid) return res.status(400).json({ error: 'Das eigene Konto kann nicht gelöscht werden.' });
   try {
     const target = await users.findById(id);
     const ok = await users.remove(id);
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
-    auditLog.log(admin, 'user.delete', { id, username: target?.username }, { role: target?.role });
+    auditLog.log(req.admin, 'user.delete', { id, username: target?.username }, { role: target?.role });
     res.json({ ok: true });
   } catch (e) { console.error('admin/users DELETE:', e.message); res.status(500).json({ error: 'Löschen fehlgeschlagen' }); }
 }));
 
 // ── Medienspiegel / Gesellschaftstrends / Tageslosung: Admin-seitiges Schreiben ──
 router.post('/api/admin/medienspiegel', (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { html, date } = req.body || {};
   if (!html) return res.status(400).json({ error: 'html fehlt' });
   try {
@@ -327,7 +322,6 @@ router.post('/api/admin/medienspiegel', (req, res) => {
 });
 
 router.post('/api/admin/gesellschaftstrends', (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { html, date } = req.body || {};
   if (!html) return res.status(400).json({ error: 'html fehlt' });
   try {
@@ -338,7 +332,6 @@ router.post('/api/admin/gesellschaftstrends', (req, res) => {
 });
 
 router.post('/api/admin/losung', (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   const { date, losung, losungRef, lehrtext, lehrtextRef, gedanken } = req.body || {};
   if (!losung || !lehrtext) return res.status(400).json({ error: 'losung/lehrtext fehlt' });
   try {
@@ -372,8 +365,6 @@ setInterval(pollGpuCache, 60_000);
 pollGpuCache();
 
 router.get('/api/admin/stats', asyncHandler(async (req, res) => {
-  const s = adminSession(req);
-  if (!s) return res.status(403).json({ error: 'Kein Zugriff' });
   try {
     const stats = await chatRepo.getTodayStats();
     res.json({
@@ -387,21 +378,18 @@ router.get('/api/admin/stats', asyncHandler(async (req, res) => {
 }));
 
 router.get('/api/admin/audit-log', asyncHandler(async (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   try {
     res.json({ entries: await auditLog.list() });
   } catch (e) { console.error('admin/audit-log:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
 }));
 
 router.get('/api/admin/sensitive-query-log', asyncHandler(async (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Nur für Administratoren' });
   try {
     res.json({ entries: await sensitiveLog.list() });
   } catch (e) { console.error('admin/sensitive-query-log:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
 }));
 
 router.post('/api/admin/trigger-daily-report', asyncHandler(async (req, res) => {
-  if (!adminSession(req)) return res.status(403).json({ error: 'Kein Zugriff' });
   if (!config.N8N_DAILY_REPORT_WEBHOOK_URL) {
     return res.status(501).json({ error: 'Auf dieser Instanz nicht konfiguriert' });
   }
