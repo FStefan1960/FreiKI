@@ -60,6 +60,7 @@ router.get('/api/modes', asyncHandler(async (req, res) => {
 }));
 
 router.post('/api/feedback', asyncHandler(async (req, res) => {
+  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
   const payload = {
     ...req.body,
     event: 'feedback',

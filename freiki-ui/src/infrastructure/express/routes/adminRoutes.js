@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 const { config } = require('../../../shared/config');
-const { getBrandConfig, updateBrandConfig } = require('../../../shared/config/BrandConfig');
+const { getBrandConfig, updateBrandConfig, ALLOWED_FIELDS } = require('../../../shared/config/BrandConfig');
 const { adminSession } = require('../../../core/auth/AuthMiddleware');
 const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
@@ -72,7 +72,7 @@ a.back:hover{color:#1f54c0}
   ${saved ? '<div class="toast show">Konfiguration gespeichert.</div>' : ''}
 </div>
 <div class="wrap">
-  <form method="POST" action="/admin/config" onsubmit="return true">
+  <form id="config-form" onsubmit="return save(event)">
     <div class="card" style="margin-bottom:20px">
       <h2>Identität</h2>
       ${field('name',    'App-Name (z. B. FreiKI, EvaKI, KorKI)', b.name)}
@@ -96,6 +96,7 @@ a.back:hover{color:#1f54c0}
       <h2>Service Worker</h2>
       ${field('swVersion', 'Cache-Version (bei Farbwechsel +1)', b.swVersion)}
       <p style="font-size:12px;color:#5a6b82;margin:4px 0 12px">Wenn Farben oder Logo geändert werden, diese Zahl um 1 erhöhen, damit der Browser-Cache geleert wird.</p>
+      <div id="save-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
       <button type="submit" class="btn-save" id="save-btn">Speichern</button>
     </div>
   </form>
@@ -143,23 +144,60 @@ function preview() {
 }
 document.querySelectorAll('input[type=text]').forEach(el => el.addEventListener('input', preview));
 preview();
+
+// Formular postet als fetch() mit Authorization-Header (JWT aus localStorage), weil ein
+// natives <form method="POST"> keinen Bearer-Header setzen kann - adminSession() prüft
+// aber ausschließlich den Authorization-Header, nie ein Cookie.
+async function save(ev) {
+  ev.preventDefault();
+  const errEl = document.getElementById('save-error');
+  const btn = document.getElementById('save-btn');
+  errEl.style.display = 'none';
+  const token = localStorage.getItem('freiki_token');
+  if (!token) {
+    errEl.textContent = 'Nicht angemeldet. Bitte in der App als Administrator einloggen und diese Seite neu laden.';
+    errEl.style.display = 'block';
+    return false;
+  }
+  const fields = ${JSON.stringify(ALLOWED_FIELDS)};
+  const body = Object.fromEntries(fields.map(k => [k, document.getElementById(k)?.value || '']));
+  btn.disabled = true;
+  try {
+    const res = await fetch('/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      window.location.href = '/admin/config?saved=1';
+    } else {
+      const d = await res.json().catch(() => ({}));
+      errEl.textContent = 'Fehler: ' + (d.error || res.status);
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Verbindungsfehler: ' + e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false;
+  return false;
+}
 </script>
 </body></html>`;
 }
 
 router.get('/admin/config', (req, res) => {
-  if (!adminSession(req)) return res.status(403).send('Kein Zugriff');
   res.type('html').send(adminConfigPage(req.query.saved === '1'));
 });
 
-router.post('/admin/config', express.urlencoded({ extended: true }), asyncHandler(async (req, res) => {
-  if (!adminSession(req)) return res.status(403).send('Kein Zugriff');
+router.post('/admin/config', asyncHandler(async (req, res) => {
+  if (!adminSession(req)) return res.status(403).json({ error: 'Kein Zugriff' });
   try {
     await updateBrandConfig(req.body);
-    res.redirect('/admin/config?saved=1');
+    res.json({ ok: true });
   } catch (e) {
     console.error('Fehler beim Speichern der Konfiguration:', e.message);
-    res.status(500).send('Fehler beim Speichern');
+    res.status(500).json({ error: 'Fehler beim Speichern' });
   }
 }));
 
