@@ -1,22 +1,22 @@
-# FreiKI – Benutzerhandbuch
+# KorKI – Benutzerhandbuch
 
 > **Hinweis:** Das Erscheinungsbild (Logo, Farben, Name) kann je nach Einsatzort an das Corporate Design Ihrer Organisation angepasst sein. Die Funktionen sind identisch.
 
 ---
 
-## 1. Was ist FreiKI?
+## 1. Was ist KorKI?
 
-FreiKI ist Ihr interner KI-Assistent. Er läuft vollständig auf einem dedizierten Server Ihrer Organisation – Ihre Eingaben verlassen nie Ihre Organisation und werden nicht zum Training der KI verwendet. Kein externer Anbieter hat Zugriff auf Ihre Daten.
+KorKI ist Ihr interner KI-Assistent. Er läuft vollständig auf einem dedizierten Server Ihrer Organisation – Ihre Eingaben verlassen nie Ihre Organisation und werden nicht zum Training der KI verwendet. Kein externer Anbieter hat Zugriff auf Ihre Daten.
 
-FreiKI besteht aus mehreren Werkzeugen, die Sie je nach Aufgabe einzeln auswählen. Die Auswahl erfolgt über die Seitenleiste links.
+KorKI besteht aus mehreren Werkzeugen, die Sie je nach Aufgabe einzeln auswählen. Die Auswahl erfolgt über die Seitenleiste links.
 
 ---
 
 ## 2. Zugang und Installation
 
-FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser: Chrome, Edge, Firefox, Safari (aktuell).
+KorKI läuft im Browser – keine Installation notwendig. Unterstützte Browser: Chrome, Edge, Firefox, Safari (aktuell).
 
-**Als App installieren (empfohlen):** FreiKI kann auf Smartphones, Tablets und Desktop-PCs als App installiert werden (PWA). Öffnen Sie FreiKI im Browser und wählen Sie im Browser-Menü „Zum Startbildschirm hinzufügen" (iOS/Android) bzw. das Installations-Symbol in der Adressleiste (Chrome/Edge am PC).
+**Als App installieren (empfohlen):** KorKI kann auf Smartphones, Tablets und Desktop-PCs als App installiert werden (PWA). Öffnen Sie KorKI im Browser und wählen Sie im Browser-Menü „Zum Startbildschirm hinzufügen" (iOS/Android) bzw. das Installations-Symbol in der Adressleiste (Chrome/Edge am PC).
 
 **Anmeldung:** Benutzername und Passwort erhalten Sie von Ihrer IT-Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Schloss-Symbol unten links in der Seitenleiste).
 
@@ -32,7 +32,7 @@ Freies Gespräch mit dem lokalen Sprachmodell. Geeignet für:
 - Einfache Berechnungen und Strukturierungsaufgaben
 - Erste Orientierung bei unbekannten Themen
 
-**Datei hochladen:** Klicken Sie auf das 📎-Symbol, um ein Dokument (PDF, DOCX, TXT, Bild) hochzuladen. FreiKI liest den Inhalt und bezieht ihn in die Antwort ein.
+**Datei hochladen:** Klicken Sie auf das 📎-Symbol, um ein Dokument (PDF, DOCX, TXT, Bild) hochzuladen. KorKI liest den Inhalt und bezieht ihn in die Antwort ein.
 
 **Wichtig:** Der Chat hat keinen Internetzugang. Für aktuelle Informationen nutzen Sie den Modus „Web-Recherche".
 
@@ -43,10 +43,10 @@ Freies Gespräch mit dem lokalen Sprachmodell. Geeignet für:
 Lädt eine Datei oder ein Foto und fasst den Inhalt strukturiert zusammen.
 
 - **Unterstützte Formate:** PDF, DOCX, TXT, Bilder (JPG, PNG), Scans
-- **Texterkennung (OCR):** Bei Bildern und Scans erkennt FreiKI zunächst den Text und gibt ihn aus – danach folgt die Zusammenfassung
+- **Texterkennung (OCR):** Bei Bildern und Scans erkennt KorKI zunächst den Text und gibt ihn aus – danach folgt die Zusammenfassung
 - **Automatische Schwerpunkte:** Bei Bewilligungsbescheiden: Betrag, Zeitraum, Bedingungen, Fristen. Bei E-Mails: Kernanliegen und Handlungsbedarf. Bei Fachartikeln: Kernaussagen und Schlussfolgerungen
 
-**So verwenden Sie es:** Wählen Sie den Modus, klicken Sie auf 📎, laden Sie die Datei hoch und drücken Sie Senden. Eine weitere Eingabe ist nicht notwendig – FreiKI beginnt sofort mit der Zusammenfassung.
+**So verwenden Sie es:** Wählen Sie den Modus, klicken Sie auf 📎, laden Sie die Datei hoch und drücken Sie Senden. Eine weitere Eingabe ist nicht notwendig – KorKI beginnt sofort mit der Zusammenfassung.
 
 ---
 
@@ -59,7 +59,7 @@ Lädt eine Datei oder ein Foto und fasst den Inhalt strukturiert zusammen.
 - Behält Stil und Struktur des Originals bei
 - Bei Fachtexten werden korrekte deutsche Fachbegriffe verwendet
 
-**Anwendungsbeispiel:** Foto eines fremdsprachigen Beipackzettels hochladen → FreiKI erkennt den Text und liefert die deutsche Übersetzung.
+**Anwendungsbeispiel:** Foto eines fremdsprachigen Beipackzettels hochladen → KorKI erkennt den Text und liefert die deutsche Übersetzung.
 
 ---
 
@@ -69,7 +69,7 @@ Lädt eine Datei oder ein Foto und fasst den Inhalt strukturiert zusammen.
 
 - Über 100 Sprachen verfügbar
 - Text direkt eingeben oder Datei hochladen
-- Wenn die Zielsprache nicht klar ist, fragt FreiKI nach
+- Wenn die Zielsprache nicht klar ist, fragt KorKI nach
 
 **Anwendungsbeispiel:** Einen Informationsbrief auf Arabisch oder Tagalog übersetzen, um ihn an Mitarbeitende oder Klienten mit anderen Muttersprachen weiterzugeben.
 
@@ -77,13 +77,13 @@ Lädt eine Datei oder ein Foto und fasst den Inhalt strukturiert zusammen.
 
 ### 3.5 Wissenssuche
 
-Suche in den für Sie freigegebenen internen Wissensbereichen. FreiKI durchsucht die hinterlegten Dokumente (Richtlinien, Handbücher, Gesetze, interne Prozesse) und antwortet mit konkreter Quellenangabe.
+Suche in den für Sie freigegebenen internen Wissensbereichen. KorKI durchsucht die hinterlegten Dokumente (Richtlinien, Handbücher, Gesetze, interne Prozesse) und antwortet mit konkreter Quellenangabe.
 
 - Nur Wissensbereiche, die Ihre Administration für Sie freigegeben hat, sind sichtbar
-- FreiKI antwortet ausschließlich auf Basis der hinterlegten Dokumente
+- KorKI antwortet ausschließlich auf Basis der hinterlegten Dokumente
 - Quellenangabe zeigt, aus welchem Dokument/Abschnitt die Antwort stammt
 
-**Anwendungsbeispiel:** „Was muss ich tun, wenn ein Bewohner stürzt?" → FreiKI durchsucht die internen Dienstanweisungen und zeigt die genauen Handlungsschritte mit Quellenangabe.
+**Anwendungsbeispiel:** „Was muss ich tun, wenn ein Bewohner stürzt?" → KorKI durchsucht die internen Dienstanweisungen und zeigt die genauen Handlungsschritte mit Quellenangabe.
 
 ---
 
@@ -97,7 +97,7 @@ Erstellt professionelle Dokumente auf Basis Ihrer Angaben. Geeignet für:
 - Mitarbeiter- und Praktikantenbeurteilungen
 - Verlaufsberichte und Pflegedokumentationen
 
-**Ablauf:** FreiKI fragt zunächst nach dem Dokumenttyp (falls nicht angegeben) und dann gezielt nach den benötigten Informationen. Sie können auch eine Vorlage oder Rohnotizen als Datei hochladen.
+**Ablauf:** KorKI fragt zunächst nach dem Dokumenttyp (falls nicht angegeben) und dann gezielt nach den benötigten Informationen. Sie können auch eine Vorlage oder Rohnotizen als Datei hochladen.
 
 ---
 
@@ -110,7 +110,7 @@ Analysiert und vergleicht mehrere Dokumente in einem Schritt.
 - Erstellt zunächst eine Kurzzusammenfassung jedes Dokuments, dann eine übergreifende Zusammenfassung mit Gemeinsamkeiten und Unterschieden
 - Sie können auch konkrete Fragen zu den hochgeladenen Dokumenten stellen
 
-**Anwendungsbeispiel:** Drei Gutachten zu einem Klienten hochladen → FreiKI liefert einen Gesamtüberblick und beantwortet Fragen wie „Welches Gutachten empfiehlt stationäre Betreuung?"
+**Anwendungsbeispiel:** Drei Gutachten zu einem Klienten hochladen → KorKI liefert einen Gesamtüberblick und beantwortet Fragen wie „Welches Gutachten empfiehlt stationäre Betreuung?"
 
 ---
 
@@ -134,7 +134,7 @@ Sucht aktuelle Informationen im Internet und fasst die Ergebnisse zusammen.
 - Ausgabe immer auf Deutsch, unabhängig von der Eingabesprache
 - Funktioniert mit eingetipptem Text und mit hochgeladenen Dateien
 
-**Anwendungsbeispiel:** Amtsbrief zur Betreuungsplanänderung eingeben → FreiKI erstellt eine Version, die Klienten mit kognitiven Einschränkungen selbst lesen können.
+**Anwendungsbeispiel:** Amtsbrief zur Betreuungsplanänderung eingeben → KorKI erstellt eine Version, die Klienten mit kognitiven Einschränkungen selbst lesen können.
 
 ---
 
@@ -151,7 +151,7 @@ Durchsucht das interne Dokumentenarchiv nach archivierten Dokumenten.
 
 ### 3.11 Transkription und Sprachausgabe
 
-**Transkription (Audio → Text):** Nehmen Sie eine Audiodatei mit einer geeigneten App auf Ihrem Gerät auf und laden Sie sie anschließend über das 📎-Symbol hoch. FreiKI transkribiert die Aufnahme und gibt den Text aus.
+**Transkription (Audio → Text):** Nehmen Sie eine Audiodatei mit einer geeigneten App auf Ihrem Gerät auf und laden Sie sie anschließend über das 📎-Symbol hoch. KorKI transkribiert die Aufnahme und gibt den Text aus.
 
 Geeignete Aufnahme-Apps:
 - **iOS/iPadOS:** Sprachmemos (vorinstalliert)
@@ -189,12 +189,12 @@ Erstellt druckbare Tagespläne mit Piktogrammen.
 
 Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner Team-Chat bereit.
 
-> ⚠️ **Wichtig:** Melden Sie sich im Team-Chat **nicht** mit E-Mail und Passwort an. Verwenden Sie ausschließlich den **GitLab-Button** auf der Anmeldeseite. Nur so funktioniert die Single-Sign-On-Verbindung zu FreiKI korrekt.
+> ⚠️ **Wichtig:** Melden Sie sich im Team-Chat **nicht** mit E-Mail und Passwort an. Verwenden Sie ausschließlich den **GitLab-Button** auf der Anmeldeseite. Nur so funktioniert die Single-Sign-On-Verbindung zu KorKI korrekt.
 
-- **FreiKI direkt im Chat nutzen:** Sie können FreiKI auf zwei Arten in einem Kanal ansprechen:
-  - **`@freiki Ihre Frage`** — FreiKI antwortet im Kanal, für alle Teilnehmenden sichtbar. Ideal für Fragen, von deren Antwort das ganze Team profitiert.
-  - **`/freiki Ihre Frage`** — FreiKI antwortet nur für Sie sichtbar (private Antwort). Geeignet für persönliche Anfragen.
-- **Wissensbereiche:** FreiKI durchsucht dabei dieselben freigegebenen Wissensbereiche wie in der App.
+- **KorKI direkt im Chat nutzen:** Sie können KorKI auf zwei Arten in einem Kanal ansprechen:
+  - **`@korki Ihre Frage`** — KorKI antwortet im Kanal, für alle Teilnehmenden sichtbar. Ideal für Fragen, von deren Antwort das ganze Team profitiert.
+  - **`/korki Ihre Frage`** — KorKI antwortet nur für Sie sichtbar (private Antwort). Geeignet für persönliche Anfragen.
+- **Wissensbereiche:** KorKI durchsucht dabei dieselben freigegebenen Wissensbereiche wie in der App.
 - **Datenschutz:** Alle Nachrichten verbleiben auf dem eigenen Server – keine Cloud-Abhängigkeit.
 
 ---
@@ -202,16 +202,16 @@ Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner 
 ## 6. Datenschutz und Nutzungshinweise
 
 ### Kein Gedächtnis zwischen Sitzungen
-FreiKI speichert Eingaben und Antworten nicht dauerhaft. Der Chatverlauf bleibt ausschließlich in Ihrem Browser und nur für die aktuelle Sitzung erhalten. Nach dem Schließen des Tabs oder dem Abmelden ist er unwiederbringlich gelöscht.
+KorKI speichert Eingaben und Antworten nicht dauerhaft. Der Chatverlauf bleibt ausschließlich in Ihrem Browser und nur für die aktuelle Sitzung erhalten. Nach dem Schließen des Tabs oder dem Abmelden ist er unwiederbringlich gelöscht.
 
 ### Antworten prüfen
-Wie jedes KI-System kann FreiKI Fehler machen oder Informationen erfinden (sogenannte „Halluzinationen"). Prüfen Sie wichtige Aussagen immer – insbesondere bei Zahlen, Rechtsfragen, Medikamentendosierungen oder medizinischen Fakten. FreiKI ist ein Hilfsinstrument, kein Ersatz für menschliches Urteilsvermögen.
+Wie jedes KI-System kann KorKI Fehler machen oder Informationen erfinden (sogenannte „Halluzinationen"). Prüfen Sie wichtige Aussagen immer – insbesondere bei Zahlen, Rechtsfragen, Medikamentendosierungen oder medizinischen Fakten. KorKI ist ein Hilfsinstrument, kein Ersatz für menschliches Urteilsvermögen.
 
 ### Personenbezogene Daten
-Beachten Sie die internen Richtlinien Ihrer Organisation. Auch wenn FreiKI die Daten nicht weitergibt, sollten Sie nicht mehr personenbezogene Informationen eingeben als für die jeweilige Aufgabe notwendig ist.
+Beachten Sie die internen Richtlinien Ihrer Organisation. Auch wenn KorKI die Daten nicht weitergibt, sollten Sie nicht mehr personenbezogene Informationen eingeben als für die jeweilige Aufgabe notwendig ist.
 
 ### Automatisierte Prüfung auf sensible Inhalte
-Eingaben im Chat und im Excel-Chat werden automatisiert auf bestimmte Stichworte geprüft (u. a. zu Diagnosen, Medikamenten, psychischen Erkrankungen, Sucht, Behinderung/Pflege). Bei einem Treffer wird ausschließlich protokolliert, **wer wann welches Werkzeug genutzt hat** – niemals der Inhalt der Eingabe selbst. Diese Protokollierung dient der Rechenschaftspflicht nach Art. 5 Abs. 2 und Art. 32 DSGVO sowie der Umsetzung der internen Dienstanweisung, wonach besonders schützenswerte Daten (Art. 9 DSGVO) grundsätzlich nicht in FreiKI eingegeben werden dürfen.
+Eingaben im Chat und im Excel-Chat werden automatisiert auf bestimmte Stichworte geprüft (u. a. zu Diagnosen, Medikamenten, psychischen Erkrankungen, Sucht, Behinderung/Pflege). Bei einem Treffer wird ausschließlich protokolliert, **wer wann welches Werkzeug genutzt hat** – niemals der Inhalt der Eingabe selbst. Diese Protokollierung dient der Rechenschaftspflicht nach Art. 5 Abs. 2 und Art. 32 DSGVO sowie der Umsetzung der internen Dienstanweisung, wonach besonders schützenswerte Daten (Art. 9 DSGVO) grundsätzlich nicht in KorKI eingegeben werden dürfen.
 
 Ein Log-Eintrag enthält ausschließlich diese vier Felder – niemals den Inhalt der Anfrage:
 
@@ -240,14 +240,14 @@ Welche Wissensbereiche und Werkzeuge Ihnen zur Verfügung stehen, richtet sich n
 
 ## 8. Häufige Fragen
 
-**Kann FreiKI meine Eingaben für Modell-Training verwenden?**
+**Kann KorKI meine Eingaben für Modell-Training verwenden?**
 Nein. Das Modell ist statisch und lernt nicht aus Ihren Eingaben. Es gibt keine Rückkopplung an den Modellhersteller.
 
 **Warum sehe ich bestimmte Wissensbereiche nicht?**
 Wissensbereiche werden individuell für jeden Benutzer freigeschaltet. Wenden Sie sich an Ihre Administration, wenn Sie Zugriff benötigen.
 
-**Kann ich FreiKI in meiner Muttersprache nutzen?**
-Ja. FreiKI versteht und antwortet in über 100 Sprachen. Sie müssen nicht auf Deutsch schreiben.
+**Kann ich KorKI in meiner Muttersprache nutzen?**
+Ja. KorKI versteht und antwortet in über 100 Sprachen. Sie müssen nicht auf Deutsch schreiben.
 
 **Was passiert, wenn ich eine Audiodatei hochlade?**
 Die Datei wird lokal auf dem Server transkribiert. Sie verlässt die Infrastruktur Ihrer Organisation nicht.

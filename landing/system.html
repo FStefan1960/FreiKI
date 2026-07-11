@@ -63,16 +63,19 @@
   }
   nav.top .wrap {
     display: flex; align-items: center; justify-content: space-between;
-    height: 64px;
+    gap: 24px; padding-top: 10px; padding-bottom: 10px;
   }
-  nav.top .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; text-decoration: none; }
+  nav.top .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; text-decoration: none; flex-shrink: 0; }
   nav.top .brand img { width: 28px; height: 28px; }
   nav.top .brand .frei { color: var(--fk-ink); }
   nav.top .brand .ki { color: var(--fk-primary); }
-  nav.top .links { display: flex; gap: 22px; font-size: 14px; font-weight: 600; }
+  nav.top .links {
+    display: grid; grid-template-columns: repeat(5, auto); grid-auto-flow: row;
+    column-gap: 20px; row-gap: 6px; font-size: 14px; font-weight: 600;
+  }
   nav.top .links a { text-decoration: none; color: var(--fk-text-muted); }
   nav.top .links a:hover { color: var(--fk-primary); }
-  nav.top .right { display: flex; align-items: center; gap: 14px; }
+  nav.top .right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
   .nav-cta {
     display: inline-block; background: var(--fk-primary); color: #fff;
     text-decoration: none; font-weight: 700; font-size: 13px;
@@ -345,13 +348,14 @@
       <a href="#dms">Dokumente</a>
       <a href="#agenten">Agenten</a>
       <a href="#datenschutz">Datenschutz</a>
+      <a href="#rollen">Sicherheit</a>
       <a href="#architektur">Architektur</a>
       <a href="#kosten">Kosten</a>
       <a href="#faq">FAQ</a>
     </div>
     <div class="right">
       <a class="nav-cta" href="mailto:info@freiki.com">Testzugang anfragen</a>
-      <button class="nav-toggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileMenu" onclick="var m=document.getElementById('mobileMenu');var open=m.classList.toggle('open');this.setAttribute('aria-expanded',open);">
+      <button class="nav-toggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileMenu">
         <span></span><span></span><span></span>
       </button>
     </div>
@@ -363,6 +367,7 @@
     <a href="#dms">Dokumente</a>
     <a href="#agenten">Agenten</a>
     <a href="#datenschutz">Datenschutz</a>
+    <a href="#rollen">Sicherheit</a>
     <a href="#architektur">Architektur</a>
     <a href="#kosten">Kosten</a>
     <a href="#faq">FAQ</a>
@@ -632,6 +637,21 @@
   </div>
 </section>
 
+<!-- 5b. Rollen & Sicherheit -->
+<section id="rollen">
+  <div class="wrap">
+    <span class="eyebrow">Rollen &amp; Sicherheit</span>
+    <h2 class="title">Feingranulare Rollen statt Alles-oder-nichts</h2>
+    <p class="intro">FreiKI unterscheidet zwischen Nutzerrollen mit unterschiedlichen Rechten – bis hin zu einer eigenen Rolle für Berufsgeheimnisträger:innen, deren Umgang mit besonders schützenswerten Daten rechtssicher dokumentiert wird.</p>
+    <div class="grid cols-3">
+      <div class="card"><div class="icon" aria-hidden="true">👤</div><h3>Rollenkonzept</h3><p>User, Manager, Admin sowie eine eigene Rolle für Berufsgeheimnisträger:innen (BGT) – jede mit individuell zuweisbaren Wissensbereichen und Werkzeugen.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🩺</div><h3>Eignung für Berufsgeheimnisträger</h3><p>Ärzt:innen, Seelsorge oder Beratungsstellen dürfen im Rahmen ihrer fachlichen Aufgabe eine dokumentierte Ausnahme vom sonst geltenden Verbot der Eingabe besonders schützenswerter Daten (Art. 9 DSGVO) nutzen.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">🔐</div><h3>Zwei-Faktor-Authentifizierung</h3><p>Für Admin- und BGT-Konten in Produktivinstallationen erzwingbar (TOTP, z. B. Google Authenticator). Auf diesem Testserver bewusst deaktiviert, da für einen reinen Demozugang nicht sinnvoll.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">📋</div><h3>Protokollierung ohne Inhaltszugriff</h3><p>Auffällige Anfragen können automatisiert erkannt werden. Protokolliert werden dabei ausschließlich Zeitpunkt, Benutzername, Werkzeug und Kategorie – niemals der Inhalt der Anfrage selbst.</p></div>
+    </div>
+  </div>
+</section>
+
 <!-- 6. Architektur -->
 <section id="architektur">
   <div class="wrap">
@@ -715,7 +735,7 @@
         <tr><th>Modell</th><th>Lizenz</th><th>VRAM</th><th>Deutsch</th><th>Eignung</th></tr>
       </thead>
       <tbody>
-        <tr><td class="star">Qwen 2.5-32B-AWQ ★</td><td>Apache 2.0</td><td>~24 GB</td><td>★★★★★</td><td>Sehr gute Qualität, 24-GB-GPU</td></tr>
+        <tr><td class="star">Qwen3-32B-AWQ ★</td><td>Apache 2.0</td><td>~24 GB</td><td>★★★★★</td><td>Sehr gute Qualität, 24-GB-GPU</td></tr>
         <tr><td>Qwen 2.5-14B-AWQ</td><td>Apache 2.0</td><td>~10 GB</td><td>★★★★☆</td><td>Kompromiss, kleinere GPU</td></tr>
         <tr><td>Qwen 2.5-72B-AWQ</td><td>Apache 2.0</td><td>~48 GB</td><td>★★★★★</td><td>Maximale Qualität, 2× GPU</td></tr>
         <tr><td>Llama 3.3-70B</td><td>Llama 3</td><td>~40 GB</td><td>★★★★☆</td><td>Sehr stark, weit verbreitet</td></tr>
@@ -767,14 +787,7 @@
 
 <footer class="site">FreiKI · <a href="/impressum.html" style="color:inherit;">Impressum</a></footer>
 
-<script>
-  document.getElementById('mobileMenu').addEventListener('click', function(e) {
-    if (e.target.tagName === 'A') {
-      this.classList.remove('open');
-      document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false');
-    }
-  });
-</script>
+<script src="/nav.js" defer></script>
 
 </body>
 </html>
