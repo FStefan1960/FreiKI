@@ -4,7 +4,7 @@ const { execFileSync } = require('child_process');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
 
-const TESSERACT_ARGS = ['-l', 'deu+eng', '--oem', '1', '--psm', '3'];
+const TESSERACT_ARGS = ['-l', 'deu', '--oem', '1', '--psm', '3'];
 
 // execFile statt der node-tesseract-ocr-Bibliothek (die exec() mit string-konkateniertem
 // Shell-Befehl nutzt - GHSA-8j44-735h-w4w2, Command Injection, kein Fix verfügbar). Mit
