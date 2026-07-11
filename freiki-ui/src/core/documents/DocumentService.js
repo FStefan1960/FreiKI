@@ -7,33 +7,53 @@ const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 const ocr = require('./OCRService');
 
+async function extractDocxText(filePath) {
+  const result = await mammoth.extractRawText({ path: filePath });
+  return result.value;
+}
+
+async function extractRawViaPdfParse(pdfPath) {
+  const pdfData = await pdfParse(fs.readFileSync(pdfPath));
+  return pdfData.text;
+}
+
+// extractForKB nutzt bewusst pdftotext statt pdf-parse (schnellere/robustere Extraktion
+// für den KB-Ingest-Batch-Pfad) - andere Bibliothek, daher eigene Raw-Extraktion.
+async function extractRawViaPdftotext(pdfPath) {
+  const { stdout } = await execFileAsync('pdftotext', [pdfPath, '-']);
+  return stdout;
+}
+
+// Gemeinsame OCR-Fallback-Logik: extrahiert Rohtext, prüft per isEmpty() ob das PDF
+// vermutlich keinen Textlayer hat (gescannt), und OCRt in dem Fall automatisch nach.
+// isEmpty ist parametrisiert, weil die Aufrufer unterschiedlich strenge Leer-Kriterien
+// nutzen (extractForKB ignoriert z.B. reinen Whitespace bei der Längenprüfung).
+async function extractPdfText(pdfPath, extractRaw, isEmpty, onOcrStart) {
+  const raw = (await extractRaw(pdfPath)).trim();
+  if (!isEmpty(raw)) return { text: raw, isOcr: false, pageCount: null };
+  if (onOcrStart) onOcrStart();
+  const result = await ocr.ocrPdf(pdfPath);
+  return { text: result.text, isOcr: true, pageCount: result.pageCount };
+}
+
+const isShortText = (t) => t.length < 50;
+
 // Extrahiert Text aus einer einzelnen hochgeladenen Datei (Chat-Upload).
 // Rückgabe: { text, isOcr }
 async function extractForChat(file) {
   const ext = path.extname(file.originalname).toLowerCase();
-  let text = '';
-  let isOcr = false;
 
   if (ext === '.docx') {
-    const result = await mammoth.extractRawText({ path: file.path });
-    text = result.value;
-  } else if (ext === '.pdf') {
-    const dataBuffer = fs.readFileSync(file.path);
-    const pdfData = await pdfParse(dataBuffer);
-    text = pdfData.text.trim();
-    if (text.length < 50) {
-      // Gescanntes PDF ohne Textlayer → OCR-Fallback
-      const result = await ocr.ocrPdf(file.path);
-      text = result.text;
-      isOcr = true;
-    }
-  } else if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
-    text = await ocr.ocrImage(file.path);
-    isOcr = true;
-  } else {
-    text = fs.readFileSync(file.path, 'utf-8');
+    return { text: await extractDocxText(file.path), isOcr: false };
   }
-  return { text, isOcr };
+  if (ext === '.pdf') {
+    const { text, isOcr } = await extractPdfText(file.path, extractRawViaPdfParse, isShortText);
+    return { text, isOcr };
+  }
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+    return { text: await ocr.ocrImage(file.path), isOcr: true };
+  }
+  return { text: fs.readFileSync(file.path, 'utf-8'), isOcr: false };
 }
 
 // Extrahiert Text aus mehreren Dateien für den Multidoc-Modus (Vergleichen/Zusammenfassen).
@@ -44,16 +64,9 @@ async function extractForMultidoc(files) {
     let text = '';
     try {
       if (ext === '.docx') {
-        const result = await mammoth.extractRawText({ path: f.path });
-        text = result.value;
+        text = await extractDocxText(f.path);
       } else if (ext === '.pdf') {
-        const dataBuffer = fs.readFileSync(f.path);
-        const pdfData = await pdfParse(dataBuffer);
-        text = pdfData.text.trim();
-        if (text.length < 50) {
-          const result = await ocr.ocrPdf(f.path);
-          text = result.text;
-        }
+        text = (await extractPdfText(f.path, extractRawViaPdfParse, isShortText)).text;
       } else {
         text = fs.readFileSync(f.path, 'utf-8');
       }
@@ -72,27 +85,25 @@ async function extractForMultidoc(files) {
 async function extractForKB(file, onProgress = () => {}) {
   const fname = file.originalname;
   const lower = fname.toLowerCase();
-  let text = '';
 
   if (lower.endsWith('.pdf')) {
-    const { stdout } = await execFileAsync('pdftotext', [file.path, '-']);
-    text = stdout.trim();
-    if (text.replace(/\s/g, '').length < 50) {
-      onProgress(`${fname}: kein Text gefunden – starte OCR (Tesseract)…`);
-      const result = await ocr.ocrPdf(file.path);
-      text = result.text;
-      onProgress(`${fname}: OCR abgeschlossen (${result.pageCount} Seiten).`);
-    }
-  } else if (lower.match(/\.(txt|md)$/)) {
-    text = fs.readFileSync(file.path, 'utf8');
-  } else if (lower.endsWith('.docx')) {
-    const result = await mammoth.extractRawText({ path: file.path });
-    text = result.value.trim();
-    onProgress(`${fname}: Word-Dokument extrahiert (${text.length} Zeichen).`);
-  } else {
-    return null; // nicht unterstützt
+    const { text, isOcr, pageCount } = await extractPdfText(
+      file.path, extractRawViaPdftotext,
+      (t) => t.replace(/\s/g, '').length < 50,
+      () => onProgress(`${fname}: kein Text gefunden – starte OCR (Tesseract)…`)
+    );
+    if (isOcr) onProgress(`${fname}: OCR abgeschlossen (${pageCount} Seiten).`);
+    return text;
   }
-  return text;
+  if (lower.match(/\.(txt|md)$/)) {
+    return fs.readFileSync(file.path, 'utf8');
+  }
+  if (lower.endsWith('.docx')) {
+    const text = (await extractDocxText(file.path)).trim();
+    onProgress(`${fname}: Word-Dokument extrahiert (${text.length} Zeichen).`);
+    return text;
+  }
+  return null; // nicht unterstützt
 }
 
 module.exports = { extractForChat, extractForMultidoc, extractForKB };
