@@ -2,6 +2,9 @@
   "name": "korki-ui",
   "version": "1.0.0",
   "main": "server.js",
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@negokaz/excel-mcp-server": "^0.12.0",
