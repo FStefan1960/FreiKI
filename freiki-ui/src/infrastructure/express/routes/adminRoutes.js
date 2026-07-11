@@ -190,16 +190,18 @@ router.get('/admin/config', (req, res) => {
   res.type('html').send(adminConfigPage(req.query.saved === '1'));
 });
 
-// Ab hier: alle Routen erfordern eine Admin-Session. Neue öffentliche Routen müssen
-// VOR dieser Zeile registriert werden (wie /admin/config GET oben), sonst greift
-// die Middleware auch für sie.
 function requireAdmin(req, res, next) {
   const admin = adminSession(req);
   if (!admin) return res.status(403).json({ error: 'Nur für Administratoren' });
   req.admin = admin;
   next();
 }
-router.use(requireAdmin);
+// Auf /admin und /api/admin beschränkt statt router.use(requireAdmin) ohne Pfad: dieser
+// Router hängt in app.js an der Wurzel (app.use(require('./routes/adminRoutes'))), ein
+// pfadloses .use() hätte JEDEN Request blockiert, der keine der obigen Routen matcht -
+// also auch /api/health, /api/chat etc. aus ganz anderen Routendateien.
+router.use('/admin', requireAdmin);
+router.use('/api/admin', requireAdmin);
 
 router.post('/admin/config', asyncHandler(async (req, res) => {
   try {
