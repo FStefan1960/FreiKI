@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FreiKI – Systemüberblick & Datenschutz</title>
-<meta name="description" content="FreiKI: die quelloffene, DSGVO-konforme KI-Infrastruktur auf Ihrem eigenen dedizierten Server – Chat, Wissenssuche, Übersetzung und mehr, ohne Lizenzkosten und ohne dass Daten Ihre Organisation verlassen.">
+<meta name="description" content="FreiKI: die KI-Infrastruktur auf Basis offener Komponenten für Ihren eigenen dedizierten Server – Chat, Wissenssuche, Übersetzung und mehr, ohne Lizenzkosten. Im Produktivbetrieb ohne Datenabfluss an Dritte.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="FreiKI – Ihre Daten. Ihr Server.">
-<meta property="og:description" content="Die quelloffene, DSGVO-konforme KI-Infrastruktur auf Ihrem eigenen dedizierten Server – komplett ohne Lizenzkosten.">
+<meta property="og:description" content="Die KI-Infrastruktur auf Basis offener Komponenten für Ihren eigenen dedizierten Server – komplett ohne Lizenzkosten.">
 <meta property="og:image" content="https://freiki.com/og-image.png">
 <meta property="og:url" content="https://freiki.com/system.html">
 <meta name="twitter:card" content="summary">
@@ -378,12 +378,12 @@
   <div class="wrap">
     <img class="hero-logo" src="/freiki-mark.svg" alt="FreiKI">
     <h1>Ihre Daten. Ihr Server. FreiKI.</h1>
-    <p class="lead">Die quelloffene, DSGVO-konforme KI-Infrastruktur auf Ihrem eigenen dedizierten Server – komplett ohne Lizenzkosten.</p>
+    <p class="lead">Die KI-Infrastruktur auf Basis offener Komponenten für Ihren eigenen dedizierten Server – komplett ohne Lizenzkosten.</p>
     <div class="badge-row">
       <span class="badge"><span aria-hidden="true">🇩🇪</span> Server in Deutschland</span>
-      <span class="badge"><span aria-hidden="true">🔒</span> DSGVO / DSG-EKD-konform</span>
-      <span class="badge"><span aria-hidden="true">🧠</span> Lokales LLM</span>
-      <span class="badge"><span aria-hidden="true">⚙️</span> Open Source</span>
+      <span class="badge"><span aria-hidden="true">🔒</span> Für DSGVO-/DSG-EKD-konformen Betrieb ausgelegt</span>
+      <span class="badge"><span aria-hidden="true">🧠</span> Lokales LLM im Produktivbetrieb</span>
+      <span class="badge"><span aria-hidden="true">⚙️</span> Offene Komponenten</span>
     </div>
     <a class="hero-cta-box" href="mailto:info@freiki.com">
       <span class="icon" aria-hidden="true">✉️</span>
@@ -393,6 +393,9 @@
       </span>
       <span class="arrow" aria-hidden="true">→</span>
     </a>
+    <p class="contact-hint" style="max-width:560px;margin-left:auto;margin-right:auto;background:#FFF8E6;border:1px solid #F0D999;color:#7A5A0F;border-radius:12px;padding:12px 16px;text-align:left;">
+      <strong>Hinweis zum Testzugang:</strong> Der öffentliche Testserver nutzt zur Veranschaulichung ein Sprachmodell eines externen Anbieters (DeepInfra) statt eines lokalen LLMs – anders als im produktiven Betrieb, der vollständig auf Ihrer eigenen Infrastruktur läuft. Bitte geben Sie im Testzugang keine echten, vertraulichen oder personenbezogenen Daten ein.
+    </p>
     <p class="contact-hint">Öffnet sich bei Ihnen kein Mail-Programm? Adresse direkt: <a href="mailto:info@freiki.com">info@freiki.com</a></p>
   </div>
 </header>
@@ -538,7 +541,7 @@
   </div>
 </section>
 
-<div class="contact-strip">Lust, FreiKI live zu testen? Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver.</div>
+<div class="contact-strip">Lust, FreiKI live zu testen? Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver (externes Sprachmodell, siehe Hinweis oben).</div>
 
 <!-- 3b2. Paperless DMS -->
 <section id="dms">
@@ -559,8 +562,8 @@
       </div>
       <div class="card">
         <div class="icon" aria-hidden="true">🔒</div>
-        <h3>Dokumente verlassen Ihr Haus nicht</h3>
-        <p>Weder für die Texterkennung noch für die KI-Analyse wird ein externer Dienst genutzt. Alles läuft auf Ihrer Infrastruktur – DSGVO-konform und ohne Cloudabhängigkeit.</p>
+        <h3>Dokumente bleiben im Produktivbetrieb im Haus</h3>
+        <p>Im produktiven Betrieb wird weder für die Texterkennung noch für die KI-Analyse ein externer Dienst genutzt – alles läuft auf Ihrer Infrastruktur. (Der öffentliche Testserver nutzt zur Veranschaulichung ein externes Sprachmodell, siehe Hinweis oben.)</p>
       </div>
     </div>
   </div>
@@ -586,7 +589,7 @@
       <div class="card">
         <div class="icon" aria-hidden="true">🤖</div>
         <h3>FreiKI-Bot direkt im Chat</h3>
-        <p>Die KI ist mitten im Team-Gespräch erreichbar – Antworten inklusive Quellenangaben aus den internen Wissensbereichen, ohne dass Ihre Fragen das Haus verlassen.</p>
+        <p>Die KI ist mitten im Team-Gespräch erreichbar – Antworten inklusive Quellenangaben aus den internen Wissensbereichen. Im produktiven Betrieb verlassen Ihre Fragen dabei nicht das Haus.</p>
       </div>
     </div>
   </div>
@@ -642,7 +645,7 @@
   <div class="wrap">
     <span class="eyebrow">Rollen &amp; Sicherheit</span>
     <h2 class="title">Feingranulare Rollen statt Alles-oder-nichts</h2>
-    <p class="intro">FreiKI unterscheidet zwischen Nutzerrollen mit unterschiedlichen Rechten – bis hin zu einer eigenen Rolle für Berufsgeheimnisträger:innen, deren Umgang mit besonders schützenswerten Daten rechtssicher dokumentiert wird.</p>
+    <p class="intro">FreiKI unterscheidet zwischen Nutzerrollen mit unterschiedlichen Rechten – bis hin zu einer eigenen Rolle für Berufsgeheimnisträger:innen, deren Umgang mit besonders schützenswerten Daten nachvollziehbar protokolliert wird.</p>
     <div class="grid cols-3">
       <div class="card"><div class="icon" aria-hidden="true">👤</div><h3>Rollenkonzept</h3><p>User, Manager, Admin sowie eine eigene Rolle für Berufsgeheimnisträger:innen (BGT) – jede mit individuell zuweisbaren Wissensbereichen und Werkzeugen.</p></div>
       <div class="card"><div class="icon" aria-hidden="true">🩺</div><h3>Eignung für Berufsgeheimnisträger</h3><p>Ärzt:innen, Seelsorge oder Beratungsstellen dürfen im Rahmen ihrer fachlichen Aufgabe eine dokumentierte Ausnahme vom sonst geltenden Verbot der Eingabe besonders schützenswerter Daten (Art. 9 DSGVO) nutzen.</p></div>
@@ -683,7 +686,7 @@
 <section id="kosten" class="tint">
   <div class="wrap">
     <span class="eyebrow">Lizenz &amp; Betrieb</span>
-    <h2 class="title">Open Source – Sie selbst sind der Betreiber</h2>
+    <h2 class="title">Offene Komponenten – Sie selbst sind der Betreiber</h2>
     <p class="intro">Alle Bausteine von FreiKI sind frei verfügbar. Sie sind nicht an einen einzelnen Anbieter gebunden und ihm damit nicht ausgeliefert – es gibt viele Dienstleister, die Sie bei Wartung und Anpassung unterstützen können. Die einzigen laufenden Kosten sind Server und GPU.</p>
     <div class="stats" style="margin-bottom: 36px;">
       <div><div class="num">0 €</div><div class="label">Lizenzkosten</div></div>
@@ -747,7 +750,7 @@
   </div>
 </section>
 
-<div class="contact-strip">Lust, FreiKI live zu testen? Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver.</div>
+<div class="contact-strip">Lust, FreiKI live zu testen? Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver (externes Sprachmodell, siehe Hinweis oben).</div>
 
 <!-- 9. FAQ -->
 <section id="faq" class="tint">
@@ -756,7 +759,7 @@
     <h2 class="title">Was Skeptiker fragen – und unsere Antworten</h2>
     <details class="faq" open>
       <summary><span class="q">Q</span> Ist das wirklich so gut wie ChatGPT?</summary>
-      <p>Für interne Zwecke: ja. Was Sie gewinnen, ist vollständiger Datenschutz. Was Sie eventuell aufgeben, sind die allerneuesten Web-Informationen.</p>
+      <p>Für interne Zwecke: ja. Im Produktivbetrieb gewinnen Sie einen DSGVO-konformen Betrieb ohne Datenabfluss an Dritte. Was Sie eventuell aufgeben, sind die allerneuesten Web-Informationen.</p>
     </details>
     <details class="faq">
       <summary><span class="q">Q</span> Lernt die KI aus unseren Daten?</summary>
@@ -778,10 +781,10 @@
   <div class="wrap closing">
     <span class="eyebrow">FreiKI</span>
     <h2>Datenschutz, Unabhängigkeit und volle Kontrolle – KI in Ihrer eigenen Organisation.</h2>
-    <p class="sub">Bei Interesse Anfrage an <a href="mailto:info@freiki.com" style="color:#fff; text-decoration: underline;">info@freiki.com</a>. Dann bekommen Sie ein Passwort für den Testserver.</p>
+    <p class="sub">Bei Interesse Anfrage an <a href="mailto:info@freiki.com" style="color:#fff; text-decoration: underline;">info@freiki.com</a>. Dann bekommen Sie ein Passwort für den Testserver (nutzt ein externes Sprachmodell zur Veranschaulichung, siehe Hinweis oben – anders als im Produktivbetrieb).</p>
     <a class="cta" href="mailto:info@freiki.com">Zugang anfragen →</a>
     <p class="sub" style="margin-top:14px; font-size: 13px;">Adresse direkt: info@freiki.com</p>
-    <div class="tags">Deutscher Server · DSGVO/DSG-EKD-konform · Ohne Lizenzrisiken · Open Source</div>
+    <div class="tags">Deutscher Server · Für DSGVO-/DSG-EKD-konformen Betrieb ausgelegt · Ohne Lizenzrisiken · Offene Komponenten</div>
   </div>
 </section>
 

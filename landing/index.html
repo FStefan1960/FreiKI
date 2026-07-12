@@ -52,7 +52,19 @@
       padding: 8px 18px;
       font-size: 13px;
       font-weight: 600;
-      margin-bottom: 36px;
+      margin-bottom: 20px;
+    }
+    .demo-note {
+      background: #FFF8E6;
+      border: 1px solid #F0D999;
+      color: #7A5A0F;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 480px;
+      margin-bottom: 28px;
+      text-align: left;
     }
     .cta {
       display: inline-block;
@@ -88,11 +100,14 @@
 <body>
   <img class="logo" src="/freiki-mark.svg" alt="FreiKI">
   <h1><span class="frei">Frei</span><span class="ki">KI</span></h1>
-  <p class="lead">Der quelloffene, DSGVO-konforme KI-Assistent, der bei Ihnen auf einem dedizierten Server läuft – Ihre Daten verlassen nie Ihre Organisation.</p>
-  <div class="badge">🔒 DSGVO · DSG-EKD · EU · Open Source</div>
+  <p class="lead">Der KI-Assistent auf Basis offener Komponenten – im Produktivbetrieb läuft er auf einem dedizierten Server in Ihrer Organisation und unterstützt einen DSGVO-konformen Einsatz.</p>
+  <div class="badge">🔒 Selbst gehostet · EU-Server</div>
+  <div class="demo-note">
+    <strong>Hinweis zum Testzugang:</strong> Der öffentliche Testserver nutzt zur Veranschaulichung ein Sprachmodell eines externen Anbieters (DeepInfra) statt eines lokalen LLMs – anders als im produktiven Betrieb. Bitte keine echten, vertraulichen oder personenbezogenen Daten eingeben.
+  </div>
   <a class="cta" href="/system.html">Mehr erfahren →</a>
   <p class="contact-hint" style="margin-top:10px;"><a href="https://chat.freiki.com" style="color:var(--fk-primary);font-weight:600;text-decoration:none;">💬 Team-Chat öffnen</a></p>
-  <p class="contact-hint">Bei Interesse Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver.</p>
+  <p class="contact-hint">Bei Interesse Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver (siehe Hinweis oben).</p>
   <footer>FreiKI · <a href="/impressum.html" style="color:inherit;">Impressum</a></footer>
 </body>
 </html>
