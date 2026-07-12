@@ -29,7 +29,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Token REDACTED-ROTATED-TOKEN"
+              "value": "=Token {{$env.PAPERLESS_TOKEN}}"
             }
           ]
         },

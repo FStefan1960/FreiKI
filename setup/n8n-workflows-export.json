@@ -59,7 +59,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -96,7 +96,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -310,7 +310,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.MATTERMOST_BOT_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -455,7 +455,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -478,7 +478,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -501,7 +501,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -524,7 +524,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -574,7 +574,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.VLLM_API_KEY}}"
               },
               {
                 "name": "Content-Type",
@@ -620,7 +620,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -665,7 +665,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -769,7 +769,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -840,7 +840,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -891,7 +891,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.MATTERMOST_BOT_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -1275,7 +1275,7 @@
             "parameters": [
               {
                 "name": "X-API-Key",
-                "value": "REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.BOT_API_KEY}}"
               },
               {
                 "name": "Content-Type",
@@ -1306,7 +1306,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.MATTERMOST_BOT_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -1432,7 +1432,7 @@
             "parameters": [
               {
                 "name": "X-API-Key",
-                "value": "REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.BOT_API_KEY}}"
               },
               {
                 "name": "Content-Type",
@@ -1463,7 +1463,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.MATTERMOST_BOT_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -1645,7 +1645,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -1668,7 +1668,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -1705,7 +1705,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.MATTERMOST_BOT_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -1893,7 +1893,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -1916,7 +1916,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               }
             ]
           },
@@ -1984,7 +1984,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Token REDACTED-ROTATED-TOKEN"
+                "value": "=Token {{$env.PAPERLESS_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -2028,7 +2028,7 @@
             "parameters": [
               {
                 "name": "Authorization",
-                "value": "Bearer REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.MATTERMOST_BOT_TOKEN}}"
               },
               {
                 "name": "Content-Type",
@@ -2223,7 +2223,7 @@
             "parameters": [
               {
                 "name": "X-API-Key",
-                "value": "REDACTED-ROTATED-TOKEN"
+                "value": "={{$env.BOT_API_KEY}}"
               },
               {
                 "name": "Content-Type",

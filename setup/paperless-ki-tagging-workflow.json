@@ -21,7 +21,7 @@
         "url": "http://paperless:8000/api/tags/?page_size=200",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+          "parameters": [{ "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" }]
         },
         "options": {}
       }
@@ -36,7 +36,7 @@
         "url": "http://paperless:8000/api/correspondents/?page_size=200",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+          "parameters": [{ "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" }]
         },
         "options": {}
       }
@@ -51,7 +51,7 @@
         "url": "http://paperless:8000/api/document_types/?page_size=200",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+          "parameters": [{ "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" }]
         },
         "options": {}
       }
@@ -66,7 +66,7 @@
         "url": "={{ 'http://paperless:8000/api/documents/?tags__id__all=' + (($('Tags holen').first().json.results || []).find(t => t.name === 'not-yet-tagged') || {}).id + '&page_size=25&ordering=created' }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }]
+          "parameters": [{ "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" }]
         },
         "options": {}
       }
@@ -101,7 +101,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer REDACTED-ROTATED-TOKEN" },
+            { "name": "Authorization", "value": "={{$env.VLLM_API_KEY}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -134,7 +134,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" },
+            { "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -167,7 +167,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" },
+            { "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -237,7 +237,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" },
+            { "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -289,7 +289,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Token REDACTED-ROTATED-TOKEN" }
+            { "name": "Authorization", "value": "=Token {{$env.PAPERLESS_TOKEN}}" }
           ]
         },
         "sendBody": true,

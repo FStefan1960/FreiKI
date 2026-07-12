@@ -21,7 +21,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-API-Key", "value": "REDACTED-ROTATED-TOKEN" },
+            { "name": "X-API-Key", "value": "={{$env.BOT_API_KEY}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -43,7 +43,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer REDACTED-ROTATED-TOKEN" },
+            { "name": "Authorization", "value": "={{$env.MATTERMOST_BOT_TOKEN}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
