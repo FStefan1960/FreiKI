@@ -41,6 +41,10 @@ Neuer Backend-Endpoint **`POST /api/bot-chat`** in `server.js`:
 
 **Slash-Command `/freiki` – umgesetzt:** Die Verkabelung Mattermost ↔ n8n ↔ `/api/bot-chat` ist fertig. Da Mattermost eine sofortige Antwort < 3 Sekunden erwartet, antwortet n8n zunächst mit einer kurzen Bestätigung („FreiKI denkt nach…") und liefert die eigentliche LLM-Antwort anschließend asynchron über die `response_url` nach.
 
+Der Slash-Command in Mattermost selbst (System Console → Integrations → Slash Commands) zeigt auf den **internen** Docker-Hostnamen `http://n8n:5678/webhook/freiki-bot` (kein öffentlicher DNS-Eintrag für `n8n.freiki.com` gewollt/vorhanden). Der n8n-Workflow ruft `/api/bot-chat` ebenfalls intern über `http://FreiKI:3000/api/bot-chat` auf (nicht über `app.freiki.com`/Caddy). Der letzte Node ("Antwort an Mattermost-Channel") postet an die von Mattermost mitgelieferte `response_url` (`https://chat.freiki.com/hooks/commands/...`) und braucht dafür `Authorization: Bearer {{$env.MATTERMOST_BOT_TOKEN}}` – ohne diesen Header lehnt Mattermost den Callback mit 403 ab.
+
+**Bekannte Falle beim Debuggen:** Direkte SQL-Änderungen an `workflow_entity.nodes` einer **aktiven** n8n-Workflow werden nicht sofort übernommen – ein Toggle über die REST-API (`/activate`/`/deactivate`) reicht nicht aus, die Ausführung nutzte danach nachweislich noch die alten Node-Parameter. Nur ein vollständiger `docker restart n8n` erzwingt das Neuladen aus der DB.
+
 **@-Erwähnung `@freiki` – umgesetzt:** Zusätzlich zum Slash-Command kann FreiKI in jedem Kanal per `@freiki Frage` angesprochen werden. Die Antwort erscheint direkt im Kanal (kein Thread).
 
 **Technische Umsetzung:**

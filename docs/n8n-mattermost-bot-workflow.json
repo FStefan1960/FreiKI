@@ -30,11 +30,11 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://freiki-ui:3000/api/bot-chat",
+        "url": "http://FreiKI:3000/api/bot-chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "X-API-Key", "value": "BITTE_HIER_BOT_API_KEY_EINTRAGEN" },
+            { "name": "X-API-Key", "value": "={{$env.BOT_API_KEY}}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -53,6 +53,12 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $('Mattermost Slash-Command Webhook').item.json.body.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$env.MATTERMOST_BOT_TOKEN}}" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"response_type\": \"in_channel\",\n  \"text\": {{ JSON.stringify($json.answer) }}\n}",
