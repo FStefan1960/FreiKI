@@ -30,12 +30,18 @@ eingebundenen Programmen richten sich weiterhin nach deren jeweiligen Lizenzen.
 8. Bei Änderungen an AGPL-Komponenten den geänderten korrespondierenden Quellcode
    den Netzwerknutzern kostenlos anbieten.
 
+## Lizenz des FreiKI-Eigencodes
+
+Seit 12.07.2026 liegt eine [`LICENSE`](../LICENSE) im Repository-Root: **GNU Affero General
+Public License v3.0 or later (AGPL-3.0-or-later)**, Copyright Frank Stefan. Damit gilt der
+FreiKI-Eigencode als Open Source im Sinne der AGPL — wichtigste Konsequenz für den Betrieb:
+**wer eine modifizierte Version über ein Netzwerk (z. B. als installierte Instanz) öffentlich
+zugänglich macht, muss den Nutzern dieser Instanz den zugehörigen, geänderten Quellcode
+anbieten** (Abschnitt 13 AGPLv3). Installation, Branding, Hosting und Support bleiben
+unabhängig davon Dienstleistungen, die separat vertraglich geregelt werden können.
+
 ## Vor einer Kundenübergabe noch zu entscheiden
 
-- **FreiKI-Eigencode:** Im Repository ist derzeit keine `LICENSE` hinterlegt. Bis zur
-  Lizenzentscheidung gilt der Code nicht als Open Source. Für jede Übergabe ist daher eine
-  ausdrückliche Nutzungsvereinbarung erforderlich. Vorgeschlagen ist
-  `AGPL-3.0-or-later`.
 - **ARASAAC:** Die Piktogramme stehen unter `CC BY-NC-SA 4.0`. Vor Einbindung in eine
   entgeltlich installierte oder vertriebsnahe Instanz ist eine schriftliche Genehmigung für
   den konkreten Einsatz einzuholen oder das Modul zu deaktivieren.

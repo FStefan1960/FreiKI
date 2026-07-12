@@ -24,7 +24,10 @@ function getIndexHtml() {
     .replace(/\{\{MATTERMOST_URL\}\}/g,    brand.mattermostUrl)
     .replace(/\{\{DEMO_MODE\}\}/g,         brand.demoMode ? '' : 'display:none')
     .replace(/\{\{FOOTER_NOTE\}\}/g,       brand.footerNote || brand.name)
-    .replace(/\{\{APP_VERSION\}\}/g,       GIT_VERSION);
+    .replace(/\{\{APP_VERSION\}\}/g,       GIT_VERSION)
+    .replace(/\{\{AGPL_SOURCE_NOTICE\}\}/g, brand.supportEmail
+      ? `Lizenz: AGPL-3.0-or-later · Quellcode auf Anfrage: ${brand.supportEmail}`
+      : 'Lizenz: AGPL-3.0-or-later · Quellcode auf Anfrage beim Betreiber');
 }
 
 router.get('/', (_req, res) => res.type('html').send(getIndexHtml()));
