@@ -16,24 +16,28 @@ const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const router = express.Router();
 
 // ── Admin: editierbare Konfigurations-Seite ──────────────────
+// Die Seite selbst (GET) bleibt öffentlich erreichbar (ein Browser-GET kann keinen
+// Authorization-Header mitschicken), rendert aber KEINE Konfigurationswerte mehr
+// server-seitig - die lädt load() erst per authentifiziertem fetch() nach. So bleibt
+// mattermostUrl/paperlessUrl etc. tatsächlich hinter requireAdmin, ohne dass die Seite
+// für normale Browser-Navigation unerreichbar wird (siehe requireAdmin-Kommentar unten).
 function adminConfigPage(saved) {
-  const b = getBrandConfig();
-  const field = (key, label, val, type = 'text') => {
+  const field = (key, label, type = 'text') => {
     const isColor = type === 'color';
     return `
     <div class="field">
       <label for="${key}">${label}</label>
       <div class="input-row">
-        ${isColor ? `<input type="color" id="${key}_picker" value="${val}"
+        ${isColor ? `<input type="color" id="${key}_picker" value="#000000"
           oninput="document.getElementById('${key}').value=this.value;preview()">` : ''}
-        <input type="text" id="${key}" name="${key}" value="${val.replace(/"/g, '&quot;')}"
+        <input type="text" id="${key}" name="${key}" value=""
           ${isColor ? `oninput="document.getElementById('${key}_picker').value=this.value;preview()"` : ''}>
       </div>
     </div>`;
   };
   return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${b.name} – Konfiguration</title>
+<title>Konfiguration</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:system-ui,sans-serif;margin:0;background:#f4f6fa;color:#15294a}
@@ -67,34 +71,35 @@ a.back:hover{color:#1f54c0}
 </style></head><body>
 <div style="max-width:960px;margin:24px auto;padding:0 24px">
   <a href="/" class="back">← Zurück zur App</a>
-  <h1 id="pv-name">${b.name}</h1>
+  <h1 id="pv-name">Instanz-Konfiguration</h1>
   <p class="sub">Instanz-Konfiguration · Änderungen werden sofort aktiv, kein Neustart erforderlich</p>
   ${saved ? '<div class="toast show">Konfiguration gespeichert.</div>' : ''}
+  <div id="auth-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
 </div>
-<div class="wrap">
+<div class="wrap" id="config-wrap" style="display:none">
   <form id="config-form" onsubmit="return save(event)">
     <div class="card" style="margin-bottom:20px">
       <h2>Identität</h2>
-      ${field('name',    'App-Name (z. B. FreiKI, EvaKI, KorKI)', b.name)}
-      ${field('tagline', 'Untertitel',                              b.tagline)}
-      ${field('logo',    'Logo-Pfad oder URL',                     b.logo)}
-      ${field('supportEmail', 'Support-E-Mail (optional)',         b.supportEmail)}
+      ${field('name',    'App-Name (z. B. FreiKI, EvaKI, KorKI)')}
+      ${field('tagline', 'Untertitel')}
+      ${field('logo',    'Logo-Pfad oder URL')}
+      ${field('supportEmail', 'Support-E-Mail (optional)')}
     </div>
     <div class="card" style="margin-bottom:20px">
       <h2>Farben</h2>
-      ${field('color',       'Primärfarbe',          b.color,       'color')}
-      ${field('colorHover',  'Hover-Farbe',          b.colorHover,  'color')}
-      ${field('colorActive', 'Aktiv-Farbe',          b.colorActive, 'color')}
-      ${field('navy',        'Header-/Footer-Farbe', b.navy,        'color')}
+      ${field('color',       'Primärfarbe',          'color')}
+      ${field('colorHover',  'Hover-Farbe',          'color')}
+      ${field('colorActive', 'Aktiv-Farbe',          'color')}
+      ${field('navy',        'Header-/Footer-Farbe', 'color')}
     </div>
     <div class="card" style="margin-bottom:20px">
       <h2>Verknüpfte Dienste</h2>
-      ${field('mattermostUrl', 'Mattermost-URL', b.mattermostUrl)}
-      ${field('paperlessUrl',  'Paperless-URL',  b.paperlessUrl)}
+      ${field('mattermostUrl', 'Mattermost-URL')}
+      ${field('paperlessUrl',  'Paperless-URL')}
     </div>
     <div class="card">
       <h2>Service Worker</h2>
-      ${field('swVersion', 'Cache-Version (bei Farbwechsel +1)', b.swVersion)}
+      ${field('swVersion', 'Cache-Version (bei Farbwechsel +1)')}
       <p style="font-size:12px;color:#5a6b82;margin:4px 0 12px">Wenn Farben oder Logo geändert werden, diese Zahl um 1 erhöhen, damit der Browser-Cache geleert wird.</p>
       <div id="save-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
       <button type="submit" class="btn-save" id="save-btn">Speichern</button>
@@ -105,7 +110,7 @@ a.back:hover{color:#1f54c0}
     <div class="card">
       <h2>Live-Vorschau</h2>
       <div class="preview-header" id="pv-header">
-        <img id="pv-logo" src="${b.logo}" alt="${b.name}" onerror="this.style.display='none'">
+        <img id="pv-logo" src="" alt="" onerror="this.style.display='none'">
       </div>
       <div class="preview-body">
         <div id="pv-tagline" class="preview-tagline">${b.tagline}</div>
@@ -126,7 +131,7 @@ a.back:hover{color:#1f54c0}
 <script>
 function preview() {
   const get = id => document.getElementById(id)?.value || '';
-  const name     = get('name')    || '${b.name}';
+  const name     = get('name')    || 'Instanz-Konfiguration';
   const tagline  = get('tagline') || '';
   const logo     = get('logo')    || '';
   const primary  = get('color')   || '#1f54c0';
@@ -143,7 +148,44 @@ function preview() {
   document.querySelector('.btn-save').style.background  = primary;
 }
 document.querySelectorAll('input[type=text]').forEach(el => el.addEventListener('input', preview));
-preview();
+
+// GET /admin/config selbst ist öffentlich erreichbar (ein Browser-GET kann keinen
+// Authorization-Header mitschicken), rendert aber keine Werte mehr server-seitig - die
+// holt load() per fetch() mit Token nach. So bleiben mattermostUrl/paperlessUrl etc.
+// tatsächlich hinter requireAdmin (/api/admin/brand-config), ohne dass die Seite für
+// normale Navigation unerreichbar wird.
+async function load() {
+  const errEl = document.getElementById('auth-error');
+  const token = localStorage.getItem('freiki_token');
+  if (!token) {
+    errEl.textContent = 'Nicht angemeldet. Bitte in der App als Administrator einloggen und diese Seite neu laden.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch('/api/admin/brand-config', { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) {
+      errEl.textContent = res.status === 403 ? 'Kein Zugriff (nur für Administratoren).' : 'Fehler beim Laden: ' + res.status;
+      errEl.style.display = 'block';
+      return;
+    }
+    const b = await res.json();
+    const fields = ${JSON.stringify(ALLOWED_FIELDS)};
+    for (const k of fields) {
+      const el = document.getElementById(k);
+      if (el) el.value = b[k] || '';
+      const picker = document.getElementById(k + '_picker');
+      if (picker && b[k]) picker.value = b[k];
+    }
+    document.getElementById('config-wrap').style.display = '';
+    document.title = (b.name || 'Instanz') + ' – Konfiguration';
+    preview();
+  } catch (e) {
+    errEl.textContent = 'Verbindungsfehler: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+load();
 
 // Formular postet als fetch() mit Authorization-Header (JWT aus localStorage), weil ein
 // natives <form method="POST"> keinen Bearer-Header setzen kann - adminSession() prüft
@@ -202,6 +244,11 @@ function requireAdmin(req, res, next) {
 // also auch /api/health, /api/chat etc. aus ganz anderen Routendateien.
 router.use('/admin', requireAdmin);
 router.use('/api/admin', requireAdmin);
+
+router.get('/api/admin/brand-config', (req, res) => {
+  const b = getBrandConfig();
+  res.json(Object.fromEntries(ALLOWED_FIELDS.map((k) => [k, b[k]])));
+});
 
 router.post('/admin/config', asyncHandler(async (req, res) => {
   try {
