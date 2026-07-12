@@ -14,10 +14,15 @@ bleiben.
 
 ## FreiKI-Eigencode
 
-Für den FreiKI-Eigencode ist im Repository zum Zeitpunkt dieser Bestandsaufnahme noch keine
-Lizenzdatei hinterlegt. Bis zu einer ausdrücklichen Lizenzierung werden dadurch keine
-Open-Source-Nutzungsrechte eingeräumt. Für Kundenübergaben ist eine gesonderte
-Nutzungsvereinbarung oder eine Projektlizenz erforderlich.
+Der FreiKI-Eigencode steht unter der **GNU Affero General Public License v3.0 or later
+(AGPL-3.0-or-later)**. Der vollständige Lizenztext ist in der [`LICENSE`](../LICENSE)
+im Repository-Root enthalten. Der korrespondierende Quellcode ist im öffentlichen
+GitHub-Repository unter <https://github.com/FStefan1960/FreiKI> verfügbar.
+
+Wer eine modifizierte FreiKI-Version über ein Netzwerk betreibt, muss den jeweiligen
+Netzwerknutzern gemäß Abschnitt 13 AGPLv3 den korrespondierenden Quellcode dieser
+betriebenen Version anbieten. Installation, Branding, Hosting und Support können
+unabhängig davon als Dienstleistungen angeboten werden.
 
 ## Containerisierte Hauptkomponenten
 
