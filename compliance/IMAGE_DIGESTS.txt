@@ -20,4 +20,4 @@ gotenberg/gotenberg@sha256:67097317623a503ba2a6a7e9ae8db6929a1f7e1bbd88077bacf2d
 apache/tika@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973
 
 # Lokal gebautes Image; nur in der lokalen Registry beziehungsweise im Docker-Host auflösbar:
-freiki-ui@sha256:35a95450c2bb9660117403bf5bd6d9112cff364b330a80a008730cd82be8bc63
+freiki-ui@sha256:97c9591e19bbd2e8f1041a2ee30fc61214cf3b3ecafa0c32441e16f162683c7b

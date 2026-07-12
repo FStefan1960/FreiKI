@@ -1,6 +1,6 @@
 # Komponenten, Versionen, Digests und Quellen
 
-Erfasst am 12.07.2026 und zuletzt aktualisiert am 12.07.2026 um 16:42 Uhr auf der
+Erfasst am 12.07.2026 und zuletzt aktualisiert am 12.07.2026 um 17:24 Uhr auf der
 FreiKI-Referenzinstanz. Der Digest ist gegenüber dem menschenlesbaren Tag maßgeblich.
 Er identifiziert den tatsächlich geprüften Image-Inhalt.
 
@@ -8,7 +8,7 @@ Er identifiziert den tatsächlich geprüften Image-Inhalt.
 
 | Komponente | Festgestellte Version | verwendeter Tag | OCI-Digest | Lizenz | Quellcode und Lizenz |
 |---|---|---|---|---|---|
-| FreiKI | `VERSION c735209` | `freiki-ui:latest` | `sha256:35a95450c2bb9660117403bf5bd6d9112cff364b330a80a008730cd82be8bc63` | AGPL-3.0-or-later | [Source](https://github.com/FStefan1960/FreiKI) · [`LICENSE`](../LICENSE) |
+| FreiKI | 0.4.0, Build `a1aefd5` | `freiki-ui:0.4.0` | `sha256:97c9591e19bbd2e8f1041a2ee30fc61214cf3b3ecafa0c32441e16f162683c7b` | AGPL-3.0-or-later | [Source](https://github.com/FStefan1960/FreiKI/tree/v0.4.0) · [`LICENSE`](../LICENSE) |
 | Mattermost Team Edition | 11.9.0 | `mattermost/mattermost-team-edition:11.9.0` | `sha256:1c538cf33c2144ba2c825571cd414aaaebf8d8c231d4b18081b811cd0ca0ef2a` | offizielles Team-Edition-Binary: MIT | [Source](https://github.com/mattermost/mattermost/tree/v11.9.0) · [Lizenz-FAQ](https://docs.mattermost.com/product-overview/faq-license.html) |
 | n8n | 2.30.3 | `n8nio/n8n:2.30.3` | `sha256:4e9de05de2f87c34774d71a93dd9aca924adb930c4c7f2f7797b84fa93327be5` | Sustainable Use License; `.ee`-Teile separat | [Source](https://github.com/n8n-io/n8n) · [Lizenz](https://docs.n8n.io/sustainable-use-license/) |
 | Uptime Kuma | 2.4.0 | `louislam/uptime-kuma:2.4.0` | `sha256:91e963bfda569ba115206e843febb446f473ab525add4e08b2b9e3beffa16985` | MIT | [Source](https://github.com/louislam/uptime-kuma/tree/2.4.0) · [Lizenz](https://github.com/louislam/uptime-kuma/blob/2.4.0/LICENSE) |
