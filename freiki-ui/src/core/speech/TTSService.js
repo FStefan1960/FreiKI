@@ -18,7 +18,7 @@ async function synthesize(text) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: config.TTS_MODEL,
         voice: config.TTS_VOICE,
         input: cleanText,
         response_format: 'mp3'

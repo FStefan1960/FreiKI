@@ -22,6 +22,7 @@ const config = {
   N8N_DAILY_REPORT_WEBHOOK_URL: process.env.N8N_DAILY_REPORT_WEBHOOK_URL || '',
   WHISPER_URL: process.env.WHISPER_URL || 'http://whisper:9000',
   PIPER_URL: process.env.PIPER_URL || 'http://piper:8000',
+  TTS_MODEL: process.env.TTS_MODEL || 'speaches-ai/piper-de_DE-thorsten-high',
   TTS_VOICE: process.env.TTS_VOICE || 'thorsten',
 
   SMTP_HOST: process.env.SMTP_HOST || '',
