@@ -33,6 +33,9 @@ router.post('/api/transcribe', uploadAudio.single('audio'), asyncHandler(async (
 }));
 
 router.post('/api/tts', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'Kein Text' });
 
