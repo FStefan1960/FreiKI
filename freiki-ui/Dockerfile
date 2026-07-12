@@ -9,8 +9,8 @@ RUN apk add --no-cache \
     ffmpeg \
     imagemagick
 
-COPY package.json .
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 COPY . .
 EXPOSE 3000
 CMD ["node", "server.js"]
