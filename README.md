@@ -86,10 +86,30 @@ KorKI und FrankKI haben diesen Umbau noch nicht erhalten — dort ist `server.js
 # losung.json, medienspiegel.json, gesellschaftstrends.json) — sofort live nach scp
 scp -r freiki-ui/public/ freiki-ui/prompts/ user@server:~/freiki-package/freiki-ui/
 
-# Nach Code-Änderungen (server.js bzw. src/) — Image-Rebuild + Recreate erforderlich
-scp -r freiki-ui/server.js freiki-ui/src/ user@server:~/freiki-package/freiki-ui/
-ssh user@server "cd ~/freiki-package && docker compose build freiki-ui && docker compose up -d --force-recreate freiki-ui"
+# Release-Dateien übertragen
+scp -r freiki-ui/server.js freiki-ui/src/ freiki-ui/package.json \
+  freiki-ui/package-lock.json freiki-ui/Dockerfile \
+  user@server:~/freiki-package/freiki-ui/
+scp setup/deploy.sh user@server:~/freiki-package/setup/
+
+# Versioniertes Image bauen und deployen (Git-SHA des Release-Commits)
+GIT_SHA="$(git rev-parse --short HEAD)"
+ssh user@server "cd ~/freiki-package && bash setup/deploy.sh $GIT_SHA"
 ```
+
+Die produktive Compose-Datei muss für `freiki-ui` folgende Variablen verwenden:
+
+```yaml
+build:
+  context: ./freiki-ui
+  args:
+    APP_VERSION: ${FREIKI_VERSION:-dev}
+    GIT_SHA: ${FREIKI_GIT_SHA:-unknown}
+image: freiki-ui:${FREIKI_VERSION:-latest}
+```
+
+Das Deployment liest die SemVer-Version aus `freiki-ui/package.json`, erzeugt die Tags
+`X.Y.Z`, `X.Y`, Git-SHA und `latest` und prüft anschließend das laufende Image.
 
 ### Cache-Busting (PWA)
 

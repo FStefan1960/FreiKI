@@ -147,9 +147,13 @@ docker exec -i PostgreSQL psql -U $POSTGRES_USER -d $POSTGRES_DB < setup/schema.
 # Alle Dienste starten
 docker compose up -d
 
-# Erstes Deploy (schreibt VERSION-Datei)
-bash setup/deploy.sh
+# Erstes versioniertes Deploy (Git-SHA des Release-Commits übergeben)
+bash setup/deploy.sh <git-sha>
 ```
+
+Der Dienst `freiki-ui` in `docker-compose.yml` muss `FREIKI_VERSION` und
+`FREIKI_GIT_SHA` für Image-Tag und Build-Argumente verwenden. Das erforderliche
+Compose-Beispiel steht im Abschnitt „Deployment“ der Projekt-README.
 
 ---
 
