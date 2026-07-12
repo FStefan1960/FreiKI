@@ -1,6 +1,14 @@
 const fetch = require('node-fetch');
 const { config } = require('../../shared/config');
 
+// Zusaetzliche Stimme neben dem Default (config.TTS_MODEL/TTS_VOICE) -- Kerstin
+// gibt es bei Piper nur in "low"-Qualitaet (kein medium/high), klanglich also
+// hörbar simpler als die Thorsten-Stimme, aber vom Nutzer bewusst gewuenscht.
+const VOICE_MAP = {
+  thorsten: { model: config.TTS_MODEL, voice: config.TTS_VOICE },
+  kerstin: { model: 'speaches-ai/piper-de_DE-kerstin-low', voice: 'kerstin' },
+};
+
 function sanitizeForSpeech(text) {
   return text
     .replace(/[#*_`>~]/g, ' ')
@@ -11,15 +19,16 @@ function sanitizeForSpeech(text) {
 }
 
 // Gibt { ok, status, body } zurück; body ist der node-fetch Response-Stream (mp3).
-async function synthesize(text) {
+async function synthesize(text, voiceKey) {
   const cleanText = sanitizeForSpeech(text);
+  const { model, voice } = VOICE_MAP[voiceKey] || VOICE_MAP.thorsten;
   try {
     const piperRes = await fetch(`${config.PIPER_URL}/v1/audio/speech`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: config.TTS_MODEL,
-        voice: config.TTS_VOICE,
+        model,
+        voice,
         input: cleanText,
         response_format: 'mp3'
       }),

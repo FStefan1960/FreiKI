@@ -38,8 +38,9 @@ router.post('/api/tts', asyncHandler(async (req, res) => {
 
   const text = (req.body && req.body.text ? String(req.body.text) : '').trim();
   if (!text) return res.status(400).json({ error: 'Kein Text' });
+  const voice = req.body && req.body.voice === 'kerstin' ? 'kerstin' : 'thorsten';
 
-  const result = await TTSService.synthesize(text);
+  const result = await TTSService.synthesize(text, voice);
   if (!result.ok) return res.status(502).json({ error: 'Sprachausgabe nicht verfügbar' });
 
   res.setHeader('Content-Type', 'audio/mpeg');
