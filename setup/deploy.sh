@@ -44,7 +44,7 @@ if [[ "$CONFIGURED_IMAGE" != "$RELEASE_IMAGE" ]]; then
 fi
 
 echo "-> Baue FreiKI ${APP_VERSION} (${GIT_SHA})..."
-printf '%s+%s\n' "$APP_VERSION" "$GIT_SHA" > freiki-ui/public/VERSION
+printf '%s\n' "$APP_VERSION" > freiki-ui/public/VERSION
 docker compose build freiki-ui
 
 docker image inspect "$RELEASE_IMAGE" >/dev/null
