@@ -36,7 +36,7 @@
             "parameters": [
               {
                 "name": "X-API-Key",
-                "value": "REDACTED-ROTATED-KEY"
+                "value": "={{$env.KB_INGEST_API_KEY}}"
               }
             ]
           },
@@ -1953,7 +1953,7 @@
             "parameters": [
               {
                 "name": "X-API-Key",
-                "value": "REDACTED-ROTATED-KEY"
+                "value": "={{$env.KB_INGEST_API_KEY}}"
               },
               {
                 "name": "Content-Type",
