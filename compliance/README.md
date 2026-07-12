@@ -40,6 +40,15 @@ zugänglich macht, muss den Nutzern dieser Instanz den zugehörigen, geänderten
 anbieten** (Abschnitt 13 AGPLv3). Installation, Branding, Hosting und Support bleiben
 unabhängig davon Dienstleistungen, die separat vertraglich geregelt werden können.
 
+**Repo-Struktur:** `github.com/FStefan1960/FreiKI` ist die Mutterinstanz und seit 12.07.2026
+öffentlich — das ist das für §13 AGPLv3 maßgebliche Quellcode-Repository. `KorKI` und `FrankKI`
+sind davon abgeleitete, private Kundeninstanzen mit eigenem Branding/eigener Konfiguration;
+ihre Repos bleiben privat. Der App-Footer aller drei Instanzen verlinkt einheitlich auf das
+öffentliche FreiKI-Repo. Instanzspezifische Anpassungen, die nicht im FreiKI-Repo enthalten
+sind (z. B. `freiki-ui/public/index.html` ist bewusst in keinem der drei Repos versioniert,
+siehe Pflege-Hinweis), sind damit über den Footer-Link **nicht** abgedeckt — das ist eine
+bekannte Lücke, kein vollständiger AGPL-Nachweis für jede einzelne Instanz.
+
 ## Vor einer Kundenübergabe noch zu entscheiden
 
 - **ARASAAC:** Die Piktogramme stehen unter `CC BY-NC-SA 4.0`. Vor Einbindung in eine
