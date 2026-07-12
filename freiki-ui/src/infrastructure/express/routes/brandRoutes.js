@@ -25,9 +25,8 @@ function getIndexHtml() {
     .replace(/\{\{DEMO_MODE\}\}/g,         brand.demoMode ? '' : 'display:none')
     .replace(/\{\{FOOTER_NOTE\}\}/g,       brand.footerNote || brand.name)
     .replace(/\{\{APP_VERSION\}\}/g,       GIT_VERSION)
-    .replace(/\{\{AGPL_SOURCE_NOTICE\}\}/g, brand.supportEmail
-      ? `Lizenz: AGPL-3.0-or-later · Quellcode auf Anfrage: ${brand.supportEmail}`
-      : 'Lizenz: AGPL-3.0-or-later · Quellcode auf Anfrage beim Betreiber');
+    .replace(/\{\{AGPL_SOURCE_NOTICE\}\}/g,
+      'Lizenz: AGPL-3.0-or-later · <a href="https://github.com/FStefan1960/FreiKI" target="_blank" rel="noopener" style="color:inherit">Quellcode</a>');
 }
 
 router.get('/', (_req, res) => res.type('html').send(getIndexHtml()));
