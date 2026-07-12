@@ -113,9 +113,9 @@ a.back:hover{color:#1f54c0}
         <img id="pv-logo" src="" alt="" onerror="this.style.display='none'">
       </div>
       <div class="preview-body">
-        <div id="pv-tagline" class="preview-tagline">${b.tagline}</div>
+        <div id="pv-tagline" class="preview-tagline"></div>
         <div class="preview-card">
-          Willkommen bei <strong id="pv-name2">${b.name}</strong>! Wie kann ich Ihnen helfen?
+          Willkommen bei <strong id="pv-name2"></strong>! Wie kann ich Ihnen helfen?
         </div>
         <div style="margin-top:14px">
           <button class="preview-btn" id="pv-btn">Senden</button>
