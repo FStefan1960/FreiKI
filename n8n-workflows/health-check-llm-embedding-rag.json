@@ -184,7 +184,7 @@
           "options": {
             "timeout": 10000
           },
-          "jsonBody": "{\"username\": \"healthcheck\", \"password\": \"Hc#Check2026Test\"}",
+          "jsonBody": "={\"username\": \"healthcheck\", \"password\": \"{{$env.HEALTHCHECK_PASSWORD}}\"}",
           "sendBody": true,
           "specifyBody": "json"
         },
