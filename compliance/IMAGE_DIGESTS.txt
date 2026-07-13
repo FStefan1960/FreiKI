@@ -1,4 +1,4 @@
-# FreiKI-Referenzinstanz, erfasst am 2026-07-12
+# FreiKI-Referenzinstanz, erfasst am 2026-07-12, aktualisiert am 2026-07-13
 # OCI-Referenzen für die produktiv geprüften Image-Inhalte.
 # Vor der Übernahme in eine andere Architektur die Registry-Verfügbarkeit prüfen.
 
@@ -11,7 +11,7 @@ swaggerapi/swagger-ui@sha256:1ece6f19ca5709fb5fbab9bf43adee2916144fb21e82b7bafba
 amir20/dozzle@sha256:6f4644814cce31e11fe80f2610515df6a5a2e40120b4087c298a72df8d65866b
 mailserver/docker-mailserver@sha256:af51b15dd3fc72153c0e90eb7692bb5e3a463212d87959a80fa7aa89b617d44a
 ghcr.io/paperless-ngx/paperless-ngx@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
-ghcr.io/matatonic/openedai-speech-min@sha256:e82d719252fb1b861967f4f9abb8513f028ab9c1139451245688dbf34992b060
+ghcr.io/speaches-ai/speaches@sha256:21e3df06d842fb7802ab470dd77c25f0e8c0d22950e8d8c6ae886e851af53ef8
 redis@sha256:33d7c9a245edd95e6703a0addbeaa48fe40c3b3b4783627a72085155462ebfdb
 pgvector/pgvector@sha256:131dcf7ff6a900545df8e7e092c270aa8c6db2f2c818e408cb45ec21316b74e6
 onerahmet/openai-whisper-asr-webservice@sha256:03b402335881cdab2e4939b24620809df8d6ceec3bf2712217d41c8761a0f5d4
@@ -20,4 +20,4 @@ gotenberg/gotenberg@sha256:67097317623a503ba2a6a7e9ae8db6929a1f7e1bbd88077bacf2d
 apache/tika@sha256:90b7fa1dc018434075fce9e1d9b88b1e3d0ea6979d0cf86e116c79a8073ae973
 
 # Lokal gebautes Image; nur in der lokalen Registry beziehungsweise im Docker-Host auflösbar:
-freiki-ui@sha256:97c9591e19bbd2e8f1041a2ee30fc61214cf3b3ecafa0c32441e16f162683c7b
+freiki-ui@sha256:8d9c066824d83df31403403be199ed581d7df962c75d35ecc7177e5f7f431f2d

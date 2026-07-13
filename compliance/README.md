@@ -1,6 +1,6 @@
 # FreiKI Compliance-Paket
 
-Stand: 12.07.2026
+Stand: 13.07.2026
 
 Dieses Verzeichnis ist für die Übergabe einer FreiKI-Instanz an den jeweiligen Betreiber bestimmt.
 Der Betreiber mietet oder kauft die Infrastruktur selbst und entscheidet selbst über lokalen GPU-
@@ -54,9 +54,14 @@ gehen damit ohnehin an den Betreiber, unabhängig vom Footer-Link. Kein offenes 
 - **ARASAAC:** Die Piktogramme stehen unter `CC BY-NC-SA 4.0`. Vor Einbindung in eine
   entgeltlich installierte oder vertriebsnahe Instanz ist eine schriftliche Genehmigung für
   den konkreten Einsatz einzuholen oder das Modul zu deaktivieren.
-- **Ghostscript:** Das FreiKI-Image enthält derzeit Ghostscript unter AGPL. Da FreiKI
-  Ghostscript nach der Codeprüfung nicht direkt nutzt, sollte das Paket vor der nächsten
-  Auslieferung aus dem Image entfernt werden.
+
+## Bewusste Betriebsentscheidungen
+
+- **Mattermost ohne eigenen zweiten Faktor:** Mattermost läuft ohne separate 2FA/TOTP-Absicherung
+  für den Login. Das Risiko wird als vertretbar eingestuft, da Mattermost hinter derselben
+  Netzwerkgrenze wie die übrige Infrastruktur liegt und der primäre FreiKI-App-Login bereits
+  eigenes 2FA/TOTP bietet. Bei einer Kundenübergabe an einen Betreiber mit höherem
+  Schutzbedarf sollte diese Einschätzung neu geprüft werden.
 
 ## Pflege
 

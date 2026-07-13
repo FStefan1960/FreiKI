@@ -34,7 +34,7 @@ unabhängig davon als Dienstleistungen angeboten werden.
 | Paperless-ngx | GPL-3.0 | bei Image-Weitergabe Lizenz und korrespondierenden Quellcodezugang bereitstellen |
 | Redis 7.4.9 | RSALv2 oder SSPLv1 | source-available, nicht OSI-Open-Source; nur als internes Backend eingesetzt |
 | SearXNG | AGPL-3.0-or-later | bei Änderungen am Netzwerkdienst korrespondierenden Quellcode für Netzwerknutzer anbieten |
-| openedai-speech | AGPL-3.0 | bei Änderungen am Netzwerkdienst korrespondierenden Quellcode für Netzwerknutzer anbieten |
+| speaches (Piper-Backend) | MIT | Copyright- und Lizenzhinweise bei Weitergabe erhalten |
 | Whisper ASR Webservice | MIT | Copyright- und Lizenzhinweise bei Weitergabe erhalten |
 | Gotenberg | MIT | enthaltene Chromium-, LibreOffice- und PDF-Komponenten haben eigene Lizenzen |
 | Apache Tika | Apache-2.0 | Apache-Lizenz und Upstream-NOTICE mitliefern |
@@ -166,7 +166,6 @@ Das selbst gebaute FreiKI-Image basiert auf `node:20-alpine` und installiert unt
 | Alpine Linux / BusyBox / apk-tools | gemischte Lizenzen, unter anderem GPL-2.0-only |
 | Tesseract OCR | Apache-2.0 |
 | Poppler | GPL-2.0-or-later |
-| Ghostscript und jbig2dec | AGPL-3.0-or-later |
 | FFmpeg und verwendete Codec-Bibliotheken | gemischte GPL-2.0-or-later-, LGPL-, BSD- und weitere Lizenzen |
 | ImageMagick | ImageMagick License |
 
@@ -177,13 +176,10 @@ Quellen:
 - Node.js: <https://github.com/nodejs/node>
 - Tesseract: <https://github.com/tesseract-ocr/tesseract>
 - Poppler: <https://gitlab.freedesktop.org/poppler/poppler>
-- Ghostscript: <https://github.com/ArtifexSoftware/ghostpdl>
 - FFmpeg: <https://ffmpeg.org/download.html>
 - ImageMagick: <https://github.com/ImageMagick/ImageMagick>
 
-Ghostscript ist nach der Codeprüfung nicht direkt erforderlich und sollte aus dem nächsten
-FreiKI-Image entfernt werden. Solange es enthalten ist, muss die konkrete serverseitige Nutzung
-beziehungsweise Weitergabe gegen die AGPL- oder Artifex-Lizenzbedingungen geprüft werden.
+Ghostscript wurde aus dem FreiKI-Image entfernt (nach Codeprüfung nicht direkt erforderlich).
 
 ## Externe API-Dienste
 
