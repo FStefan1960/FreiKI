@@ -71,6 +71,13 @@ router.get('/api/health', asyncHandler(async (req, res) => {
   if (config.WHISPER_URL) checks.whisper = await checkServiceHealth(`${config.WHISPER_URL}/`);
 
   const allOk = Object.values(checks).every(c => c.ok);
+  if (!allOk) {
+    const failed = Object.entries(checks)
+      .filter(([, c]) => !c.ok)
+      .map(([name, c]) => `${name}: ${c.error || `status ${c.status}`}`)
+      .join(', ');
+    console.warn(`[health] Check fehlgeschlagen - ${failed}`);
+  }
   const body = {
     status: allOk ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
