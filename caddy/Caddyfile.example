@@ -1,15 +1,52 @@
 # Caddy holt automatisch ein Let's-Encrypt-Zertifikat für die angegebenen Domains
 # (DNS-A-Records müssen vorher auf den Server zeigen, sonst schlägt die Zertifikatsausstellung fehl).
 
+# Globale Sicherheitsheader – werden per "import security_headers" eingebunden.
+# CSP wird pro Site gesetzt, da die Anforderungen sich unterscheiden.
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+        -Server
+    }
+}
+
 # freiki.com - schlanke statische Landingpage (von Caddy selbst ausgeliefert, kein eigener Container nötig)
 freiki.com {
+    import security_headers
+    header Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; font-src 'self' cdn.jsdelivr.net; img-src 'self' data:; script-src 'self'; base-uri 'self'; object-src 'none'"
     root * /srv/landing
     file_server
 }
 
 # app.freiki.com - die eigentliche FreiKI-App
 app.freiki.com {
+    import security_headers
+    # unsafe-inline bei script-src/style-src bleibt vorerst nötig: die App nutzt an
+    # vielen Stellen inline <script>-Blöcke und onclick/oninput-Handler (server-gerenderte
+    # Seiten wie /admin/config UND die statischen public/*.html). Eine striktere,
+    # nonce-basierte CSP bräuchte eine größere Umstellung (jede Inline-Handler-Nutzung
+    # auf addEventListener umbauen, statische Seiten dynamisch/nonce-fähig machen) -
+    # bewusst nicht Teil dieser Änderung. img-src erlaubt https: weil das Logo im
+    # Branding (/admin/config) eine beliebige externe URL sein darf.
+    header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    # Office Add-in (Word Online lädt die Taskpane in einem Iframe von einer
+    # Microsoft-Domain, außerdem lädt taskpane.html das Office.js-SDK von Microsoft) -
+    # braucht eine Ausnahme von der globalen SAMEORIGIN-Regel und der obigen CSP,
+    # sonst bleibt das Panel bei Word im Web leer.
+    @office-addin path /office-addin/*
+    header @office-addin {
+        -X-Frame-Options
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://appsforoffice.microsoft.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'self' https://*.officeapps.live.com https://*.office.com https://*.microsoft.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
     reverse_proxy freiki-ui:3000
+    log {
+        output file /var/log/caddy/app-access.log
+        format json
+    }
 }
 
 # n8n - NUR Webhooks öffentlich, Editor bleibt privat
@@ -25,14 +62,33 @@ n8n.freiki.com {
     }
 }
 
-# paperless.freiki.com - Dokumentenarchiv (Login über Paperless selbst geschützt)
+# paperless.freiki.com – Paperless-Admin, geschützt via BasicAuth + fail2ban
 paperless.freiki.com {
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    header Referrer-Policy "strict-origin-when-cross-origin"
+    header -Server
     reverse_proxy paperless:8000
+    log {
+        output file /var/log/caddy/paperless-access.log
+        format json
+    }
 }
 
 # chat.freiki.com - Mattermost Team-Chat (WebSocket wird von Caddy automatisch durchgereicht)
+# Mattermost setzt eigene Header – nur HSTS ergänzen.
 chat.freiki.com {
-    reverse_proxy mattermost:8065
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    header -Server
+    reverse_proxy mattermost:8065 {
+        flush_interval -1
+        transport http {
+            versions 1.1
+        }
+    }
+    log {
+        output file /var/log/caddy/chat-access.log
+        format json
+    }
 }
 
 # mail.freiki.com - Nur für TLS-Zertifikat; SMTP/IMAP laufen direkt über den Mailserver-Container
