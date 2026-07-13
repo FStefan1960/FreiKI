@@ -57,6 +57,17 @@ async function checkDiskHealth(dir, minFreeBytes) {
   }
 }
 
+// Liveness: Prozess laeuft und antwortet - keine Abhaengigkeitschecks.
+// Fuer Docker HEALTHCHECK/Orchestrierung: ein kurzer Ausfall von vLLM/Paperless/Whisper
+// soll den Container nicht als "unhealthy" markieren und einen Neustart ausloesen,
+// der das externe Problem ohnehin nicht behebt.
+router.get('/api/health/live', (req, res) => {
+  res.status(200).json({ status: 'alive', timestamp: new Date().toISOString() });
+});
+
+// Readiness: kann die App gerade echte Anfragen vollstaendig bedienen (inkl. Abhaengigkeiten).
+// Fuer externes Monitoring (z. B. Uptime-Kuma) - URL bleibt /api/health fuer Kompatibilitaet
+// mit bestehenden Monitoren.
 router.get('/api/health', asyncHandler(async (req, res) => {
   if (healthCache && Date.now() - healthCacheTs < HEALTH_CACHE_MS) {
     return res.status(healthCache.status).json(healthCache.body);
