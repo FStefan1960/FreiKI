@@ -16,8 +16,13 @@ function signPendingToken(u) {
   return jwt.sign({ uid: u.id, pending2fa: true }, config.JWT_SECRET, { expiresIn: 300 });
 }
 
+// Cookie ist der Weg fuer den Browser (HttpOnly, nie aus JS lesbar - siehe Login-Kommentar in
+// authRoutes.js). Der Authorization-Header bleibt als Fallback fuer serverseitige Automation
+// (n8n-Workflows, Skripte), die keinen Cookie-Jar zwischen Requests teilen - kein XSS-Risiko,
+// da dort kein Browser/JS im Spiel ist.
 function getSession(req) {
-  const t = req.cookies && req.cookies.freiki_session;
+  const t = (req.cookies && req.cookies.freiki_session)
+    || ((req.headers && req.headers['authorization']) || '').replace('Bearer ', '').trim();
   if (!t || !config.JWT_SECRET) return null;
   try { return jwt.verify(t, config.JWT_SECRET); } catch { return null; }
 }

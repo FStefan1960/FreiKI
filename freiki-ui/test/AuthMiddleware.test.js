@@ -32,10 +32,17 @@ test('getSession: null bei manipuliertem/ungueltigem Token', () => {
   assert.equal(getSession({ cookies: { freiki_session: 'not-a-jwt' } }), null);
 });
 
-test('getSession: ignoriert einen Authorization-Header (kein Bearer-Fallback mehr)', () => {
+test('getSession: Authorization-Header greift als Fallback ohne Cookie (fuer serverseitige Automation)', () => {
   const token = signToken(user);
   const session = getSession({ cookies: {}, headers: { authorization: `Bearer ${token}` } });
-  assert.equal(session, null);
+  assert.equal(session.uid, user.id);
+});
+
+test('getSession: Cookie hat Vorrang vor Authorization-Header', () => {
+  const cookieToken = signToken(user);
+  const headerToken = signToken(admin);
+  const session = getSession({ cookies: { freiki_session: cookieToken }, headers: { authorization: `Bearer ${headerToken}` } });
+  assert.equal(session.uid, user.id);
 });
 
 test('adminSession: liefert die Session nur bei role=admin', () => {

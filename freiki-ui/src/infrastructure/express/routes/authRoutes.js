@@ -10,7 +10,11 @@ const { config } = require('../../../shared/config');
 const router = express.Router();
 router.use(express.json({ limit: '100kb' }));
 
-// JWT liegt als HttpOnly-Cookie beim Client, nie im JS-erreichbaren localStorage (XSS-Schutz).
+// JWT liegt als HttpOnly-Cookie beim Client, nie im JS-erreichbaren localStorage (XSS-Schutz) -
+// das Frontend liest/speichert data.token bewusst nicht mehr. Der Login-Response behaelt token
+// trotzdem im Body (zusaetzlich zum Cookie), weil serverseitige Automation (n8n-Workflows,
+// Skripte ohne Cookie-Jar) ihn dort abgreift und als Bearer-Header weiterreicht - das ist kein
+// XSS-Risiko, da dort kein Browser/JS im Spiel ist (siehe getSession()-Kommentar).
 // secure nur wenn APP_URL auf https laeuft (Produktion hinter Caddy) - im lokalen http-Dev
 // wuerde der Browser eine secure-Cookie sonst gar nicht erst speichern.
 // sameSite:'lax' statt 'strict', da /oauth/authorize (oidcRoutes.js) einen eigenstaendigen
@@ -34,11 +38,7 @@ router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
       console.warn(`Login fehlgeschlagen: "${username}" von ${req.ip}`);
       return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
     }
-    if (result.token) {
-      setSessionCookie(res, result.token);
-      const { token, ...body } = result;
-      return res.json(body);
-    }
+    if (result.token) setSessionCookie(res, result.token);
     res.json(result);
   } catch (e) {
     console.error('Login error:', e.message);
@@ -56,8 +56,7 @@ router.post('/api/login/verify-2fa', loginLimiter, asyncHandler(async (req, res)
       return res.status(401).json({ error: 'Ungültiger Code' });
     }
     setSessionCookie(res, result.token);
-    const { token, ...body } = result;
-    res.json(body);
+    res.json(result);
   } catch (e) {
     console.error('verify-2fa error:', e.message);
     res.status(500).json({ error: 'Verbindungsfehler' });
