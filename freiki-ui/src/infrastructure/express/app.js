@@ -66,6 +66,8 @@ async function start() {
   await loadBrandConfig();
   startUploadCleanupSchedule();
   sensitiveLog.startDailyReportSchedule();
+  sensitiveLog.startRetentionPurgeSchedule();
+  auditLog.startRetentionPurgeSchedule();
 
   app.listen(config.PORT, () => console.log(`${getBrandConfig().name} UI läuft auf Port ${config.PORT}`));
 }

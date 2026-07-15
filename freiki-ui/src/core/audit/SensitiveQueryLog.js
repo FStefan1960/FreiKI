@@ -49,6 +49,23 @@ async function listDefaultRoleLast24h() {
   return rows;
 }
 
+const RETENTION_DAYS = 180; // DSGVO Art. 5 Abs. 1 lit. e (Speicherbegrenzung) - Log dient nur der
+                             // kurzfristigen Anomalie-Erkennung, keine Notwendigkeit fuer unbegrenzte Aufbewahrung
+
+async function purgeOld() {
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM sensitive_query_log WHERE ts < now() - ($1 || ' days')::interval`, [RETENTION_DAYS]
+    );
+    if (rowCount) console.log(`[sensitive_query_log] ${rowCount} Eintraege aelter als ${RETENTION_DAYS} Tage geloescht`);
+  } catch (e) { console.error('sensitive_query_log purge fehlgeschlagen:', e.message); }
+}
+
+function startRetentionPurgeSchedule() {
+  purgeOld();
+  setInterval(purgeOld, 24 * 60 * 60 * 1000);
+}
+
 const REPORT_HOUR_BERLIN = 7; // Uhrzeit (Europe/Berlin), zu der der Tagesbericht verschickt wird
 let lastReportSentDate = null; // 'YYYY-MM-DD' (Europe/Berlin) -- verhindert Mehrfachversand am selben Tag
 
@@ -77,4 +94,4 @@ function startDailyReportSchedule() {
   setInterval(checkAndSendDailyReport, 60 * 60 * 1000);
 }
 
-module.exports = { ensureSchema, checkAndLog, list, listDefaultRoleLast24h, startDailyReportSchedule };
+module.exports = { ensureSchema, checkAndLog, list, listDefaultRoleLast24h, startDailyReportSchedule, purgeOld, startRetentionPurgeSchedule };

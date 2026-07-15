@@ -33,4 +33,20 @@ async function list(limit = 200) {
   return rows;
 }
 
-module.exports = { ensureSchema, log, list };
+const RETENTION_DAYS = 180; // DSGVO Art. 5 Abs. 1 lit. e (Speicherbegrenzung)
+
+async function purgeOld() {
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM admin_audit_log WHERE ts < now() - ($1 || ' days')::interval`, [RETENTION_DAYS]
+    );
+    if (rowCount) console.log(`[admin_audit_log] ${rowCount} Eintraege aelter als ${RETENTION_DAYS} Tage geloescht`);
+  } catch (e) { console.error('admin_audit_log purge fehlgeschlagen:', e.message); }
+}
+
+function startRetentionPurgeSchedule() {
+  purgeOld();
+  setInterval(purgeOld, 24 * 60 * 60 * 1000);
+}
+
+module.exports = { ensureSchema, log, list, purgeOld, startRetentionPurgeSchedule };
