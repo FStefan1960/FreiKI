@@ -158,12 +158,18 @@
 </div>
 
 <script>
-const TOKEN = localStorage.getItem('freiki_token') || '';
-const EXP = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
-const ROLE = localStorage.getItem('freiki_role') || 'default';
 function bail(){ (window.top||window).location.href='/'; }
-if (!TOKEN || Date.now() >= EXP || ROLE !== 'admin') { bail(); }
-const H = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+// Session-Cookie ist HttpOnly, daher /api/me als Server-Rundruf statt lokalem Token/Rolle.
+async function ensureAdmin() {
+  try {
+    const r = await fetch('/api/me', { cache: 'no-store' });
+    if (!r.ok) throw 0;
+    const me = await r.json();
+    if (me.role !== 'admin') throw 0;
+    return true;
+  } catch { bail(); return false; }
+}
+const H = { 'Content-Type': 'application/json' };
 let AREAS = [];
 
 function statusMsg(type, txt){ const s=document.getElementById('status'); s.className='status-msg '+type; s.textContent=txt; if(type==='ok') setTimeout(()=>{ s.className='status-msg'; s.textContent=''; },3000); }
@@ -367,7 +373,7 @@ document.getElementById('n-create').addEventListener('click',async()=>{
   }catch(e){ statusMsg('err','Anlegen fehlgeschlagen: '+e.message); } finally{ btn.disabled=false; btn.textContent='Anlegen'; }
 });
 
-load();
+(async () => { if (await ensureAdmin()) load(); })();
 </script>
 </body>
 </html>

@@ -14,6 +14,7 @@ const { sendToN8n } = require('../../../core/integrations/N8nService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
+router.use(express.json({ limit: '2mb' }));
 
 router.get('/api/tips', (_req, res) => {
   try {

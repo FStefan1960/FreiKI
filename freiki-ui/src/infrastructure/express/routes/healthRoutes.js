@@ -5,6 +5,7 @@ const { config } = require('../../../shared/config');
 const pool = require('../../database/postgres/pool');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const { adminSession } = require('../../../core/auth/AuthMiddleware');
 
 const router = express.Router();
 
@@ -65,12 +66,9 @@ router.get('/api/health/live', (req, res) => {
   res.status(200).json({ status: 'alive', timestamp: new Date().toISOString() });
 });
 
-// Readiness: kann die App gerade echte Anfragen vollstaendig bedienen (inkl. Abhaengigkeiten).
-// Fuer externes Monitoring (z. B. Uptime-Kuma) - URL bleibt /api/health fuer Kompatibilitaet
-// mit bestehenden Monitoren.
-router.get('/api/health', asyncHandler(async (req, res) => {
+async function computeReadiness() {
   if (healthCache && Date.now() - healthCacheTs < HEALTH_CACHE_MS) {
-    return res.status(healthCache.status).json(healthCache.body);
+    return healthCache;
   }
   const diskCheck = await checkDiskHealth('/tmp', 10 * 1024 * 1024 * 1024);
   const checks = {
@@ -98,7 +96,24 @@ router.get('/api/health', asyncHandler(async (req, res) => {
   };
   healthCache = { status: allOk ? 200 : 503, body };
   healthCacheTs = Date.now();
-  res.status(healthCache.status).json(body);
+  return healthCache;
+}
+
+// Readiness: kann die App gerade echte Anfragen vollstaendig bedienen (inkl. Abhaengigkeiten).
+// Fuer externes Monitoring (z. B. Uptime-Kuma) - URL bleibt /api/health fuer Kompatibilitaet
+// mit bestehenden Monitoren. Antwort bewusst minimal (nur Status/Zeitstempel) - interne
+// Dienstnamen, Fehlermeldungen und Ressourcenzahlen sind kein oeffentliches Detail.
+router.get('/api/health', asyncHandler(async (req, res) => {
+  const { status, body } = await computeReadiness();
+  res.status(status).json({ status: body.status, timestamp: body.timestamp });
+}));
+
+// Wie /api/health, aber mit vollem Detail (Dienste, Disk, Memory) - nur fuer angemeldete
+// Admins, fuer interne Diagnose.
+router.get('/api/health/detail', asyncHandler(async (req, res) => {
+  if (!adminSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const { status, body } = await computeReadiness();
+  res.status(status).json(body);
 }));
 
 module.exports = router;

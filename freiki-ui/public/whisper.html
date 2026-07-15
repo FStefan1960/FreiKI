@@ -285,29 +285,23 @@
 </div>
 
 <script>
-  // Auth-Guard + hinterlegte E-Mail-Adresse anzeigen
+  // Auth-Guard + hinterlegte E-Mail-Adresse anzeigen. Session-Cookie ist HttpOnly, daher
+  // entscheidet /api/me (Server-Rundruf) statt eines lokal gespeicherten Tokens.
   (async function() {
-    const token = localStorage.getItem('freiki_token');
-    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
-    if (!token || Date.now() >= expiry) {
-      localStorage.removeItem('freiki_token');
-      localStorage.removeItem('freiki_token_expiry');
-      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
-      return;
-    }
     try {
-      const r = await fetch('/api/me', { headers: { 'Authorization': 'Bearer ' + token } });
-      if (r.ok) {
-        const me = await r.json();
-        const hint = document.getElementById('mail-hint');
-        if (me.email) {
-          hint.innerHTML = 'Das Transkript wird an <strong>' + me.email + '</strong> gesendet.';
-        } else {
-          hint.innerHTML = '⚠️ Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.';
-          document.getElementById('submit-btn').disabled = true;
-        }
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) throw new Error('not logged in');
+      const me = await r.json();
+      const hint = document.getElementById('mail-hint');
+      if (me.email) {
+        hint.innerHTML = 'Das Transkript wird an <strong>' + me.email + '</strong> gesendet.';
+      } else {
+        hint.innerHTML = '⚠️ Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.';
+        document.getElementById('submit-btn').disabled = true;
       }
-    } catch (e) { /* Anzeige optional – Versand nutzt serverseitig die DB-Adresse */ }
+    } catch (e) {
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
+    }
   })();
 
   const dropZone = document.getElementById('drop-zone');
@@ -350,13 +344,9 @@
     formData.append('audio', file);
 
     try {
-      const token = localStorage.getItem('freiki_token') || '';
-    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
-    if (!token || Date.now() >= expiry) { localStorage.removeItem('freiki_token'); localStorage.removeItem('freiki_token_expiry'); if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; } return; }
       const res = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
-        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
 

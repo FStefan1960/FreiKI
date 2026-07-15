@@ -8,6 +8,7 @@ const TTSService = require('../../../core/speech/TTSService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
+router.use(express.json({ limit: '256kb' }));
 
 router.post('/api/transcribe', uploadAudio.single('audio'), asyncHandler(async (req, res) => {
   const file = req.file;

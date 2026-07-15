@@ -5,6 +5,7 @@ const users = require('../../../core/auth/UserRepository');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
+router.use(express.json({ limit: '256kb' }));
 
 // Paperless-Zugriff ist (wie im Frontend-Modefilter /api/modes) eine einzelne use_paperless-
 // Flag pro Nutzer, kein bereichsfeines Recht - live aus der DB, da das JWT veraltet sein kann.

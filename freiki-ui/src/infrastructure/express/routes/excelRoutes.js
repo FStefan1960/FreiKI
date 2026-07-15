@@ -10,6 +10,7 @@ const { fetchWithTimeout } = require('../../../shared/utils/text');
 const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
 
 const router = express.Router();
+router.use(express.json({ limit: '5mb' }));
 
 router.post('/api/excel-upload', uploadExcel.single('file'), async (req, res, next) => {
   const s = getSession(req);

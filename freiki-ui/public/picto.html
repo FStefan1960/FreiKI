@@ -312,13 +312,12 @@
 </div>
 
 <script>
-  // Auth-Guard
-  (function() {
-    const token  = localStorage.getItem('freiki_token');
-    const expiry = parseInt(localStorage.getItem('freiki_token_expiry') || '0', 10);
-    if (!token || Date.now() >= expiry) {
-      localStorage.removeItem('freiki_token');
-      localStorage.removeItem('freiki_token_expiry');
+  // Auth-Guard: Session-Cookie ist HttpOnly, daher /api/me als Server-Rundruf statt lokalem Token.
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) throw new Error('not logged in');
+    } catch {
       if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
     }
   })();

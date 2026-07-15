@@ -4,8 +4,26 @@ const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
 const { loginLimiter } = require('../middlewares/security');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const { secondsUntilMidnightBerlin } = require('../../../shared/utils/text');
+const { config } = require('../../../shared/config');
 
 const router = express.Router();
+router.use(express.json({ limit: '100kb' }));
+
+// JWT liegt als HttpOnly-Cookie beim Client, nie im JS-erreichbaren localStorage (XSS-Schutz).
+// secure nur wenn APP_URL auf https laeuft (Produktion hinter Caddy) - im lokalen http-Dev
+// wuerde der Browser eine secure-Cookie sonst gar nicht erst speichern.
+// sameSite:'lax' statt 'strict', da /oauth/authorize (oidcRoutes.js) einen eigenstaendigen
+// Redirect-Login-Flow fuer Mattermost nutzt und von Lax nicht betroffen ist.
+function setSessionCookie(res, token) {
+  res.cookie('freiki_session', token, {
+    httpOnly: true,
+    secure: config.APP_URL.startsWith('https://'),
+    sameSite: 'lax',
+    path: '/',
+    maxAge: secondsUntilMidnightBerlin() * 1000,
+  });
+}
 
 router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
   const { username, password } = req.body || {};
@@ -15,6 +33,11 @@ router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
     if (result.error) {
       console.warn(`Login fehlgeschlagen: "${username}" von ${req.ip}`);
       return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+    }
+    if (result.token) {
+      setSessionCookie(res, result.token);
+      const { token, ...body } = result;
+      return res.json(body);
     }
     res.json(result);
   } catch (e) {
@@ -32,12 +55,19 @@ router.post('/api/login/verify-2fa', loginLimiter, asyncHandler(async (req, res)
       console.warn(`2FA-Verifizierung fehlgeschlagen von ${req.ip}`);
       return res.status(401).json({ error: 'Ungültiger Code' });
     }
-    res.json(result);
+    setSessionCookie(res, result.token);
+    const { token, ...body } = result;
+    res.json(body);
   } catch (e) {
     console.error('verify-2fa error:', e.message);
     res.status(500).json({ error: 'Verbindungsfehler' });
   }
 }));
+
+router.post('/api/logout', (req, res) => {
+  res.clearCookie('freiki_session', { path: '/' });
+  res.json({ ok: true });
+});
 
 router.post('/api/2fa/setup', asyncHandler(async (req, res) => {
   const s = getSession(req);

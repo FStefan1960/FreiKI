@@ -1,11 +1,13 @@
-/* global Office, Word, fetch, sessionStorage */
+/* global Office, Word, fetch */
 
 const API_BASE = ''; // gleicher Origin (app.freiki.com), kein CORS nötig
 
-let authToken = sessionStorage.getItem('freiki_token') || '';
-
-Office.onReady(() => {
-  if (authToken) showModeView();
+// Session-Cookie ist HttpOnly, daher /api/me als Server-Rundruf statt lokalem Token.
+Office.onReady(async () => {
+  try {
+    const r = await fetch(`${API_BASE}/api/me`, { cache: 'no-store' });
+    if (r.ok) showModeView();
+  } catch { /* Login-Ansicht bleibt sichtbar */ }
 });
 
 document.getElementById('login-btn').addEventListener('click', login);
@@ -37,13 +39,11 @@ async function login() {
       setStatus('');
       return;
     }
-    if (!res.ok || !data.token) {
+    if (!res.ok || !data.role) {
       setError(data.error || 'Anmeldung fehlgeschlagen.');
       setStatus('');
       return;
     }
-    authToken = data.token;
-    sessionStorage.setItem('freiki_token', authToken);
     setStatus('');
     showModeView();
   } catch (e) {
@@ -53,8 +53,7 @@ async function login() {
 }
 
 function logout() {
-  authToken = '';
-  sessionStorage.removeItem('freiki_token');
+  fetch(`${API_BASE}/api/logout`, { method: 'POST' }).catch(() => {});
   document.getElementById('mode-view').style.display = 'none';
   document.getElementById('login-view').style.display = 'block';
   document.getElementById('result-box').style.display = 'none';
@@ -100,7 +99,6 @@ async function runMode(mode) {
     const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       body: formData,
-      headers: { 'Authorization': 'Bearer ' + authToken }
     });
     if (res.status === 401) {
       setStatus(''); setError('Sitzung abgelaufen, bitte neu anmelden.');

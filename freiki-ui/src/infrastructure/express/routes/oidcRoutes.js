@@ -4,6 +4,7 @@ const Mattermost = require('../../../core/integrations/MattermostService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
+router.use(express.urlencoded({ limit: '100kb', extended: true }));
 
 router.get('/oauth/authorize', (req, res) => {
   if (!Mattermost.isValidClient(req.query.client_id, req.query.redirect_uri)) {

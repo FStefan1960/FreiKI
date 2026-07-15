@@ -10,6 +10,7 @@ const documents = require('../../../core/documents/DocumentService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
+router.use(express.json({ limit: '10mb' }));
 
 // Wissensbereiche aus Prompts-Dir auflisten (für n8n-Ingest-Workflows)
 router.get('/api/kb-areas', (req, res) => {

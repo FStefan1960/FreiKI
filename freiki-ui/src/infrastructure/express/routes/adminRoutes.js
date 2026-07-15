@@ -14,13 +14,14 @@ const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
+router.use(express.json({ limit: '256kb' }));
 
 // ── Admin: editierbare Konfigurations-Seite ──────────────────
-// Die Seite selbst (GET) bleibt öffentlich erreichbar (ein Browser-GET kann keinen
-// Authorization-Header mitschicken), rendert aber KEINE Konfigurationswerte mehr
-// server-seitig - die lädt load() erst per authentifiziertem fetch() nach. So bleibt
-// mattermostUrl/paperlessUrl etc. tatsächlich hinter requireAdmin, ohne dass die Seite
-// für normale Browser-Navigation unerreichbar wird (siehe requireAdmin-Kommentar unten).
+// Die Seite selbst (GET) bleibt öffentlich erreichbar, rendert aber KEINE
+// Konfigurationswerte mehr server-seitig - die lädt load() erst per fetch() nach
+// (Session-Cookie wird automatisch mitgeschickt). So bleibt mattermostUrl/paperlessUrl
+// etc. tatsächlich hinter requireAdmin, ohne dass die Seite für normale
+// Browser-Navigation unerreichbar wird (siehe requireAdmin-Kommentar unten).
 function adminConfigPage(saved) {
   const field = (key, label, type = 'text') => {
     const isColor = type === 'color';
@@ -149,21 +150,15 @@ function preview() {
 }
 document.querySelectorAll('input[type=text]').forEach(el => el.addEventListener('input', preview));
 
-// GET /admin/config selbst ist öffentlich erreichbar (ein Browser-GET kann keinen
-// Authorization-Header mitschicken), rendert aber keine Werte mehr server-seitig - die
-// holt load() per fetch() mit Token nach. So bleiben mattermostUrl/paperlessUrl etc.
-// tatsächlich hinter requireAdmin (/api/admin/brand-config), ohne dass die Seite für
-// normale Navigation unerreichbar wird.
+// GET /admin/config selbst ist öffentlich erreichbar, rendert aber keine Werte mehr
+// server-seitig - die holt load() per fetch() nach (Session-Cookie wird automatisch
+// mitgeschickt). So bleiben mattermostUrl/paperlessUrl etc. tatsächlich hinter
+// requireAdmin (/api/admin/brand-config), ohne dass die Seite für normale Navigation
+// unerreichbar wird.
 async function load() {
   const errEl = document.getElementById('auth-error');
-  const token = localStorage.getItem('freiki_token');
-  if (!token) {
-    errEl.textContent = 'Nicht angemeldet. Bitte in der App als Administrator einloggen und diese Seite neu laden.';
-    errEl.style.display = 'block';
-    return;
-  }
   try {
-    const res = await fetch('/api/admin/brand-config', { headers: { Authorization: 'Bearer ' + token } });
+    const res = await fetch('/api/admin/brand-config');
     if (!res.ok) {
       errEl.textContent = res.status === 403 ? 'Kein Zugriff (nur für Administratoren).' : 'Fehler beim Laden: ' + res.status;
       errEl.style.display = 'block';
@@ -187,27 +182,22 @@ async function load() {
 }
 load();
 
-// Formular postet als fetch() mit Authorization-Header (JWT aus localStorage), weil ein
-// natives <form method="POST"> keinen Bearer-Header setzen kann - adminSession() prüft
-// aber ausschließlich den Authorization-Header, nie ein Cookie.
+// Formular postet als fetch() statt eines nativen <form method="POST">, damit ein Fehler
+// (z. B. 403 bei fehlender Admin-Rolle) im Formular angezeigt werden kann statt auf eine
+// Fehlerseite zu navigieren. adminSession() prüft das HttpOnly-Session-Cookie, das bei
+// Same-Origin-fetch() automatisch mitgeschickt wird.
 async function save(ev) {
   ev.preventDefault();
   const errEl = document.getElementById('save-error');
   const btn = document.getElementById('save-btn');
   errEl.style.display = 'none';
-  const token = localStorage.getItem('freiki_token');
-  if (!token) {
-    errEl.textContent = 'Nicht angemeldet. Bitte in der App als Administrator einloggen und diese Seite neu laden.';
-    errEl.style.display = 'block';
-    return false;
-  }
   const fields = ${JSON.stringify(ALLOWED_FIELDS)};
   const body = Object.fromEntries(fields.map(k => [k, document.getElementById(k)?.value || '']));
   btn.disabled = true;
   try {
     const res = await fetch('/admin/config', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     if (res.ok) {

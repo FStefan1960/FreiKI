@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const { config, validateEnv } = require('../../shared/config');
 const { getBrandConfig, loadBrandConfig } = require('../../shared/config/BrandConfig');
 const { errorHandler } = require('../../shared/utils/errors');
@@ -16,9 +17,8 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // hinter Caddy
 app.use(securityHeaders);
+app.use(cookieParser());
 app.use('/api/', apiLimiter);
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Eigenständige Routen (Reihenfolge wichtig: müssen VOR express.static stehen,
 // damit z.B. '/' und '/sw.js' vom Brand-Template statt der statischen Datei bedient werden).
