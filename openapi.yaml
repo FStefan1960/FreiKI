@@ -60,12 +60,14 @@ paths:
         - Authentifizierung
       summary: Anmeldung
       description: |
-        Meldet einen Benutzer an und gibt ein JWT-Token zurück.
-        Im Demo-Modus (APP_DEMO_MODE=true) kann jeder Benutzername/Passwort funktionieren.
+        Meldet einen Benutzer an. Bei Erfolg (ohne aktive 2FA) wird das JWT als HttpOnly-Cookie
+        (freiki_session) gesetzt UND im Response-Body zurückgegeben (siehe cookieAuth/bearerAuth).
+        Ist für den Account 2FA aktiv, liefert die Antwort stattdessen requires2fa + pendingToken;
+        der eigentliche Login schließt erst POST /api/login/verify-2fa ab.
       requestBody:
         required: true
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
               type: object
               required:
@@ -81,18 +83,19 @@ paths:
                   example: sicheresPasswort123!
       responses:
         "200":
-          description: Erfolgreiche Anmeldung
+          description: Erfolgreiche Anmeldung, oder 2FA-Code angefordert (requires2fa)
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: freiki_session=eyJhbG...; HttpOnly; SameSite=Lax; Path=/
+              description: Nur gesetzt, wenn requires2fa fehlt (siehe Schema)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                    description: JWT-Token für zukünftige Anfragen
-                    example: eyJhbG...VCJ9...
-                  user:
-                    $ref: "#/components/schemas/User"
+                oneOf:
+                  - $ref: "#/components/schemas/LoginSuccess"
+                  - $ref: "#/components/schemas/LoginRequires2fa"
         "401":
           description: Ungültige Anmeldedaten
           content:
@@ -106,12 +109,195 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/login/verify-2fa:
+    post:
+      tags:
+        - Authentifizierung
+      summary: 2FA-Code bestätigen (zweiter Login-Schritt)
+      description: |
+        Schließt den Login ab, wenn /api/login zuvor requires2fa gemeldet hat. Akzeptiert einen
+        TOTP-Code oder einen Backup-Code. Setzt bei Erfolg dasselbe freiki_session-Cookie wie
+        /api/login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pendingToken
+                - code
+              properties:
+                pendingToken:
+                  type: string
+                  description: Aus der requires2fa-Antwort von /api/login (5 Min gültig)
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        "200":
+          description: Login abgeschlossen
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: freiki_session=eyJhbG...; HttpOnly; SameSite=Lax; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccess"
+        "400":
+          description: Code fehlt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Ungültiger Code oder abgelaufener pendingToken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/logout:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Abmelden
+      description: Löscht das freiki_session-Cookie serverseitig.
+      responses:
+        "200":
+          description: Abgemeldet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /api/2fa/setup:
+    post:
+      tags:
+        - Authentifizierung
+      summary: 2FA-Einrichtung starten
+      description: Erzeugt ein neues TOTP-Secret + QR-Code für den eingeloggten Nutzer.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Secret + QR-Code zum Scannen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:
+                    type: string
+                    example: JBSWY3DPEHPK3PXP
+                  qrCode:
+                    type: string
+                    description: Data-URL (PNG) des QR-Codes
+        "401":
+          description: Nicht angemeldet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/2fa/confirm:
+    post:
+      tags:
+        - Authentifizierung
+      summary: 2FA-Einrichtung bestätigen
+      description: Schließt die 2FA-Einrichtung ab und liefert einmalig die Backup-Codes.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        "200":
+          description: 2FA aktiviert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  backupCodes:
+                    type: array
+                    items:
+                      type: string
+                    description: Nur in dieser Antwort sichtbar, danach nur noch als Hash gespeichert
+        "400":
+          description: Ungültiger Code oder kein Setup gestartet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/2fa/reinit:
+    post:
+      tags:
+        - Authentifizierung
+      summary: 2FA neu einrichten (Selbstbedienung, z. B. bei Gerätewechsel)
+      description: Erfordert das aktuelle Passwort zur Bestätigung, ersetzt danach die alten Backup-Codes.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Neues Secret + QR-Code (wie /api/2fa/setup)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret:
+                    type: string
+                  qrCode:
+                    type: string
+        "401":
+          description: Aktuelles Passwort falsch oder nicht angemeldet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/change-password:
     post:
       tags:
         - Authentifizierung
       summary: Passwort ändern
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -154,6 +340,7 @@ paths:
         - Authentifizierung
       summary: Aktueller Benutzer
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -173,6 +360,7 @@ paths:
         Unterstützt verschiedene Modi (z. B. standard, leichte_sprache, zusammenfassen).
         Bis zu 20 Dateien (PDF, DOCX, Bilder, etc.) können mitgesendet werden.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -330,6 +518,7 @@ paths:
         - Dokumentenanalyse
       summary: Text in Wissensdatenbank aufnehmen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -377,6 +566,7 @@ paths:
         - Dokumentenanalyse
       summary: Dokumente in Wissensdatenbank hochladen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -427,6 +617,7 @@ paths:
         - Integration
       summary: Paperless-ngx Metadaten
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -451,6 +642,7 @@ paths:
         - Integration
       summary: Paperless-Dokument abrufen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -479,6 +671,7 @@ paths:
         - Integration
       summary: Paperless-Dokumente durchsuchen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -513,6 +706,7 @@ paths:
         - Integration
       summary: Paperless-Dokument herunterladen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -537,6 +731,7 @@ paths:
         - Excel
       summary: Excel-Datei hochladen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -579,6 +774,7 @@ paths:
       summary: Excel-Datei abfragen
       description: Fragt eine hochgeladene Excel-Datei ab (z. B. Was ist der Durchschnitt von Spalte B?). Nutzt MCP.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -633,6 +829,7 @@ paths:
       summary: Audio-Datei transkribieren
       description: Wandelt eine Audio-Datei (MP3, WAV, etc.) in Text um (via Whisper). Das Ergebnis wird per E-Mail gesendet.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -672,6 +869,7 @@ paths:
       summary: Text zu Sprache (TTS)
       description: Wandelt Text in Sprache um (via Piper-TTS). Gibt eine Audio-Datei (WAV) zurück.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -741,6 +939,50 @@ paths:
                     type: string
                     example: Im SGB IX § 1 steht...
 
+  /api/hilfe-chat:
+    post:
+      tags:
+        - Chat
+      summary: Hilfe-Chat (App-eigene Dokumentation)
+      description: |
+        RAG-Antwort auf Basis der Hilfe-Wissensbasis (HILFE_KB_TABLE). Öffentlich, ohne Auth -
+        beantwortet nur Fragen zur App selbst, nicht zu Kundendaten.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: Wie lösche ich meinen Chatverlauf?
+      responses:
+        "200":
+          description: Antwort der KI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string
+                    example: Der Chatverlauf liegt nur in Ihrem Browser und lässt sich über den Zurücksetzen-Button löschen.
+        "400":
+          description: Keine Nachricht übermittelt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Hilfe-Wissensbasis nicht konfiguriert (HILFE_KB_TABLE fehlt)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/brand:
     get:
       tags:
@@ -758,52 +1000,32 @@ paths:
     get:
       tags:
         - Verwaltung
-      summary: Admin-Konfiguration abrufen
-      security:
-        - bearerAuth: []
+      summary: Admin-Konfigurationsseite (HTML)
+      description: |
+        Liefert die HTML-Seite selbst - bewusst öffentlich erreichbar (ein Browser-GET kann
+        keinen Authorization-Header/Cookie-Kontext für "Try it out" liefern), rendert aber
+        serverseitig KEINE Konfigurationswerte. Die Seite lädt die echten Werte per JS-Fetch
+        von GET /api/admin/brand-config (admin-only) nach.
       responses:
         "200":
-          description: Aktuelle Konfiguration
+          description: HTML-Seite
           content:
-            application/json:
+            text/html:
               schema:
-                type: object
-                properties:
-                  appName:
-                    type: string
-                    example: FreiKI
-                  appColor:
-                    type: string
-                    example: "#1F54C0"
-                  mattermostUrl:
-                    type: string
-                    example: https://mattermost.example.de
-                  paperlessUrl:
-                    type: string
-                    example: https://paperless.example.de
+                type: string
     post:
       tags:
         - Verwaltung
-      summary: Admin-Konfiguration aktualisieren
+      summary: Branding-Konfiguration aktualisieren
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
-              type: object
-              properties:
-                appName:
-                  type: string
-                appColor:
-                  type: string
-                appTagline:
-                  type: string
-                mattermostUrl:
-                  type: string
-                paperlessUrl:
-                  type: string
+              $ref: "#/components/schemas/BrandConfigUpdate"
       responses:
         "200":
           description: Konfiguration aktualisiert
@@ -812,9 +1034,30 @@ paths:
               schema:
                 type: object
                 properties:
-                  success:
+                  ok:
                     type: boolean
                     example: true
+        "403":
+          description: Nur für Administratoren
+
+  /api/admin/brand-config:
+    get:
+      tags:
+        - Verwaltung
+      summary: Aktuelle Branding-Konfiguration (Admin, vollständig)
+      description: Wie GET /api/brand, aber admin-only und mit allen editierbaren Feldern (Quelle für die /admin/config-Seite).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Aktuelle Konfiguration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandConfigUpdate"
+        "403":
+          description: Nur für Administratoren
 
   /api/admin/areas:
     get:
@@ -822,6 +1065,7 @@ paths:
         - Verwaltung
       summary: Wissensbereiche verwalten
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -839,6 +1083,7 @@ paths:
         - Verwaltung
       summary: Benutzerliste abrufen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -854,6 +1099,7 @@ paths:
         - Verwaltung
       summary: Neuer Benutzer erstellen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -904,6 +1150,7 @@ paths:
         - Verwaltung
       summary: Benutzer aktualisieren
       security:
+        - cookieAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -942,6 +1189,7 @@ paths:
         - Verwaltung
       summary: Benutzer löschen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -967,6 +1215,7 @@ paths:
         - Verwaltung
       summary: Benutzer-Passwort zurücksetzen
       security:
+        - cookieAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -1004,6 +1253,7 @@ paths:
         - Verwaltung
       summary: Willkommens-E-Mail erneut senden
       security:
+        - cookieAuth: []
         - bearerAuth: []
       parameters:
         - name: id
@@ -1023,12 +1273,46 @@ paths:
                     type: boolean
                     example: true
 
+  /api/admin/users/{id}/reset-2fa:
+    post:
+      tags:
+        - Verwaltung
+      summary: 2FA eines Nutzers zurücksetzen
+      description: Deaktiviert 2FA für den Nutzer (z. B. bei Geräteverlust) - er muss sie beim nächsten Pflicht-Login neu einrichten. Wird im Audit-Log protokolliert.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 2FA zurückgesetzt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "404":
+          description: Nutzer nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/feedback:
     post:
       tags:
         - Verwaltung
       summary: Feedback senden
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -1114,6 +1398,7 @@ paths:
       summary: Medienspiegel abrufen
       description: Erfordert eine angemeldete Sitzung (kein Admin nötig). Liefert den zuletzt von n8n erzeugten Medienspiegel als HTML-Block.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -1139,6 +1424,7 @@ paths:
         - Verwaltung
       summary: Medienspiegel setzen (Admin, i. d. R. von n8n aufgerufen)
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -1177,6 +1463,7 @@ paths:
       summary: Gesellschaftstrends abrufen
       description: Erfordert eine angemeldete Sitzung (kein Admin nötig). Liefert den zuletzt von n8n erzeugten Gesellschaftstrends-Bericht als HTML-Block.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -1202,6 +1489,7 @@ paths:
         - Verwaltung
       summary: Gesellschaftstrends setzen (Admin, i. d. R. von n8n aufgerufen)
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -1238,6 +1526,7 @@ paths:
       summary: Tageslosung abrufen
       description: Erfordert eine angemeldete Sitzung (kein Admin nötig).
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -1255,6 +1544,7 @@ paths:
         - Verwaltung
       summary: Tageslosung setzen (Admin, i. d. R. von n8n aufgerufen)
       security:
+        - cookieAuth: []
         - bearerAuth: []
       requestBody:
         required: true
@@ -1302,6 +1592,7 @@ paths:
       summary: Tages-Statistiken (Admin-Widget)
       description: Anzahl Chat-Anfragen/aktive Nutzer heute sowie aktuelle/maximale GPU-Cache-Auslastung des LLM-Backends.
       security:
+        - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
@@ -1323,6 +1614,123 @@ paths:
                     description: Tages-Maximum der GPU-Cache-Auslastung in Prozent.
         "403":
           description: Nur für Administratoren
+
+  /api/admin/audit-log:
+    get:
+      tags:
+        - Verwaltung
+      summary: Admin-Audit-Log
+      description: |
+        Protokoll administrativer Aktionen (Nutzer angelegt/geändert/gelöscht, 2FA
+        zurückgesetzt, ...). Automatisch bereinigt nach 180 Tagen (DSGVO Speicherbegrenzung).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Bis zu 200 neueste Einträge
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        ts:
+                          type: string
+                          format: date-time
+                        actorUsername:
+                          type: string
+                          example: admin
+                        action:
+                          type: string
+                          example: user.2fa_reset
+                        targetUsername:
+                          type: string
+                          nullable: true
+                        details:
+                          type: object
+                          additionalProperties: true
+        "403":
+          description: Nur für Administratoren
+
+  /api/admin/sensitive-query-log:
+    get:
+      tags:
+        - Verwaltung
+      summary: Log sensibler Anfragen
+      description: |
+        Protokoll erkannter sensibler Anfragen (nur Metadaten - nie der Anfrage-Text selbst).
+        Automatisch bereinigt nach 180 Tagen (DSGVO Speicherbegrenzung).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Bis zu 200 neueste Einträge
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        ts:
+                          type: string
+                          format: date-time
+                        username:
+                          type: string
+                        role:
+                          type: string
+                        tool:
+                          type: string
+                        category:
+                          type: string
+        "403":
+          description: Nur für Administratoren
+
+  /api/admin/trigger-daily-report:
+    post:
+      tags:
+        - Verwaltung
+      summary: Tagesbericht manuell auslösen
+      description: Stößt den n8n-Webhook für den Tagesbericht sensibler Anfragen sofort an (statt auf den täglichen Zeitplan zu warten).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Webhook ausgelöst
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "501":
+          description: Auf dieser Instanz nicht konfiguriert (kein N8N_DAILY_REPORT_WEBHOOK_URL)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: n8n-Webhook nicht erreichbar oder antwortete mit Fehler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/pictograms:
     get:
@@ -1502,7 +1910,7 @@ paths:
         - Integration
       summary: Nutzerdaten anhand des Access-Tokens
       security:
-        - bearerAuth: []
+        - mattermostOAuth: []
       responses:
         "200":
           description: Nutzerdaten
@@ -1531,7 +1939,7 @@ paths:
       summary: Nutzerdaten im GitLab-API-Format (Mattermost-SSO-Kompatibilität)
       description: Liefert dieselben Claims wie /oauth/userinfo, aber im von Mattermosts GitLab-SSO-Slot erwarteten Antwortformat.
       security:
-        - bearerAuth: []
+        - mattermostOAuth: []
       responses:
         "200":
           description: Nutzerdaten
@@ -1566,12 +1974,78 @@ paths:
         "401":
           description: 401 Unauthorized
 
+  /api/health/live:
+    get:
+      tags:
+        - System
+      summary: Liveness-Check
+      description: |
+        Reiner Prozess-läuft-Check ohne Abhängigkeitsprüfung (kein vLLM/DB/etc.). Für Docker
+        HEALTHCHECK/Orchestrierung - ein kurzer Ausfall einer Abhängigkeit soll den Container
+        nicht als unhealthy markieren. Öffentlich, ohne Auth.
+      responses:
+        "200":
+          description: Prozess läuft
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: alive
+                  timestamp:
+                    type: string
+                    format: date-time
+
   /api/health:
     get:
       tags:
         - System
-      summary: Health-Check
-      description: Prüft den Status aller Abhängigkeiten (vLLM, PostgreSQL, Paperless, etc.). Sollte ohne Auth zugänglich sein.
+      summary: Readiness-Check (öffentlich, minimal)
+      description: |
+        Prüft intern den Status aller Abhängigkeiten (vLLM, PostgreSQL, Paperless, etc.), gibt
+        aber öffentlich bewusst nur Status + Zeitstempel zurück - Dienstnamen, Fehlermeldungen
+        und Ressourcenzahlen sind kein öffentliches Detail (siehe Produktionscheck 14.07.2026).
+        URL/Semantik bleiben stabil für externes Monitoring (z. B. Uptime-Kuma). Details unter
+        GET /api/health/detail (Admin-Login erforderlich). Öffentlich, ohne Auth.
+      responses:
+        "200":
+          description: Alle Services sind gesund
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+        "503":
+          description: Ein oder mehrere Services sind nicht verfügbar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/health/detail:
+    get:
+      tags:
+        - System
+      summary: Readiness-Check mit Details (Admin)
+      description: Wie GET /api/health, aber mit vollem Detail (Dienststatus, Disk, Memory) - nur für angemeldete Admins.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       responses:
         "200":
           description: Alle Services sind gesund
@@ -1579,6 +2053,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthCheck"
+        "401":
+          description: Nicht angemeldet oder keine Admin-Rolle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "503":
           description: Ein oder mehrere Services sind nicht verfügbar
           content:
@@ -1588,11 +2068,30 @@ paths:
 
 components:
   securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: freiki_session
+      description: |
+        HttpOnly-Session-Cookie, wird von /api/login und /api/login/verify-2fa gesetzt.
+        Der vom Browser-Frontend genutzte Weg - das JWT ist für JavaScript nicht lesbar
+        (XSS-Schutz). Bei Swagger-UI "Try it out" wird dieses Cookie automatisch mitgeschickt,
+        sobald zuvor /api/login im selben Browser aufgerufen wurde.
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT-Token aus /api/login
+      description: |
+        Alternative zum Cookie für serverseitige Automation (n8n-Workflows, Skripte ohne
+        Cookie-Jar zwischen Requests). Token kommt aus dem Response-Body von /api/login
+        bzw. /api/login/verify-2fa (Feld "token"). Nicht für Browser-Clients gedacht.
+    mattermostOAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Eigenständiges OAuth2-Access-Token aus POST /oauth/token (Mattermost-SSO-Flow via
+        zweckentfremdetem GitLab-Slot, siehe Tag "Integration") - komplett unabhängig vom
+        freiki_session-Cookie/JWT der übrigen API. Nur für /oauth/userinfo und /api/v4/user.
 
   schemas:
     Losung:
@@ -1636,10 +2135,15 @@ components:
           example: max@example.com
         role:
           type: string
+          description: |
+            default = normaler Nutzer, manager = zusätzlich Bereichsverwaltung, admin = volle
+            Verwaltung, high_risk = Berufsgeheimnisträger:in (BGT) mit erzwingbarer 2FA
           enum:
+            - default
+            - manager
             - admin
-            - user
-          example: user
+            - high_risk
+          example: default
         createdAt:
           type: string
           format: date-time
@@ -1648,6 +2152,57 @@ components:
           type: string
           format: date-time
           example: "2024-07-04T10:00:00Z"
+
+    LoginSuccess:
+      type: object
+      properties:
+        token:
+          type: string
+          description: |
+            JWT, zusätzlich zum Response-Body auch als HttpOnly-Cookie (freiki_session) gesetzt.
+            Nur für serverseitige Automation relevant (siehe bearerAuth) - Browser-Clients nutzen
+            ausschließlich das Cookie.
+          example: eyJhbG...VCJ9...
+        role:
+          type: string
+          enum:
+            - default
+            - manager
+            - admin
+            - high_risk
+          example: default
+        user:
+          type: object
+          properties:
+            username:
+              type: string
+              example: max.mustermann
+        useAreas:
+          type: array
+          items:
+            type: string
+          example:
+            - stvo
+            - dokumente
+        manageAreas:
+          type: array
+          items:
+            type: string
+          example: []
+        mustSetup2fa:
+          type: boolean
+          description: true wenn die Rolle 2FA verlangt (admin/high_risk), aber noch nicht eingerichtet ist
+          example: false
+
+    LoginRequires2fa:
+      type: object
+      properties:
+        requires2fa:
+          type: boolean
+          example: true
+        pendingToken:
+          type: string
+          description: 5 Minuten gültig, wird bei POST /api/login/verify-2fa benötigt
 
     Error:
       type: object
@@ -1708,6 +2263,50 @@ components:
           type: string
           example: ""
 
+    BrandConfigUpdate:
+      type: object
+      description: |
+        Editierbare Teilmenge von BrandConfig (ALLOWED_FIELDS) - genau diese Felder akzeptiert
+        POST /admin/config und liefert GET /api/admin/brand-config. logoSidebar, demoMode und
+        footerNote sind nur lesbar über GET /api/brand, nicht über diesen Endpunkt änderbar.
+      properties:
+        name:
+          type: string
+          example: FreiKI
+        color:
+          type: string
+          example: "#1F54C0"
+        colorHover:
+          type: string
+          example: "#1A4AAD"
+        colorActive:
+          type: string
+          example: "#173F95"
+        navy:
+          type: string
+          example: "#14306B"
+        logo:
+          type: string
+          example: /header.png
+        tagline:
+          type: string
+          example: Ihr souveräner KI-Assistent
+        supportEmail:
+          type: string
+          format: email
+          example: support@freiki.example
+        mattermostUrl:
+          type: string
+          format: uri
+          example: https://mattermost.example.de
+        paperlessUrl:
+          type: string
+          format: uri
+          example: https://paperless.example.de
+        swVersion:
+          type: string
+          example: "1"
+
     KBArea:
       type: object
       properties:
@@ -1757,6 +2356,7 @@ components:
 
     HealthCheck:
       type: object
+      description: Antwortform von GET /api/health/detail (Admin). GET /api/health liefert nur status+timestamp.
       properties:
         status:
           type: string
@@ -1770,6 +2370,9 @@ components:
           example: "2024-07-04T12:00:00Z"
         checks:
           type: object
+          description: |
+            Immer enthalten: vllm, postgres, diskSpace. paperless nur wenn PAPERLESS_TOKEN
+            gesetzt ist, whisper nur wenn WHISPER_URL gesetzt ist.
           additionalProperties:
             type: object
             properties:
@@ -1778,16 +2381,48 @@ components:
                 example: true
               status:
                 type: integer
+                description: HTTP-Status des geprüften Diensts (nur bei vllm/paperless/whisper)
                 example: 200
-              latency:
-                type: string
-                example: 120ms
               error:
                 type: string
+                description: Nur bei ok=false vorhanden
                 example: Connection refused
               freeBytes:
                 type: integer
+                description: Nur bei diskSpace
                 example: 21474836480
-              minFreeBytes:
-                type: integer
-                example: 10737418240
+              usedPercent:
+                type: number
+                description: Nur bei diskSpace
+                example: 42.5
+              used:
+                type: string
+                description: Nur bei diskSpace, z. B. "42.5 GB"
+                example: 42.5 GB
+              total:
+                type: string
+                description: Nur bei diskSpace
+                example: 100.0 GB
+        disk:
+          type: object
+          properties:
+            usedPercent:
+              type: number
+              example: 42.5
+            used:
+              type: string
+              example: 42.5 GB
+            total:
+              type: string
+              example: 100.0 GB
+        memory:
+          type: object
+          properties:
+            used:
+              type: integer
+              description: Bytes
+              example: 4294967296
+            total:
+              type: integer
+              description: Bytes
+              example: 17179869184
