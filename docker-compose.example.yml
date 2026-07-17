@@ -140,6 +140,7 @@ services:
       - ./freiki-ui/losung.json:/app/losung.json
       - ./freiki-ui/medienspiegel.json:/app/medienspiegel.json
       - ./freiki-ui/gesellschaftstrends.json:/app/gesellschaftstrends.json
+      - ./freiki-ui/sicherheitslage.json:/app/sicherheitslage.json
     dns:
       - 1.1.1.1
     environment:

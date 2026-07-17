@@ -96,6 +96,20 @@ router.post('/api/hilfe-chat', asyncHandler(async (req, res) => {
   }
 }));
 
+// IT-Sicherheitslage (n8n): Digest speichern, API-Key statt Session
+router.post('/api/bot/sicherheitslage', (req, res) => {
+  if (!config.BOT_API_KEY || req.headers['x-api-key'] !== config.BOT_API_KEY) {
+    return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
+  }
+  const { html, date } = req.body || {};
+  if (!html) return res.status(400).json({ error: 'html fehlt' });
+  try {
+    fs.writeFileSync(path.join(config.APP_ROOT, 'sicherheitslage.json'),
+      JSON.stringify({ date: date || new Date().toISOString().slice(0, 10), html }));
+    res.json({ ok: true });
+  } catch (e) { console.error(e.message); res.status(500).json({ error: 'Interner Fehler' }); }
+});
+
 // Bot-Chat (z.B. Mattermost via n8n): RAG über ALLE Wissensbereiche, API-Key statt Session
 router.post('/api/bot-chat', asyncHandler(async (req, res) => {
   if (!config.BOT_API_KEY || req.headers['x-api-key'] !== config.BOT_API_KEY) {

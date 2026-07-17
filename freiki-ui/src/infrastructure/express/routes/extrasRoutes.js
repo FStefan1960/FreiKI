@@ -36,6 +36,7 @@ function jsonFileRoute(routePath, filename) {
 jsonFileRoute('/api/medienspiegel', 'medienspiegel.json');
 jsonFileRoute('/api/gesellschaftstrends', 'gesellschaftstrends.json');
 jsonFileRoute('/api/losung', 'losung.json');
+jsonFileRoute('/api/sicherheitslage', 'sicherheitslage.json');
 
 // Piktogramm-Suche (ARASAAC)
 // Bilder als data:-URLs ausliefern: die CSP erlaubt img-src 'self' data: https:,

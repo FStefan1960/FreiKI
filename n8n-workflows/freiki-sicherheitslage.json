@@ -1,0 +1,173 @@
+[
+  {
+    "id": "L6ArINBXQbydkr6P",
+    "name": "IT-Sicherheitslage",
+    "active": false,
+    "nodes": [
+      {
+        "id": "trigger",
+        "name": "06:30 und 12:30 Uhr",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [-1008, 0],
+        "parameters": {
+          "rule": {
+            "interval": [
+              { "field": "cronExpression", "expression": "30 6,12 * * *" }
+            ]
+          }
+        },
+        "typeVersion": 1.2
+      },
+      {
+        "id": "rss-bsi",
+        "name": "BSI/CERT-Bund",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "position": [-800, -160],
+        "parameters": {
+          "url": "https://wid.cert-bund.de/content/public/securityAdvisory/rss"
+        },
+        "typeVersion": 1.1,
+        "continueOnFail": true
+      },
+      {
+        "id": "rss-heise",
+        "name": "Heise Security",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "position": [-800, 0],
+        "parameters": {
+          "url": "https://www.heise.de/security/rss/news-atom.xml"
+        },
+        "typeVersion": 1.1,
+        "continueOnFail": true
+      },
+      {
+        "id": "rss-golem",
+        "name": "Golem Security",
+        "type": "n8n-nodes-base.rssFeedRead",
+        "position": [-800, 160],
+        "parameters": {
+          "url": "https://rss.golem.de/rss.php?feed=RSS2.0&ms=security"
+        },
+        "typeVersion": 1.1,
+        "continueOnFail": true
+      },
+      {
+        "id": "merge",
+        "name": "Zusammenführen",
+        "type": "n8n-nodes-base.merge",
+        "position": [-576, 0],
+        "parameters": {
+          "mode": "append",
+          "numberInputs": 3,
+          "options": {}
+        },
+        "typeVersion": 3.2
+      },
+      {
+        "id": "build-prompt",
+        "name": "Items aufbereiten",
+        "type": "n8n-nodes-base.code",
+        "position": [-368, 0],
+        "parameters": {
+          "jsCode": "const all = $input.all();\nconst seen = new Set();\nconst bySource = {};\nfor (const it of all) {\n  const link = it.json.link;\n  const title = it.json.title;\n  if (!title || !link || seen.has(link)) continue;\n  seen.add(link);\n  let source = 'other';\n  if (link.includes('cert-bund.de') || link.includes('bsi.bund.de')) source = 'bsi';\n  else if (link.includes('heise.de')) source = 'heise';\n  else if (link.includes('golem.de')) source = 'golem';\n  (bySource[source] = bySource[source] || []).push({ title, link });\n}\nconst perSource = 10;\nconst top = [];\nfor (const key of Object.keys(bySource)) {\n  top.push(...bySource[key].slice(0, perSource));\n}\nconst text = top.map((r, i) => (i + 1) + '. ' + r.title + ' | ' + r.link).join('\\n');\nreturn [{ json: { text, count: top.length } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "llm",
+        "name": "LLM-Digest (Qwen3)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [-160, 0],
+        "parameters": {
+          "url": "https://api.deepinfra.com/v1/openai/chat/completions",
+          "method": "POST",
+          "options": { "timeout": 60000 },
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ model: 'Qwen/Qwen3-32B', max_tokens: 4096, messages: [ { role: 'system', content: 'Du erstellst einen IT-Sicherheitslage-Digest aus aktuellen Meldungen von BSI/CERT-Bund, Heise Security und Golem Security. Gib sauberes HTML aus (nur body-Inhalt, kein Markdown, kein <html>/<body>). Gliedere mit h2 pro Quelle/Kategorie, darunter ul/li je Meldung mit dem Titel als Link (a href) und einem kurzen Satz zur Einordnung. Hebe kritische oder hochstufige Schwachstellen/Meldungen hervor, fasse den Rest knapp zusammen. Antworte NUR mit dem HTML, keine Erklärungen, keine Denkschritte.' }, { role: 'user', content: 'Aktuelle Meldungen:\\n' + $json.text } ] }) }}",
+          "headerParameters": {
+            "parameters": [
+              { "name": "Authorization", "value": "=Bearer {{$env.VLLM_API_KEY}}" }
+            ]
+          }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "build-result",
+        "name": "Antwort aufbereiten",
+        "type": "n8n-nodes-base.code",
+        "position": [48, 0],
+        "parameters": {
+          "jsCode": "const resp = $input.first().json;\nlet html = resp?.choices?.[0]?.message?.content || '';\nhtml = html.replace(/<think>[\\s\\S]*?<\\/think>/gi, '').trim();\nhtml = html.replace(/^```html\\s*/i, '').replace(/```\\s*$/, '').trim();\nconst date = new Date().toISOString().slice(0, 10);\nreturn [{ json: { date, html } }];"
+        },
+        "typeVersion": 2
+      },
+      {
+        "id": "save",
+        "name": "In FreiKI speichern",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [256, -80],
+        "parameters": {
+          "url": "http://FreiKI:3000/api/bot/sicherheitslage",
+          "method": "POST",
+          "sendBody": true,
+          "sendHeaders": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ date: $json.date, html: $json.html }) }}",
+          "headerParameters": {
+            "parameters": [
+              { "name": "x-api-key", "value": "={{$env.BOT_API_KEY}}" }
+            ]
+          },
+          "options": { "timeout": 15000 }
+        },
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "id": "mail",
+        "name": "Mail senden (optional)",
+        "type": "n8n-nodes-base.emailSend",
+        "position": [256, 96],
+        "parameters": {
+          "html": "={{ $json.html }}",
+          "options": {},
+          "subject": "=IT-Sicherheitslage – {{$json.date}}",
+          "toEmail": "admin@freiki.com",
+          "fromEmail": "ki_agent@freiki.com"
+        },
+        "credentials": {
+          "smtp": { "id": "beeSlBjHTMsDpZSe", "name": "FreiKI SMTP (ki_agent)" }
+        },
+        "typeVersion": 2.1,
+        "continueOnFail": true
+      }
+    ],
+    "connections": {
+      "06:30 und 12:30 Uhr": {
+        "main": [[
+          { "node": "BSI/CERT-Bund", "type": "main", "index": 0 },
+          { "node": "Heise Security", "type": "main", "index": 0 },
+          { "node": "Golem Security", "type": "main", "index": 0 }
+        ]]
+      },
+      "BSI/CERT-Bund": { "main": [[{ "node": "Zusammenführen", "type": "main", "index": 0 }]] },
+      "Heise Security": { "main": [[{ "node": "Zusammenführen", "type": "main", "index": 1 }]] },
+      "Golem Security": { "main": [[{ "node": "Zusammenführen", "type": "main", "index": 2 }]] },
+      "Zusammenführen": { "main": [[{ "node": "Items aufbereiten", "type": "main", "index": 0 }]] },
+      "Items aufbereiten": { "main": [[{ "node": "LLM-Digest (Qwen3)", "type": "main", "index": 0 }]] },
+      "LLM-Digest (Qwen3)": { "main": [[{ "node": "Antwort aufbereiten", "type": "main", "index": 0 }]] },
+      "Antwort aufbereiten": {
+        "main": [[
+          { "node": "In FreiKI speichern", "type": "main", "index": 0 },
+          { "node": "Mail senden (optional)", "type": "main", "index": 0 }
+        ]]
+      }
+    },
+    "settings": { "executionOrder": "v1" },
+    "triggerCount": 1
+  }
+]

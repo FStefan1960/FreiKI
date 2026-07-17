@@ -55,6 +55,7 @@ freiki-ui/tips.md
 freiki-ui/medienspiegel.json
 freiki-ui/gesellschaftstrends.json
 freiki-ui/losung.json
+freiki-ui/sicherheitslage.json
 freiki-ui/prompts/
 freiki-ui/*.pdf
 
