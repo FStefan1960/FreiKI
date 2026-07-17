@@ -832,6 +832,70 @@ body {
   margin: 0;
 }
 
+.mermaid-diagram {
+  background: #fff;
+  border: 1px solid var(--fk-border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 10px 0;
+  overflow-x: auto;
+  text-align: center;
+  cursor: zoom-in;
+}
+.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.mermaid-lightbox {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  width: 95vw;
+  max-width: 1400px;
+  max-height: 85vh;
+  overflow: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  text-align: center;
+}
+.mermaid-lightbox svg {
+  width: 100%;
+  height: auto;
+}
+.mermaid-lightbox-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+}
+.mermaid-lightbox-actions button {
+  background: var(--fk-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .6rem 1.2rem;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mermaid-lightbox-actions button:last-child {
+  background: #f0f2f5;
+  color: #444;
+}
+.mermaid-lightbox-actions button:hover {
+  opacity: .88;
+}
+
 .message.user .message-bubble {
   background: var(--fk-primary);
   color: #fff;
