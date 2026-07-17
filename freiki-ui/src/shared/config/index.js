@@ -17,6 +17,10 @@ const config = {
   VLLM_EMBED_URL: process.env.VLLM_EMBED_URL || 'http://vLLM-Embedding:8001/v1/embeddings',
   VLLM_EMBED_MODEL: process.env.VLLM_EMBED_MODEL || 'BAAI/bge-m3',
 
+  IMAGE_GEN_URL: process.env.IMAGE_GEN_URL || 'https://api.deepinfra.com/v1/openai/images/generations',
+  IMAGE_GEN_API_KEY: process.env.IMAGE_GEN_API_KEY || '',
+  IMAGE_GEN_MODEL: process.env.IMAGE_GEN_MODEL || 'black-forest-labs/FLUX-2-klein-4b',
+
   SEARXNG_URL: process.env.SEARXNG_URL || 'http://searxng:8080',
   N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || '',
   N8N_DAILY_REPORT_WEBHOOK_URL: process.env.N8N_DAILY_REPORT_WEBHOOK_URL || '',

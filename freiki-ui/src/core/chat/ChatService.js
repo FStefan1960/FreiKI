@@ -1,4 +1,6 @@
 const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const { config } = require('../../shared/config');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { fetchWithTimeout } = require('../../shared/utils/text');
@@ -106,6 +108,7 @@ async function handleChat(req, res) {
 
     const useWebSearch = modeConf?.websearch || false;
     const isPaperless  = modeConf?.paperless || false;
+    const isImageGen   = modeConf?.imagegen || false;
     const wissenKey    = mode.startsWith('w_') ? mode.slice(2) : mode;
     const isWissen     = modeConf?.workspace === 'wissen';
     const username = req.body.username || 'unknown';
@@ -161,6 +164,8 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
 
     if (isPaperless) {
       await handlePaperlessMode(res, message);
+    } else if (isImageGen) {
+      await handleImageGenMode(res, message);
     } else if (isWissen) {
       await handleWissenMode(res, { wissenKey, userMessage, history, mode });
     } else {
@@ -172,6 +177,62 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
       res.status(e.status || 500).json({ error: e.status ? e.message : 'Interner Fehler' });
     }
   }
+}
+
+const GENERATED_IMAGES_DIR = path.join(config.APP_ROOT, 'generated_images');
+fs.mkdirSync(GENERATED_IMAGES_DIR, { recursive: true });
+
+function cleanupGeneratedImages() {
+  try {
+    for (const file of fs.readdirSync(GENERATED_IMAGES_DIR)) {
+      const fp = path.join(GENERATED_IMAGES_DIR, file);
+      if (Date.now() - fs.statSync(fp).mtimeMs > 24 * 60 * 60 * 1000) fs.unlinkSync(fp);
+    }
+  } catch (_) { /* Verzeichnis ggf. noch leer/nicht vorhanden */ }
+}
+setInterval(cleanupGeneratedImages, 6 * 60 * 60 * 1000);
+
+// Generierte Bilder als Datei statt Base64 im Chatverlauf: Base64-Inline-Bilder blähen die
+// "history" bei jeder Folgenachricht auf mehrere hundert KB auf (Multer-Feldlimit, siehe
+// FileStorage.js) und landen 1:1 im "Kopieren"-Button (dataset.copyText = Rohtext) – dort
+// dann als Buchstabensalat statt eines nutzbaren Downloads. Eine Datei-URL bleibt kurz und
+// ist per Rechtsklick/Download-Link speicherbar.
+async function handleImageGenMode(res, message) {
+  const prompt = (message || '').trim();
+  if (!prompt) {
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '🎨 Bitte eine Bildbeschreibung eingeben.' } }] })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    return res.end();
+  }
+  try {
+    // Antwortformat folgt DeepInfras OpenAI-kompatibler Images-API (data[0].b64_json) -
+    // KorKIs lokaler image-gen-Service spiegelt dasselbe Format, damit dieser Code auf
+    // allen drei Instanzen identisch ist (nur IMAGE_GEN_URL/-KEY/-MODEL unterscheiden sich).
+    const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
+      body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt, n: 1 }),
+    });
+    if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
+    const { data } = await r.json();
+    const image_base64 = data?.[0]?.b64_json;
+    if (!image_base64) throw new Error('Keine Bilddaten erhalten');
+    const buf = Buffer.from(image_base64, 'base64');
+    // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
+    // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
+    const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
+    const filename = `${crypto.randomUUID()}.${ext}`;
+    fs.writeFileSync(path.join(GENERATED_IMAGES_DIR, filename), buf);
+    const url = `/api/generated-images/${filename}`;
+    const alt = prompt.replace(/[[\]]/g, '');
+    const md = `![${alt}](${url})\n\n<a href="${url}" download="bild.${ext}">⬇️ Bild herunterladen</a>`;
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: md } }] })}\n\n`);
+  } catch (e) {
+    console.error('Bildgenerierung Fehler:', e.message);
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '⚠️ Bildgenerierung nicht erreichbar.' } }] })}\n\n`);
+  }
+  res.write('data: [DONE]\n\n');
+  res.end();
 }
 
 async function handlePaperlessMode(res, message) {

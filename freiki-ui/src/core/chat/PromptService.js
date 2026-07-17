@@ -33,6 +33,7 @@ fs.readdirSync(config.PROMPT_DIR)
       multifile:  meta.multifile  === 'true',
       hidden:     meta.hidden     === 'true',
       paperless:  meta.paperless  === 'true',
+      imagegen:   meta.imagegen   === 'true',
       examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
     });
 

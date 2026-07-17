@@ -27,6 +27,15 @@ router.get('/api/tips', (_req, res) => {
   } catch (e) { res.json({ tips: [] }); }
 });
 
+// Generierte Bilder (Modus "Bild"): Dateiname ist ein server-seitig erzeugtes UUID.png,
+// daher reicht ein striktes Format-Match als Schutz vor Path-Traversal.
+router.get('/api/generated-images/:file', (req, res) => {
+  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  if (!/^[a-f0-9-]+\.(png|jpg)$/.test(req.params.file)) return res.status(400).end();
+  const filePath = path.join(config.APP_ROOT, 'generated_images', req.params.file);
+  res.sendFile(filePath, err => { if (err) res.status(404).end(); });
+});
+
 router.get('/api/modes', asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const session = getSession(req);

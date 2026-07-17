@@ -7,9 +7,13 @@ const DOC_TYPES = ['application/pdf','text/plain','text/markdown','application/m
   'image/jpeg','image/png','image/webp'];
 
 // Für Chat-Uploads (Dokument-Analyse, Multidoc)
+// fieldSize (nicht nur fileSize!) muss großzügig sein: das "history"-Textfeld trägt bei der
+// Bildgenerierung Base64-PNGs aus vorherigen Antworten mit sich und überschreitet sonst
+// Multers Default von 1MB (LIMIT_FIELD_VALUE, bricht dann JEDEN Chat-Request in der
+// Unterhaltung ab, nicht nur Bild-Anfragen).
 const upload = multer({
   dest: '/tmp/uploads/',
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024, fieldSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (DOC_TYPES.includes(file.mimetype)) cb(null, true);
     else cb(new Error('Ungültiger Dateityp. Erlaubt: PDF, TXT, MD, DOC/DOCX, JPG, PNG, WEBP'), false);
