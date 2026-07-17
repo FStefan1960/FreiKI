@@ -387,10 +387,16 @@ const gpuCache = { live: 0, peak: 0, peakDate: '' };
 
 async function pollGpuCache() {
   try {
-    const r = await fetch(`${config.VLLM_URL}/metrics`, { signal: AbortSignal.timeout(5000) });
+    // VLLM_URL zeigt auf die Chat-API (z.B. ".../v1") - die Prometheus-Metriken liegen
+    // unauthentifiziert am Server-Root, daher hier auf die Origin zurueckschneiden.
+    const metricsUrl = `${new URL(config.VLLM_URL).origin}/metrics`;
+    const r = await fetch(metricsUrl, { signal: AbortSignal.timeout(5000) });
     if (!r.ok) return;
     const text = await r.text();
-    const match = text.match(/vllm:gpu_cache_usage_perc\s+([\d.]+)/);
+    // vLLM hat die Metrik mit v0.24 von "gpu_cache_usage_perc" auf "kv_cache_usage_perc"
+    // umbenannt (Postmortem 2026-07-16) - beide Namen abdecken, optionale Prometheus-Labels
+    // ("{...}") vor dem Wert zulassen.
+    const match = text.match(/vllm:(?:kv|gpu)_cache_usage_perc(?:\{[^}]*\})?\s+([\d.]+)/);
     if (match) {
       const val = parseFloat(match[1]) * 100;
       gpuCache.live = val;
