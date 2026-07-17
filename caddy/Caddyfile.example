@@ -32,7 +32,9 @@ app.freiki.com {
     # auf addEventListener umbauen, statische Seiten dynamisch/nonce-fähig machen) -
     # bewusst nicht Teil dieser Änderung. img-src erlaubt https: weil das Logo im
     # Branding (/admin/config) eine beliebige externe URL sein darf.
-    header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    # img-src: https: allein blockiert in manchen Browsern externe Bilder trotzdem;
+    # deshalb explizit static.arasaac.org + https://* (Branding-Logos, Piktogramme).
+    header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static.arasaac.org https://*; font-src 'self'; connect-src 'self'; frame-ancestors 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
     # Office Add-in (Word Online lädt die Taskpane in einem Iframe von einer
     # Microsoft-Domain, außerdem lädt taskpane.html das Office.js-SDK von Microsoft) -
     # braucht eine Ausnahme von der globalen SAMEORIGIN-Regel und der obigen CSP,
@@ -40,7 +42,7 @@ app.freiki.com {
     @office-addin path /office-addin/*
     header @office-addin {
         -X-Frame-Options
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://appsforoffice.microsoft.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'self' https://*.officeapps.live.com https://*.office.com https://*.microsoft.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://appsforoffice.microsoft.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*; font-src 'self'; connect-src 'self'; frame-ancestors 'self' https://*.officeapps.live.com https://*.office.com https://*.microsoft.com; object-src 'none'; base-uri 'self'; form-action 'self'"
     }
     reverse_proxy freiki-ui:3000
     log {

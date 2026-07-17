@@ -20,7 +20,14 @@ function isDockerInternalIp(ip) {
   return parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
 }
 
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Zu viele Anfragen' } });
+// Piktogramm-Bilder: bis zu 40 parallele img-Requests pro Suche – nicht gegen das
+// API-Limit zählen (sonst leere Kacheln nach wenigen Suchen).
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Zu viele Anfragen' },
+  skip: (req) => /^\/api\/pictograms\/\d+\/image(?:\?|$)/.test(req.originalUrl || ''),
+});
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
