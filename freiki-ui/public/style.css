@@ -895,6 +895,11 @@ body {
 .mermaid-lightbox-actions button:hover {
   opacity: .88;
 }
+/* Eigene Farbe wie "Web-Recherche" (#ea580c) - markiert Aktionen, bei denen Daten
+   den Server verlassen (siehe .mode-btn-web). */
+.mermaid-drawio-btn {
+  background: #ea580c !important;
+}
 
 .message.user .message-bubble {
   background: var(--fk-primary);
