@@ -59,7 +59,7 @@ services:
 
   # ── AUTOMATISIERUNG ──────────────────────────────────────────
   n8n:
-    image: n8nio/n8n:2.30.3
+    image: n8nio/n8n:2.31.3
     container_name: n8n
     restart: unless-stopped
     logging: *default-logging
@@ -406,7 +406,7 @@ services:
 
   # ── LOG-VIEWER (Dozzle) ───────────────────────────────────────
   dozzle:
-    image: amir20/dozzle:v10.6.9
+    image: amir20/dozzle:v10.6.10
     container_name: Dozzle
     restart: unless-stopped
     logging: *default-logging
