@@ -192,6 +192,41 @@ function cleanupGeneratedImages() {
 }
 setInterval(cleanupGeneratedImages, 6 * 60 * 60 * 1000);
 
+// FLUX ist überwiegend auf englischen Bildbeschreibungen trainiert; kurze deutsche
+// Eingaben ("ein Mann auf einer Wiese") führen gerade beim kleinen 4B-Modell zu
+// Anatomiefehlern. Das LLM reichert die Eingabe deshalb zu einem detaillierten
+// englischen Prompt an. Bei Fehlern läuft die Generierung mit der Original-Eingabe weiter.
+async function enhanceImagePrompt(prompt) {
+  try {
+    const r = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
+      body: JSON.stringify({
+        model: config.VLLM_MODEL,
+        messages: [
+          { role: 'system', content: 'Du wandelst Bildwünsche in detaillierte englische Prompts für ein Text-zu-Bild-Modell um. Beschreibe in 60-100 Wörtern Motiv, Bildaufbau, Umgebung, Licht und Stil konkret. Bleibe inhaltlich exakt beim Wunsch des Nutzers, erfinde keine abweichenden Motive und füge keinen Text im Bild hinzu, außer er ist ausdrücklich gewünscht. Gib NUR den englischen Prompt zurück – ohne Erklärung, ohne Anführungszeichen. /no_think' },
+          { role: 'user', content: `Bildwunsch: "${prompt}"\n\nEnglischer Prompt:` }
+        ],
+        max_tokens: 250,
+        temperature: 0.3
+      })
+    });
+    const d = await r.json();
+    // Qwen3 kann trotz /no_think leere <think>-Blöcke voranstellen – immer strippen.
+    // Mistral (FrankKI) umschließt den Prompt trotz Anweisung gern mit Anführungszeichen.
+    const enhanced = d.choices?.[0]?.message?.content
+      ?.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+      .replace(/^["'„]+|["'“]+$/g, '').trim();
+    if (enhanced && enhanced.length > 20) {
+      console.log(`Bild-Prompt angereichert: ${prompt.length} → ${enhanced.length} Zeichen`);
+      return enhanced;
+    }
+  } catch (e) {
+    console.warn('Bild-Prompt-Anreicherung fehlgeschlagen:', e.message);
+  }
+  return prompt;
+}
+
 // Generierte Bilder als Datei statt Base64 im Chatverlauf: Base64-Inline-Bilder blähen die
 // "history" bei jeder Folgenachricht auf mehrere hundert KB auf (Multer-Feldlimit, siehe
 // FileStorage.js) und landen 1:1 im "Kopieren"-Button (dataset.copyText = Rohtext) – dort
@@ -208,10 +243,11 @@ async function handleImageGenMode(res, message) {
     // Antwortformat folgt DeepInfras OpenAI-kompatibler Images-API (data[0].b64_json) -
     // KorKIs lokaler image-gen-Service spiegelt dasselbe Format, damit dieser Code auf
     // allen drei Instanzen identisch ist (nur IMAGE_GEN_URL/-KEY/-MODEL unterscheiden sich).
+    const genPrompt = await enhanceImagePrompt(prompt);
     const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
-      body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt, n: 1 }),
+      body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 }),
     });
     if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
     const { data } = await r.json();
