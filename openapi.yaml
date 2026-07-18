@@ -1,39 +1,41 @@
 openapi: 3.0.3
 info:
-  title: FreiKI API
+  title: FreiKI / KorKI API
   description: |
     **FreiKI** ist ein lokal gehosteter, datenschutzfreundlicher KI-Assistent mit Dokumentenanalyse, RAG, Chat und Integrationen.
-    Diese API ermöglicht die Interaktion mit allen Funktionen von FreiKI.
+    Abgeleitete Instanzen (z. B. **KorKI**) nutzen dieselbe API-Oberfläche.
 
     ### Authentifizierung
-    - **JWT-Token** (Header: Authorization: Bearer *** für geschützte Endpunkte.
-    - **Login**: POST /api/login gibt JWT zurück.
-    - **Demo-Modus**: Falls APP_DEMO_MODE=true, sind einige Endpunkte ohne Auth zugänglich.
+    - **Session-Cookie** `freiki_session` (Browser) oder **JWT** (`Authorization: Bearer …`).
+    - **Login**: `POST /api/login` setzt Cookie und liefert Token im Body; bei 2FA folgt `POST /api/login/verify-2fa`.
+    - **Bot/Automation**: Header `X-API-Key` (= `BOT_API_KEY`) für `/api/bot-chat` und `/api/bot/sicherheitslage`.
 
     ### Basis-URL
     - **Lokal**: http://localhost:3000
-    - **Produktion**: https://<deine-domain>.de
+    - **KorKI**: https://assi.diakonie-kork-ki.de
+    - Swagger UI selbst nur über Tailscale (nicht öffentlich über Caddy).
 
     ### Features
     - **Chat**: KI-gestützte Konversationen mit verschiedenen Modi (z. B. Leichte Sprache, Zusammenfassen).
     - **Dokumentenanalyse**: PDF, DOCX, Bilder (OCR), Audio (Transkription).
     - **Wissensdatenbank (RAG)**: Semantische Suche in hinterlegten Dokumenten.
     - **Excel-Analyse**: Dynamische Abfragen auf Excel-Dateien via MCP.
-    - **Integration**: Mattermost, Paperless-ngx, SearXNG (Web-Suche).
+    - **Integration**: Mattermost, Paperless-ngx, SearXNG (Web-Suche), ARASAAC-Piktogramme.
 
-  version: 1.0.0
+  version: 1.1.0
   contact:
     name: FreiKI Support
-    email: support@freiki.example
   license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
 
 servers:
+  - url: https://assi.diakonie-kork-ki.de
+    description: KorKI (Diakonie Kork)
   - url: http://localhost:3000
     description: Lokale Entwicklungsumgebung
   - url: https://freiki.example.de
-    description: Produktionsumgebung
+    description: Platzhalter eigene Instanz
 
 tags:
   - name: Authentifizierung
@@ -907,7 +909,11 @@ paths:
       tags:
         - Integration
       summary: Mattermost-Bot-Chat
-      description: Wird von n8n aufgerufen, um Fragen im Mattermost-Chat zu beantworten. Nutzt RAG über alle Wissensbereiche.
+      description: |
+        Wird von n8n/Mattermost aufgerufen. RAG über alle Wissensbereiche.
+        Authentifizierung über Header `X-API-Key` (Env `BOT_API_KEY`).
+      security:
+        - botApiKey: []
       requestBody:
         required: true
         content:
@@ -916,17 +922,14 @@ paths:
               type: object
               required:
                 - message
-                - user
               properties:
                 message:
                   type: string
                   example: Was steht im SGB IX über Eingliederungshilfe?
-                user:
+                username:
                   type: string
+                  description: Anzeigename des Mattermost-Nutzers (für Audit/n8n)
                   example: max.mustermann
-                channel:
-                  type: string
-                  example: allgemein
       responses:
         "200":
           description: Antwort der KI
@@ -938,6 +941,72 @@ paths:
                   answer:
                     type: string
                     example: Im SGB IX § 1 steht...
+                  sources:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          description: Kein message übergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Ungültiger oder fehlender API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/bot/sicherheitslage:
+    post:
+      tags:
+        - Integration
+      summary: IT-Sicherheitslage speichern (n8n)
+      description: |
+        Speichert den von n8n erzeugten HTML-Digest als `sicherheitslage.json`.
+        Authentifizierung über Header `X-API-Key` (Env `BOT_API_KEY`).
+      security:
+        - botApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - html
+              properties:
+                html:
+                  type: string
+                  description: Fertig gerenderter HTML-Block für das Frontend.
+                date:
+                  type: string
+                  format: date
+                  description: Optional, Default heutiges Datum (YYYY-MM-DD).
+      responses:
+        "200":
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: html fehlt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Ungültiger oder fehlender API-Key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/hilfe-chat:
     post:
@@ -1352,44 +1421,43 @@ paths:
     get:
       tags:
         - Verwaltung
-      summary: Extras abrufen
+      summary: Sidebar-Extras abrufen
+      description: |
+        Liest `public/extras/*.json` und liefert die konfigurierten Zusatzwerkzeuge
+        (Piktogramme, Tagesplan, Losung, IT-Sicherheitslage, …). Öffentlich ohne Auth.
       responses:
         "200":
           description: Liste der Extras
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  medienspiegel:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        title:
-                          type: string
-                        url:
-                          type: string
-                        date:
-                          type: string
-                          format: date
-                  gesellschaftstrends:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        title:
-                          type: string
-                        description:
-                          type: string
-                  losung:
-                    type: object
-                    properties:
-                      text:
-                        type: string
-                      date:
-                        type: string
-                        format: date
+                type: array
+                items:
+                  type: object
+                  required:
+                    - key
+                    - title
+                  properties:
+                    key:
+                      type: string
+                      example: picto
+                    title:
+                      type: string
+                      example: Piktogramme
+                    icon:
+                      type: string
+                      example: 🖼️
+                    desc:
+                      type: string
+                    panel:
+                      type: string
+                      description: Relativer Pfad zum eingebetteten Werkzeug-Panel
+                      example: /picto.html
+                    url:
+                      type: string
+                      description: Alternativ externe/interne URL
+                    external:
+                      type: boolean
 
   /api/medienspiegel:
     get:
@@ -1732,12 +1800,80 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/sicherheitslage:
+    get:
+      tags:
+        - Verwaltung
+      summary: IT-Sicherheitslage abrufen
+      description: Erfordert eine angemeldete Sitzung. Liefert den zuletzt von n8n gespeicherten Digest.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Aktuelle IT-Sicherheitslage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                    nullable: true
+                  html:
+                    type: string
+                    nullable: true
+        "401":
+          description: Nicht angemeldet
+
+  /api/generated-images/{file}:
+    get:
+      tags:
+        - Chat
+      summary: Generiertes Bild abrufen
+      description: |
+        Liefert ein im Bild-Modus erzeugtes Bild aus `generated_images/`.
+        Dateiname muss dem Muster `uuid.png` bzw. `uuid.jpg` entsprechen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9-]+\.(png|jpg)$'
+          example: 550e8400-e29b-41d4-a716-446655440000.png
+      responses:
+        "200":
+          description: Bilddatei
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Ungültiger Dateiname
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Datei nicht gefunden
+
   /api/pictograms:
     get:
       tags:
         - System
       summary: Piktogramm-Suche (ARASAAC)
-      description: Proxy auf die öffentliche ARASAAC-API, für Leichte-Sprache-/Piktogramm-Werkzeuge im Frontend.
+      description: |
+        Proxy auf die öffentliche ARASAAC-Such-API. Bilder werden serverseitig geladen und
+        typischerweise als `data:image/png;base64,…` zurückgegeben (CSP-kompatibel).
+        Fallback: relative Proxy-URL `/api/pictograms/{id}/image`.
       parameters:
         - name: q
           in: query
@@ -1770,9 +1906,43 @@ paths:
                           type: string
                         url:
                           type: string
-                          format: uri
+                          description: data:-URL oder Same-Origin-Proxy-Pfad
+                          example: data:image/png;base64,iVBORw0KGgo...
         "400":
           description: Kein Suchbegriff übergeben
+
+  /api/pictograms/{id}/image:
+    get:
+      tags:
+        - System
+      summary: Piktogramm-Bild (ARASAAC-Proxy)
+      description: |
+        Same-Origin-Proxy für ein einzelnes ARASAAC-Piktogramm (300px PNG).
+        Wird als Fallback genutzt, wenn die Suche keine data:-URL liefern konnte.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 6456
+      responses:
+        "200":
+          description: PNG-Bild
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=86400, immutable
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Ungültige ID
+        "502":
+          description: Upstream (static.arasaac.org) nicht erreichbar
 
   /oauth/authorize:
     get:
@@ -2085,6 +2255,13 @@ components:
         Alternative zum Cookie für serverseitige Automation (n8n-Workflows, Skripte ohne
         Cookie-Jar zwischen Requests). Token kommt aus dem Response-Body von /api/login
         bzw. /api/login/verify-2fa (Feld "token"). Nicht für Browser-Clients gedacht.
+    botApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Gemeinsamer Bot-Schlüssel aus Env `BOT_API_KEY`. Pflicht für `/api/bot-chat`
+        und `/api/bot/sicherheitslage` (n8n/Mattermost).
     mattermostOAuth:
       type: http
       scheme: bearer
