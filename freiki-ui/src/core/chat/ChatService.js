@@ -13,6 +13,13 @@ const { webSearch } = require('../integrations/SearXNGService');
 const { sendToN8n } = require('../integrations/N8nService');
 const { quickSearch } = require('../integrations/PaperlessService');
 
+// /no_think im Prompt wird von Qwen3.6 nicht mehr zuverlässig respektiert (siehe KorKI-Fix).
+// chat_template_kwargs ist Qwen/vLLM-spezifisch - Mistral (FrankKI) lehnt unbekannte Felder mit
+// HTTP 422 "extra_forbidden" ab, daher NUR setzen, wenn das konfigurierte Modell ein Qwen ist.
+const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
+  ? { chat_template_kwargs: { enable_thinking: false } }
+  : {};
+
 // Vage/kurze Folgefragen ("und was noch?", "warum?") anhand des Gesprächsverlaufs
 // in eine eigenständige, präzise Suchanfrage umformulieren (nur für den Wissen-RAG-Pfad relevant).
 async function rewriteQuery(question, hist) {
@@ -37,7 +44,8 @@ async function rewriteQuery(question, hist) {
           { role: 'user', content: `Gesprächsverlauf:\n${histText}\n\nFolgefrage: "${question}"\n\nUmformuliert:` }
         ],
         max_tokens: 120,
-        temperature: 0.1
+        temperature: 0.1,
+        ...THINKING_KWARGS
       })
     });
     const d = await r.json();
@@ -208,7 +216,8 @@ async function enhanceImagePrompt(prompt) {
           { role: 'user', content: `Bildwunsch: "${prompt}"\n\nEnglischer Prompt:` }
         ],
         max_tokens: 250,
-        temperature: 0.3
+        temperature: 0.3,
+        ...THINKING_KWARGS
       })
     });
     const d = await r.json();
@@ -328,7 +337,7 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode }) 
   const vllmRes = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
-    body: JSON.stringify({ model: config.VLLM_MODEL, messages, stream: true, max_tokens: 4096 })
+    body: JSON.stringify({ model: config.VLLM_MODEL, messages, stream: true, max_tokens: 4096, ...THINKING_KWARGS })
   });
   if (!vllmRes.ok) throw new Error(`vLLM Fehler ${vllmRes.status}`);
 
@@ -434,7 +443,8 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
     body: JSON.stringify({
       model: config.VLLM_MODEL, messages, stream: true,
       temperature: lowTempModes.includes(mode) ? 0.3 : 0.5,
-      max_tokens: 8192
+      max_tokens: 8192,
+      ...THINKING_KWARGS
     })
   });
 
@@ -491,7 +501,7 @@ async function handleLongTranslate(res, { userMessage, now }) {
     const vllmResp = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
-      body: JSON.stringify({ model: config.VLLM_MODEL, messages, stream: true, temperature: 0.3, max_tokens: 8192 })
+      body: JSON.stringify({ model: config.VLLM_MODEL, messages, stream: true, temperature: 0.3, max_tokens: 8192, ...THINKING_KWARGS })
     });
     if (vllmResp.status >= 400) {
       const errText = await vllmResp.text();

@@ -6,6 +6,12 @@ const { fetchWithTimeout } = require('../../shared/utils/text');
 
 const TESSERACT_ARGS = ['-l', 'deu', '--oem', '1', '--psm', '3'];
 
+// Siehe ChatService.js: chat_template_kwargs nur bei Qwen-Modellen setzen (Mistral/FrankKI
+// lehnt unbekannte Felder mit HTTP 422 ab).
+const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
+  ? { chat_template_kwargs: { enable_thinking: false } }
+  : {};
+
 // execFile statt der node-tesseract-ocr-Bibliothek (die exec() mit string-konkateniertem
 // Shell-Befehl nutzt - GHSA-8j44-735h-w4w2, Command Injection, kein Fix verfügbar). Mit
 // execFile gibt es keine Shell-Interpretation, also keine Injection-Klasse, unabhängig
@@ -54,7 +60,8 @@ async function ocrImage(imagePath) {
           { role: 'system', content: 'Du bereinigst automatisch per OCR erkannten Text aus Fotos. Füge fehlende Satzzeichen ein, korrigiere offensichtliche OCR-Fehler (z. B. "l" statt "1", "0" statt "O"), entferne Artefakte und stelle einen gut lesbaren Fließtext her. Behalte den gesamten Inhalt bei – erfinde nichts, kürze nichts weg. Gib NUR den bereinigten Text zurück. /no_think' },
           { role: 'user', content: `OCR-Rohtext:\n\n${ocrRaw.trim()}` }
         ],
-        max_tokens: 4096, temperature: 0.1
+        max_tokens: 4096, temperature: 0.1,
+        ...THINKING_KWARGS
       })
     });
     if (cleanRes.ok) {

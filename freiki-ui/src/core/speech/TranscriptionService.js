@@ -8,6 +8,12 @@ const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
 const { sendTranscriptMail, sendTranscriptFailureMail } = require('../integrations/EmailService');
 
+// Siehe ChatService.js: chat_template_kwargs nur bei Qwen-Modellen setzen (Mistral/FrankKI
+// lehnt unbekannte Felder mit HTTP 422 ab).
+const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
+  ? { chat_template_kwargs: { enable_thinking: false } }
+  : {};
+
 async function formatTranscript(transcript) {
   try {
     const fmtRes = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
@@ -20,7 +26,8 @@ async function formatTranscript(transcript) {
           { role: 'user', content: `Bitte formatiere dieses Transkript:\n\n${transcript}` }
         ],
         max_tokens: 8192,
-        temperature: 0.2
+        temperature: 0.2,
+        ...THINKING_KWARGS
       })
     });
     if (fmtRes.ok) {

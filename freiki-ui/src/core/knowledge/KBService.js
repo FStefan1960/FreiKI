@@ -12,6 +12,12 @@ const EMBED_BATCH = 4;
 const BOT_CHUNKS_PER_AREA = 4;
 const BOT_TOP_CHUNKS = 8;
 
+// Siehe ChatService.js: chat_template_kwargs nur bei Qwen-Modellen setzen (Mistral/FrankKI
+// lehnt unbekannte Felder mit HTTP 422 ab).
+const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
+  ? { chat_template_kwargs: { enable_thinking: false } }
+  : {};
+
 function chunkText(text, source) {
   const paras = text.split(/\n{2,}/).map(p => p.trim()).filter(p => p.length > 0);
   const chunks = [];
@@ -124,7 +130,8 @@ async function answerHilfeChat(message) {
         { role: 'user', content: message }
       ],
       stream: false,
-      max_tokens: 512
+      max_tokens: 512,
+      ...THINKING_KWARGS
     })
   });
   const data = await vllmRes.json();
@@ -199,6 +206,7 @@ async function answerBotChat(message, username) {
       ],
       max_tokens: 1024,
       temperature: 0.3,
+      ...THINKING_KWARGS,
     }),
   });
   if (!llmRes.ok) throw new Error('LLM-Aufruf fehlgeschlagen: ' + llmRes.status);
