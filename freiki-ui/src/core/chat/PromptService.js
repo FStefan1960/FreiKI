@@ -14,7 +14,7 @@ const basePromptText = fs.existsSync(basePromptFile)
 fs.readdirSync(config.PROMPT_DIR)
   .filter(f => f.endsWith('.md') && !f.startsWith('_'))
   .sort()
-  .forEach(file => {
+  .forEach((file, fileIndex) => {
     const key = path.basename(file, '.md');
     const raw = fs.readFileSync(path.join(config.PROMPT_DIR, file), 'utf-8');
     const { meta, body } = parseFrontmatter(raw);
@@ -35,10 +35,16 @@ fs.readdirSync(config.PROMPT_DIR)
       paperless:  meta.paperless  === 'true',
       imagegen:   meta.imagegen   === 'true',
       examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
+      // Menüreihenfolge: standardmäßig alphabetisch (Dateiname), per "order:" im Frontmatter
+      // gezielt dazwischenschiebbar, ohne key/Bereichs-Zuordnung oder die Dateireihenfolge der
+      // übrigen Prompts anzufassen.
+      order:      meta.order !== undefined ? parseFloat(meta.order) : fileIndex,
     });
 
     console.log(`Prompt geladen: ${key} – ${meta.title || key}`);
   });
+
+modesConfig.sort((a, b) => a.order - b.order);
 
 function isWissenMode(m) {
   return !!m.workspace || m.key.startsWith('w_');

@@ -3,12 +3,13 @@ const path = require('path');
 const crypto = require('crypto');
 const { config } = require('../../shared/config');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
-const { fetchWithTimeout } = require('../../shared/utils/text');
+const { fetchWithTimeout, normArea } = require('../../shared/utils/text');
 const prompts = require('./PromptService');
 const chatRepo = require('./ChatRepository');
 const sensitiveLog = require('../audit/SensitiveQueryLog');
 const documents = require('../documents/DocumentService');
 const kb = require('../knowledge/KBService');
+const users = require('../auth/UserRepository');
 const { webSearch } = require('../integrations/SearXNGService');
 const { sendToN8n } = require('../integrations/N8nService');
 const { quickSearch } = require('../integrations/PaperlessService');
@@ -121,6 +122,25 @@ async function handleChat(req, res) {
     const isWissen     = modeConf?.workspace === 'wissen';
     const username = req.body.username || 'unknown';
 
+    // Bereiche, auf die der Nutzer laut use_areas Zugriff hat (null = uneingeschränkt/admin).
+    // Live aus der DB gelesen (nicht aus dem JWT), da use_areas sich seit dem Login geändert
+    // haben kann; gleiche Logik wie /api/modes und answerBotChat.
+    let allowedAreaKeys = null;
+    if (isWissen && req.session?.uid && req.session.role !== 'admin') {
+      try {
+        const row = await users.findLiveAreasById(req.session.uid);
+        const liveUse = row?.use_areas || [];
+        if ((req.session.role === 'default' || req.session.role === 'high_risk') && liveUse.length) {
+          allowedAreaKeys = liveUse.map(normArea);
+        }
+      } catch (e) {
+        console.warn('use_areas konnten nicht geladen werden:', e.message);
+      }
+    }
+    if (isWissen && allowedAreaKeys && !allowedAreaKeys.includes(normArea(wissenKey))) {
+      return res.status(403).json({ error: 'Kein Zugriff auf diesen Wissensbereich' });
+    }
+
     sendToN8n({
       event: 'chat', user: username, mode, title: modeConf?.title || mode,
       hasFile: !!file, timestamp: new Date().toISOString()
@@ -175,7 +195,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
     } else if (isImageGen) {
       await handleImageGenMode(res, message);
     } else if (isWissen) {
-      await handleWissenMode(res, { wissenKey, userMessage, history, mode });
+      await handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys });
     } else {
       await handleDirectMode(res, { userMessage, history, mode, isMulti, now, hasFileContent: !!fileContent });
     }
@@ -313,14 +333,18 @@ async function handlePaperlessMode(res, message) {
   res.end();
 }
 
-async function handleWissenMode(res, { wissenKey, userMessage, history, mode }) {
+async function handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys }) {
   const hist = parseHistory(history).slice(-6);
   userMessage = await rewriteQuery(userMessage, hist);
 
-  const chunks = await kb.retrieveWissenChunks(wissenKey, userMessage, 8);
+  // Sucht über alle Wissensbereiche, auf die der Nutzer Zugriff hat (nicht nur den angeklickten
+  // wissenKey) – der bekommt aber weiterhin einen Ranking-Bonus (preferredAreaKey), damit der
+  // Menüpunkt eine echte Präferenz bleibt statt nur den Systemprompt zu bestimmen.
+  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, userMessage, { limit: 8, preferredAreaKey: wissenKey });
+  const multiArea = new Set(chunks.map(c => c.area).filter(Boolean)).size > 1;
 
   const contextText = chunks.length
-    ? chunks.map((c, i) => `[${i + 1}]\n${c.pageContent}`).join('\n\n')
+    ? chunks.map((c, i) => `[${i + 1}]${multiArea && c.area ? ` (Bereich: ${c.area})` : ''}\n${c.pageContent}`).join('\n\n')
     : '';
 
   const systemPrompt = (prompts.systemPrompts[mode] || '') +
@@ -355,7 +379,7 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode }) 
       const pmatch = resolvedUrl.match(/\/documents\/(\d+)/);
       if (pmatch) resolvedUrl = `/api/paperless/download/${pmatch[1]}`;
     }
-    sources.push({ url: resolvedUrl, name });
+    sources.push({ url: resolvedUrl, name, area: multiArea ? c.area : null });
     if (sources.length >= 5) break;
   }
 
@@ -367,11 +391,12 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode }) 
       const label = sources.length > 1 ? 'Quellen' : 'Quelle';
       let linkIdx = 0;
       const parts = sources.map(s => {
+        const areaBit = s.area ? `${s.area}: ` : '';
         if (s.url) {
           linkIdx++;
-          return `<a href="${s.url}" target="_blank" rel="noopener">Original${sources.filter(x => x.url).length > 1 ? ' ' + linkIdx : ''}</a>`;
+          return `${areaBit}<a href="${s.url}" target="_blank" rel="noopener">Original${sources.filter(x => x.url).length > 1 ? ' ' + linkIdx : ''}</a>`;
         }
-        return s.name;
+        return `${areaBit}${s.name}`;
       });
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `\n\n**${label}:** ${parts.join(', ')}` } }] })}\n\n`);
     }

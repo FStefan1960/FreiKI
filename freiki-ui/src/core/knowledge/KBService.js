@@ -99,6 +99,46 @@ async function retrieveWissenChunks(wissenKey, queryText, limit = 8) {
   }
 }
 
+// Bonus für den gerade angeklickten Menüpunkt: bei echten Nahtreffern gewinnt der aktuelle
+// Bereich, hat er aber nichts Passendes, schlägt trotzdem der relevanteste andere Bereich durch.
+const WISSEN_CURRENT_AREA_BOOST = 0.08;
+
+// Wie retrieveWissenChunks, aber über alle Bereiche, auf die der Nutzer laut use_areas Zugriff
+// hat (allowedAreaKeys === null -> alle Bereiche, analog answerBotChat). preferredAreaKey (der
+// angeklickte Menüpunkt) bekommt einen Ranking-Bonus, ist aber keine harte Grenze mehr – andere
+// erlaubte Bereiche werden trotzdem durchsucht.
+async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 8, preferredAreaKey = null } = {}) {
+  const areaEntries = kbAreas.entries().filter(
+    ([areaKey]) => !allowedAreaKeys || allowedAreaKeys.includes(normArea(areaKey))
+  );
+  if (!areaEntries.length) return [];
+
+  const [queryEmbedding] = await getEmbeddings([queryText]);
+  const vecStr = '[' + queryEmbedding.join(',') + ']';
+  const preferredKey = preferredAreaKey ? normArea(preferredAreaKey) : null;
+
+  const client = await pool.connect();
+  try {
+    let all = [];
+    for (const [areaKey, table] of areaEntries) {
+      const { rows } = await client.query(
+        `SELECT "pageContent", metadata, embedding <=> $1::vector AS distance
+         FROM ${table} ORDER BY distance ASC LIMIT $2`,
+        [vecStr, BOT_CHUNKS_PER_AREA]
+      );
+      const boost = (preferredKey && normArea(areaKey) === preferredKey) ? WISSEN_CURRENT_AREA_BOOST : 0;
+      const area = kbAreas.getLabel(areaKey) || areaKey;
+      for (const row of rows) {
+        all.push({ ...row, distance: Math.max(0, Number(row.distance) - boost), area });
+      }
+    }
+    all.sort((a, b) => a.distance - b.distance);
+    return all.slice(0, limit);
+  } finally {
+    client.release();
+  }
+}
+
 // Eigenständiger RAG-QA-Endpunkt für die Hilfe-Chatbubble (nicht Teil des Haupt-Chat-Streams)
 async function answerHilfeChat(message) {
   const hilfeTable = config.HILFE_KB_TABLE;
@@ -219,5 +259,5 @@ async function answerBotChat(message, username) {
 
 module.exports = {
   chunkText, insertChunks, clearTable, ingestText,
-  retrieveWissenChunks, answerHilfeChat, answerBotChat,
+  retrieveWissenChunks, retrieveWissenChunksMulti, answerHilfeChat, answerBotChat,
 };
