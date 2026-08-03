@@ -7,10 +7,25 @@ const { uploadKB } = require('../../../infrastructure/storage/FileStorage');
 const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
+const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
 const router = express.Router();
 router.use(express.json({ limit: '10mb' }));
+
+// Wandelt eine Chat-Antwort (Markdown-Text) in eine .docx zum Download um
+router.post('/api/export-docx', asyncHandler(async (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+  const { text, filename } = req.body || {};
+  if (!text || !String(text).trim()) return res.status(400).json({ error: 'Kein Text übergeben' });
+
+  const buffer = await textToDocxBuffer(text);
+  const safeName = (filename || 'antwort').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'antwort';
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.docx`);
+  res.send(buffer);
+}));
 
 // Wissensbereiche aus Prompts-Dir auflisten (für n8n-Ingest-Workflows)
 router.get('/api/kb-areas', (req, res) => {

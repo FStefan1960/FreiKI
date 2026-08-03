@@ -7,7 +7,7 @@ const { getBrandConfig } = require('../../../shared/config/BrandConfig');
 const router = express.Router();
 
 const GIT_VERSION = (() => {
-  try { return fs.readFileSync(path.join(config.PUBLIC_DIR, 'VERSION'), 'utf8').trim(); }
+  try { return require(path.join(config.APP_ROOT, 'package.json')).version; }
   catch { return 'dev'; }
 })();
 
