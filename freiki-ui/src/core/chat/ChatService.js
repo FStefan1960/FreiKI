@@ -379,6 +379,40 @@ async function handlePaperlessMode(res, message) {
   res.end();
 }
 
+function resolveSourceFromChunk(c) {
+  const meta = c?.metadata || {};
+  const url = meta.source_url || null;
+  const name = meta.source || null;
+  let resolvedUrl = (url && /^https?:\/\//.test(url)) ? url : null;
+  if (resolvedUrl) {
+    const pmatch = resolvedUrl.match(/\/documents\/(\d+)/);
+    if (pmatch) resolvedUrl = `/api/paperless/download/${pmatch[1]}`;
+  }
+  return { url: resolvedUrl, name, area: c?.area || null };
+}
+
+/** Nur Quellen, die im Antworttext als [n] zitiert wurden (1-basiert). */
+function sourcesFromCitations(answerText, chunks) {
+  const cited = new Set();
+  const re = /\[(\d+)\]/g;
+  let m;
+  while ((m = re.exec(answerText || '')) !== null) {
+    const idx = parseInt(m[1], 10);
+    if (idx >= 1 && idx <= chunks.length) cited.add(idx);
+  }
+  const seen = new Set();
+  const sources = [];
+  for (const idx of [...cited].sort((a, b) => a - b)) {
+    const s = resolveSourceFromChunk(chunks[idx - 1]);
+    const key = s.url || s.name;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    sources.push(s);
+    if (sources.length >= 5) break;
+  }
+  return sources;
+}
+
 async function handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys }) {
   const hist = parseHistory(history).slice(-6);
   const originalQuestion = userMessage;
@@ -401,11 +435,19 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
     ? chunks.map((c, i) => `[${i + 1}]${multiArea && c.area ? ` (Bereich: ${c.area})` : ''}\n${c.pageContent}`).join('\n\n')
     : '';
 
+  const citeHint = contextText
+    ? '\n\nEs liegen relevante Dokumentauszüge vor. Behaupte NICHT, dass dazu nichts in den Unterlagen steht. ' +
+      'Priorisiere die Auszüge unter „---“ vor früheren Chatantworten. ' +
+      'Wenn du dich auf einen Auszug stützt, zitiere ihn mit seiner Nummer in eckigen Klammern (z. B. [2]). Nenne nur Auszüge, die du wirklich nutzt.'
+    : '\n\nEs liegen keine passenden Dokumentauszüge vor. Sage nur: „Dazu steht in den Unterlagen nichts.“';
+
   const systemPrompt = (prompts.systemPrompts[mode] || '') +
-    (contextText ? `\n\n---\nRelevante Auszüge aus der Wissensdatenbank:\n\n${contextText}\n---` : '');
+    (contextText ? `\n\n---\nRelevante Auszüge aus der Wissensdatenbank:\n\n${contextText}\n---` : '') +
+    citeHint;
 
   const now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'full', timeStyle: 'short' });
-  const chatHistory = hist.slice(0, -1);
+  // Mit Treffern: Verlauf weglassen, damit frühere Absagen die RAG-Antwort nicht überschreiben.
+  const chatHistory = chunks.length ? [] : hist.slice(0, -1);
   const messages = [
     { role: 'system', content: systemPrompt + `\n\nSystemzeit: ${now}. /no_think` },
     ...chatHistory,
@@ -419,36 +461,27 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
   });
   if (!vllmRes.ok) throw new Error(`vLLM Fehler ${vllmRes.status}`);
 
-  // Quellen als Markdown-Block nach dem Stream anfügen.
-  const seenSrc = new Set();
-  const sources = [];
-  for (const c of chunks) {
-    const url  = c.metadata?.source_url || null;
-    const name = c.metadata?.source || null;
-    const key  = url || name;
-    if (!key || seenSrc.has(key)) continue;
-    seenSrc.add(key);
-    let resolvedUrl = (url && /^https?:\/\//.test(url)) ? url : null;
-    if (resolvedUrl) {
-      const pmatch = resolvedUrl.match(/\/documents\/(\d+)/);
-      if (pmatch) resolvedUrl = `/api/paperless/download/${pmatch[1]}`;
-    }
-    sources.push({ url: resolvedUrl, name, area: multiArea ? c.area : null });
-    if (sources.length >= 5) break;
-  }
-
   const reader = vllmRes.body;
   let buf = '';
+  let answerText = '';
+  let finished = false;
   function finishWissen() {
-    if (res.writableEnded) return;
+    if (finished || res.writableEnded) return;
+    finished = true;
+    // Nur zitierte Auszüge [n] – keine Mitläufer aus dem Top-k-Retrieval.
+    const sources = sourcesFromCitations(answerText, chunks);
+    const multiAreaSources = new Set(sources.map(s => s.area).filter(Boolean)).size > 1;
     if (sources.length) {
       const label = sources.length > 1 ? 'Quellen' : 'Quelle';
+      const urlCount = sources.filter((x) => x.url).length;
       let linkIdx = 0;
-      const parts = sources.map(s => {
-        const areaBit = s.area ? `${s.area}: ` : '';
+      const parts = sources.map((s) => {
+        const areaBit = multiAreaSources && s.area ? `${s.area}: ` : '';
         if (s.url) {
           linkIdx++;
-          return `${areaBit}<a href="${s.url}" target="_blank" rel="noopener">Original${sources.filter(x => x.url).length > 1 ? ' ' + linkIdx : ''}</a>`;
+          const labelLink = urlCount > 1 ? `Original ${linkIdx}` : 'Original';
+          const nameBit = s.name ? ` (${s.name})` : '';
+          return `${areaBit}<a href="${s.url}" target="_blank" rel="noopener">${labelLink}</a>${nameBit}`;
         }
         return `${areaBit}${s.name}`;
       });
@@ -464,6 +497,11 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
       if (!line.startsWith('data:')) continue;
       const raw = line.slice(5).trim();
       if (raw === '[DONE]') { finishWissen(); return; }
+      try {
+        const parsed = JSON.parse(raw);
+        const delta = parsed?.choices?.[0]?.delta?.content;
+        if (typeof delta === 'string') answerText += delta;
+      } catch (_) { /* Keepalive / unvollständiges JSON */ }
       res.write(line + '\n');
     }
   });
