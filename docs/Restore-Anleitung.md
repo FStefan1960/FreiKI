@@ -17,7 +17,7 @@ Alle drei Instanzen werden täglich vollständig gesichert, seit 2026-07-05 nach
 Ein gemeinsamer HiDrive-Account (`freiki-admin`), aber **eigener Unterordner je Instanz** und **eigener SSH-Key je Server** (`~/.ssh/hidrive_backup_key`, dediziert, nicht mit anderen Zwecken geteilt). Authentifizierung ist Key-basiert — kein Passwort im Skript oder in einer Secrets-Datei nötig.
 
 Das Backup enthält:
-- Alle Docker-Volumes (Datenbank, Paperless, Mattermost*, Mailserver, n8n, Caddy, Kuma, Portainer, ggf. Hermes-Agent-Config*)
+- Alle Docker-Volumes (Datenbank, Paperless, Mattermost*, Mailserver, n8n, Caddy, Kuma, Portainer, Beszel, ggf. Hermes-Agent-Config*)
 - PostgreSQL-Dump (logisch, `pg_dumpall`, alle Datenbanken: freiki/n8n/paperless/mattermost*)
 - Stack-Konfiguration (`docker-compose.yml`, `.env`, Caddy, Prompts, `src/`-Code)
 

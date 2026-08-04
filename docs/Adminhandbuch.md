@@ -17,7 +17,7 @@
 7. [Mailserver](#7-mailserver)
 8. [Paperless – Zwei-Mailbox-Pipeline](#8-paperless--zwei-mailbox-pipeline)
 9. [n8n-Workflows](#9-n8n-workflows)
-10. [Monitoring (Uptime Kuma & n8n)](#10-monitoring-uptime-kuma--n8n)
+10. [Monitoring (Uptime Kuma, Beszel & n8n)](#10-monitoring-uptime-kuma-beszel--n8n)
 11. [Deployment und Updates](#11-deployment-und-updates)
 12. [Service Worker / PWA-Cache](#12-service-worker--pwa-cache)
 13. [Wichtige Wartungsaufgaben](#13-wichtige-wartungsaufgaben)
@@ -516,7 +516,7 @@ docker exec -it n8n n8n import:workflow --input=/home/node/.n8n/workflows/datei.
 
 ---
 
-## 10. Monitoring (Uptime Kuma & n8n)
+## 10. Monitoring (Uptime Kuma, Beszel & n8n)
 
 | Monitor | URL |
 |---|---|
@@ -527,6 +527,25 @@ docker exec -it n8n n8n import:workflow --input=/home/node/.n8n/workflows/datei.
 | Mailserver | SMTP-Port-Check auf `mailserver:587` |
 
 Mailbenachrichtigungen via `ki_agent@...` (SMTP: `mailserver:587`, STARTTLS).
+
+### 10.1 Beszel (Host-/Container-Metriken)
+
+Leichtgewichtiges Metrik-Dashboard (CPU, RAM, Disk, Docker-Stats, Historie, Alerts).  
+**Nicht öffentlich** – nur intern/Tailscale (Port `8090`).
+
+Ersteinrichtung:
+
+```bash
+docker compose up -d beszel
+# UI öffnen → Admin-Account anlegen → „Add System“
+# Host/IP: /beszel_socket/beszel.sock
+# KEY + TOKEN in .env (BESZEL_KEY, BESZEL_TOKEN) eintragen
+docker compose up -d beszel-agent
+```
+
+**GPU (KorKI / NVIDIA):** Agent-Image `henrygd/beszel-agent-nvidia` mit GPU-Reservation (`capabilities: [utility]`). Dann erscheinen Auslastung, VRAM, Temperatur und **Power Draw (Watt)**. Ohne NVIDIA-Image liefert der Standard-Agent keine GPU-Metriken.
+
+Dozzle bleibt für Live-Logs; Beszel ergänzt Trends/Alerts. Uptime Kuma bleibt für HTTP-/Dienst-Checks.
 
 ---
 
@@ -584,6 +603,10 @@ docker logs freiki-ui --tail 50
 | n8n | 5678 | nein (Webhooks via Caddy) |
 | Paperless | 3005 | nein (nur Tailscale) |
 | Mattermost | 8065 | ja (via Caddy) |
+| Uptime Kuma | 3006 | nein (nur Tailscale) |
+| Dozzle | 8080 | nein (nur Tailscale) |
+| Beszel | 8090 | nein (nur Tailscale) |
+| Portainer | 9443 | nein (nur Tailscale) |
 | Mailserver SMTP | 25, 587 | ja |
 | Mailserver IMAP | 143, 993 | ja |
 

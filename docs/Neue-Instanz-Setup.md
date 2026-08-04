@@ -74,7 +74,7 @@ Ausgehend von der Vorlage im Repo – instanzspezifisch anpassen:
 - `vllm`, `vllm_embedding` → nur bei eigenem GPU-Server, sonst entfernen (externer API-Anbieter reicht über `.env`)
 - Mattermost → nur wenn Team-Chat gewünscht (FrankKI/BeB-KI hat keins)
 - Ports falls nötig anpassen
-- `portainer`, `dozzle` → optional
+- `portainer`, `dozzle`, `beszel` / `beszel-agent` → optional
 
 ### Schritt 4: Logos und Branding einspielen
 
