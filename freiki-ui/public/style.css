@@ -846,6 +846,15 @@ body {
   max-width: 100%;
   height: auto;
 }
+.math-display {
+  overflow-x: auto;
+  margin: 10px 0;
+  padding: 4px 0;
+}
+.math-display .katex-display {
+  margin: 0;
+}
+.math-inline .katex { font-size: 1em; }
 
 .mermaid-lightbox-overlay {
   position: fixed;
@@ -956,7 +965,7 @@ body {
 .copy-btn.copied { background: var(--fk-success-bg); color: var(--fk-success-text); }
 .tts-btn.tts-active { background: var(--fk-primary); color: #fff; }
 .tts-btn:disabled { opacity: 0.7; cursor: default; }
-.tts-btn svg { display: block; }
+.tts-btn svg, .copy-btn svg { display: block; }
 .tts-spinner {
   width: 12px; height: 12px;
   border: 2px solid currentColor;
