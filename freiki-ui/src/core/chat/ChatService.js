@@ -176,7 +176,7 @@ async function handleChat(req, res) {
       try {
         const row = await users.findLiveAreasById(req.session.uid);
         const liveUse = row?.use_areas || [];
-        if ((req.session.role === 'default' || req.session.role === 'high_risk') && liveUse.length) {
+        if ((req.session.role === 'default' || req.session.role === 'high_risk' || req.session.role === 'manager') && liveUse.length) {
           allowedAreaKeys = liveUse.map(normArea);
         }
       } catch (e) {
