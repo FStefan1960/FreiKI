@@ -59,13 +59,18 @@ async function start2FASetup(uid) {
 }
 
 // Setup Schritt 2: Code bestätigen, Backup-Codes erzeugen und 2FA scharf schalten.
+// Stellt zugleich ein frisches Session-Token mit totpEnabled:true aus - die 2FA-Sperre in
+// require2FASetupComplete() (security.js) prüft diesen Claim, das alte Token vor dem Setup
+// hatte ihn noch auf false. Ohne Neuausstellung bliebe der Nutzer bis zum nächsten Login
+// gesperrt, obwohl das Setup gerade erfolgreich war.
 async function confirm2FASetup(uid, code) {
   const u = await users.findById(uid);
   if (!u || !u.totp_secret) return { error: 'no-pending-setup' };
   if (!totp.verifyToken(u.totp_secret, code)) return { error: 'invalid-code' };
   const { plain, hashed } = await totp.generateBackupCodes();
   await users.enableTotp(uid, hashed);
-  return { ok: true, backupCodes: plain };
+  const token = signToken({ ...u, totp_enabled: true });
+  return { ok: true, backupCodes: plain, token };
 }
 
 async function disable2FA(uid) {

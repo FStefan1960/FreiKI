@@ -4,7 +4,10 @@ const { secondsUntilMidnightBerlin } = require('../../shared/utils/text');
 
 function signToken(u) {
   return jwt.sign(
-    { uid: u.id, username: u.username, role: u.role, use: u.use_areas || [], manage: u.manage_areas || [] },
+    {
+      uid: u.id, username: u.username, role: u.role, use: u.use_areas || [], manage: u.manage_areas || [],
+      totpEnabled: !!u.totp_enabled,
+    },
     config.JWT_SECRET, { expiresIn: secondsUntilMidnightBerlin() }
   );
 }

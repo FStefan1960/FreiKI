@@ -86,6 +86,7 @@ router.post('/api/2fa/confirm', asyncHandler(async (req, res) => {
   try {
     const result = await AuthService.confirm2FASetup(s.uid, code);
     if (result.error) return res.status(400).json({ error: result.error === 'invalid-code' ? 'Ungültiger Code' : 'Kein Setup gestartet' });
+    if (result.token) setSessionCookie(res, result.token);
     res.json(result);
   } catch (e) { console.error('2fa/confirm:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
