@@ -1,15 +1,18 @@
 const express = require('express');
+const fs = require('fs');
 const cookieParser = require('cookie-parser');
 const { config, validateEnv } = require('../../shared/config');
 const { getBrandConfig, loadBrandConfig } = require('../../shared/config/BrandConfig');
 const { errorHandler } = require('../../shared/utils/errors');
-const { securityHeaders, apiLimiter } = require('./middlewares/security');
+const { securityHeaders, apiLimiter, require2FASetupComplete } = require('./middlewares/security');
 const { startUploadCleanupSchedule } = require('../storage/FileStorage');
 const pool = require('../database/postgres/pool');
 const chatRepo = require('../../core/chat/ChatRepository');
 const auditLog = require('../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../core/audit/SensitiveQueryLog');
 const users = require('../../core/auth/UserRepository');
+const formTemplates = require('../../core/forms/FormTemplateRepository');
+const formSessions = require('../../core/forms/FormSessionRepository');
 
 validateEnv();
 
@@ -18,7 +21,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1); // hinter Caddy
 app.use(securityHeaders);
 app.use(cookieParser());
-app.use('/api/', apiLimiter);
+app.use('/api/', apiLimiter, require2FASetupComplete);
 
 // Eigenständige Routen (Reihenfolge wichtig: müssen VOR express.static stehen,
 // damit z.B. '/' und '/sw.js' vom Brand-Template statt der statischen Datei bedient werden).
@@ -30,6 +33,8 @@ app.use(require('./routes/chatRoutes'));
 app.use(require('./routes/authRoutes'));
 app.use(require('./routes/documentRoutes'));
 app.use(require('./routes/excelRoutes'));
+app.use(require('./routes/formRoutes'));
+app.use(require('./routes/adminFormRoutes'));
 app.use(require('./routes/speechRoutes'));
 app.use(require('./routes/paperlessRoutes'));
 app.use(require('./routes/oidcRoutes'));
@@ -63,11 +68,15 @@ async function start() {
   await auditLog.ensureSchema();
   await sensitiveLog.ensureSchema();
   await users.ensureSchema();
+  await formTemplates.ensureSchema();
+  await formSessions.ensureSchema();
+  fs.mkdirSync(config.FORM_TEMPLATES_DIR, { recursive: true });
   await loadBrandConfig();
   startUploadCleanupSchedule();
   sensitiveLog.startDailyReportSchedule();
   sensitiveLog.startRetentionPurgeSchedule();
   auditLog.startRetentionPurgeSchedule();
+  formSessions.startFormSessionPurgeSchedule();
 
   app.listen(config.PORT, () => console.log(`${getBrandConfig().name} UI läuft auf Port ${config.PORT}`));
 }

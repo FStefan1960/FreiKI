@@ -34,7 +34,7 @@ app.freiki.com {
     # Branding (/admin/config) eine beliebige externe URL sein darf.
     # img-src: https: allein blockiert in manchen Browsern externe Bilder trotzdem;
     # deshalb explizit static.arasaac.org + https://* (Branding-Logos, Piktogramme).
-    header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static.arasaac.org https://*; font-src 'self'; connect-src 'self'; frame-ancestors 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://static.arasaac.org https://*; font-src 'self'; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
     # Office Add-in (Word Online lädt die Taskpane in einem Iframe von einer
     # Microsoft-Domain, außerdem lädt taskpane.html das Office.js-SDK von Microsoft) -
     # braucht eine Ausnahme von der globalen SAMEORIGIN-Regel und der obigen CSP,

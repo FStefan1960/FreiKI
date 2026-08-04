@@ -137,6 +137,7 @@ services:
       - ./freiki-ui/server.js:/app/server.js
       - ./freiki-ui/public:/app/public
       - ./freiki-ui/prompts:/app/prompts
+      - ./freiki-ui/form-templates:/app/form-templates
       - ./freiki-ui/welcome.md:/app/welcome.md
       - ./freiki-ui/tips.md:/app/tips.md
       - ./freiki-ui/areas.json:/app/areas.json

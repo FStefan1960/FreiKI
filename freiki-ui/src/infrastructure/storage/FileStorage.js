@@ -41,9 +41,20 @@ const uploadKB = multer({
   }
 });
 
+// Für Formular-Vorlagen-Scans (Admin/Manager-Upload im Formular-Chat-Tool)
+const uploadFormScan = multer({
+  dest: '/tmp/form_scan_uploads/',
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp. Erlaubt: PDF, JPG, PNG'), false);
+  }
+});
+
 // Temp-Dateien älter als 24h aus den Upload-Verzeichnissen löschen
 function cleanupUploads() {
-  ['/tmp/uploads/', '/tmp/kb_uploads/', '/tmp/excel_uploads/'].forEach(dir => {
+  ['/tmp/uploads/', '/tmp/kb_uploads/', '/tmp/excel_uploads/', '/tmp/form_scan_uploads/'].forEach(dir => {
     try {
       fs.readdirSync(dir).forEach(file => {
         const fp = path.join(dir, file);
@@ -58,4 +69,4 @@ function startUploadCleanupSchedule() {
   setInterval(cleanupUploads, 6 * 60 * 60 * 1000);
 }
 
-module.exports = { upload, uploadAudio, uploadKB, cleanupUploads, startUploadCleanupSchedule };
+module.exports = { upload, uploadAudio, uploadKB, uploadFormScan, cleanupUploads, startUploadCleanupSchedule };

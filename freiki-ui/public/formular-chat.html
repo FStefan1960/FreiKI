@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formular-Chat</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hanken Grotesk', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 40px;
+      max-width: 640px;
+      width: 100%;
+    }
+
+    .header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+    .header img { width: 48px; height: 48px; border-radius: 10px; }
+    .header h1 { font-size: 20px; font-weight: 700; color: #1E3A8A; }
+    .header p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+    .view { display: none; }
+    .view.visible { display: block; }
+
+    .template-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .template-btn {
+      text-align: left;
+      padding: 14px 16px;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      background: #f8fafc;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .template-btn:hover { border-color: #2B9CD8; background: #f0f9ff; }
+    .template-btn .t-title { font-weight: 700; color: #1f2937; font-size: 14px; }
+    .template-btn .t-desc { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+    .resume-toggle { font-size: 13px; color: #2B9CD8; background: none; border: none; cursor: pointer; text-decoration: underline; font-family: inherit; }
+
+    .resume-form { display: none; gap: 8px; margin-top: 14px; flex-direction: column; }
+    .resume-form.visible { display: flex; }
+    .resume-form select, .resume-form input {
+      padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit;
+    }
+    .resume-form button {
+      padding: 10px 12px; background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff;
+      border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+
+    .pin-banner {
+      display: none;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: #92400e;
+    }
+    .pin-banner.visible { display: block; }
+    .pin-banner .pin-value { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #78350f; margin: 6px 0; }
+    .pin-banner button { background: none; border: 1px solid #d97706; color: #92400e; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+
+    .progress { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
+
+    .thread { max-height: 360px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.5; max-width: 90%; }
+    .msg.user { align-self: flex-end; background: #1E3A8A; color: #fff; }
+    .msg.assistant { align-self: flex-start; background: #f3f4f6; color: #1f2937; }
+    .msg.error { align-self: flex-start; background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+    .msg.pending { align-self: flex-start; background: #f3f4f6; color: #9ca3af; font-style: italic; }
+
+    .input-row { display: flex; gap: 8px; }
+    .input-row input[type="text"] {
+      flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .input-row input[type="text"]:focus { border-color: #2B9CD8; }
+    .input-row button {
+      padding: 10px 18px; background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .finish-btn {
+      width: 100%; padding: 12px; margin-top: 6px;
+      background: linear-gradient(135deg, #15803d, #22c55e); color: #fff; border: none;
+      border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .finish-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .skip-btn {
+      width: 100%; padding: 10px; margin-top: 8px;
+      background: linear-gradient(135deg, #6b7280, #9ca3af); color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .skip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status { display: none; margin-top: 16px; padding: 14px 16px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+    .status.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .status.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+
+    .back-link {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8); color: #fff; border: none;
+      border-radius: 24px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+      text-decoration: none; box-shadow: 0 4px 16px rgba(30,58,138,0.35);
+    }
+    .embedded .back-link { display: none !important; }
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+
+<div class="card">
+  <div class="header">
+    <img src="/icons/app-mark.svg" alt="">
+    <div>
+      <h1>Formular-Chat</h1>
+      <p>Formular per Dialog ausfüllen &amp; als PDF herunterladen</p>
+    </div>
+  </div>
+
+  <div class="view visible" id="picker-view">
+    <div style="margin-bottom:16px">
+      <label for="language-input" style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Sprache des Dialogs</label>
+      <input type="text" id="language-input" value="Deutsch" style="width:100%;padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;box-sizing:border-box;">
+    </div>
+    <div class="template-list" id="template-list"></div>
+    <button type="button" class="resume-toggle" id="resume-toggle">Bereits begonnenes Formular fortsetzen (PIN)</button>
+    <div class="resume-form" id="resume-form">
+      <select id="resume-slug"></select>
+      <input type="text" id="resume-pin" placeholder="8-stellige PIN" inputmode="numeric" maxlength="8">
+      <button type="button" id="resume-submit">Fortsetzen</button>
+    </div>
+  </div>
+
+  <div class="view" id="chat-view">
+    <div class="pin-banner" id="pin-banner">
+      <span id="pin-intro-text">Deine DokumentenPIN zum späteren Fortsetzen (falls du zwischendurch etwas nachschauen musst):</span>
+      <div class="pin-value" id="pin-value"></div>
+      <span id="pin-note-text">Bitte notieren – erst nach bestätigtem, erfolgreichem Ausdruck wird die Sitzung gelöscht.</span>
+      <div style="margin-top:8px"><button type="button" id="pin-copy">PIN kopieren</button></div>
+    </div>
+    <div class="progress" id="progress"></div>
+    <div class="thread" id="thread"></div>
+    <div class="input-row" id="input-row">
+      <input type="text" id="chat-input" placeholder="Antwort eingeben …">
+      <button type="button" id="send-btn">Senden</button>
+    </div>
+    <button type="button" class="skip-btn" id="skip-btn" style="display:none;">Feld überspringen (optional)</button>
+    <button type="button" class="finish-btn" id="finish-btn" style="display:none">PDF erzeugen &amp; herunterladen</button>
+    <div class="print-confirm" id="print-confirm" style="display:none">
+      <p id="print-question-text" style="font-size:14px;color:#374151;margin-bottom:10px;">War der Ausdruck erfolgreich?</p>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="finish-btn" id="print-ok" style="flex:1;">Ja, fertig</button>
+        <button type="button" class="skip-btn" id="print-retry" style="flex:1;margin-top:0;">Nein, nochmal</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <button class="back-link" id="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<script>
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) throw new Error('not logged in');
+    } catch {
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
+    }
+  })();
+
+  const pickerView = document.getElementById('picker-view');
+  const chatView = document.getElementById('chat-view');
+  const templateList = document.getElementById('template-list');
+  const languageInput = document.getElementById('language-input');
+  const resumeToggle = document.getElementById('resume-toggle');
+  const resumeForm = document.getElementById('resume-form');
+  const resumeSlug = document.getElementById('resume-slug');
+  const resumePin = document.getElementById('resume-pin');
+  const resumeSubmit = document.getElementById('resume-submit');
+  const pinBanner = document.getElementById('pin-banner');
+  const pinValue = document.getElementById('pin-value');
+  const pinCopy = document.getElementById('pin-copy');
+  const progress = document.getElementById('progress');
+  const thread = document.getElementById('thread');
+  const inputRow = document.getElementById('input-row');
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const skipBtn = document.getElementById('skip-btn');
+  const finishBtn = document.getElementById('finish-btn');
+  const printConfirm = document.getElementById('print-confirm');
+  const printOk = document.getElementById('print-ok');
+  const printRetry = document.getElementById('print-retry');
+  const status = document.getElementById('status');
+
+  let sessionId = null;
+  let currentSlug = null;
+  let currentPin = null;
+  let currentLabels = {
+    send: 'Senden', skip: 'Feld überspringen (optional)', finish: 'PDF erzeugen & herunterladen',
+    printOk: 'Ja, fertig', printRetry: 'Nein, nochmal', placeholder: 'Antwort eingeben …',
+    pinCopy: 'PIN kopieren', pinCopied: 'Kopiert!',
+    pinIntro: 'Deine DokumentenPIN zum späteren Fortsetzen (falls du zwischendurch etwas nachschauen musst):',
+    pinNote: 'Bitte notieren – erst nach bestätigtem, erfolgreichem Ausdruck wird die Sitzung gelöscht.',
+    doneMessage: 'Danke, alle Angaben sind vollständig. Du kannst jetzt das ausgefüllte PDF herunterladen.',
+    printQuestion: 'War der Ausdruck erfolgreich?',
+    printedSuccess: 'Fertig. Die Sitzung wurde gelöscht.',
+    retryNote: 'Kein Problem – die PIN gilt weiter, du kannst es erneut versuchen.',
+    progressQuestion: 'Frage', progressOf: 'von', progressOptional: '(optional)',
+    progressComplete: 'Alle Angaben vollständig.', back: '← Zurück',
+    pending: 'Einen Moment …', generating: 'Erzeuge PDF …', connectionError: 'Verbindungsfehler: ',
+  };
+
+  function applyLabels(labels) {
+    if (labels) currentLabels = labels;
+    sendBtn.textContent = currentLabels.send;
+    skipBtn.textContent = currentLabels.skip;
+    finishBtn.textContent = currentLabels.finish;
+    printOk.textContent = currentLabels.printOk;
+    printRetry.textContent = currentLabels.printRetry;
+    chatInput.placeholder = currentLabels.placeholder;
+    pinCopy.textContent = currentLabels.pinCopy;
+    document.getElementById('pin-intro-text').textContent = currentLabels.pinIntro;
+    document.getElementById('pin-note-text').textContent = currentLabels.pinNote;
+    document.getElementById('print-question-text').textContent = currentLabels.printQuestion;
+    document.getElementById('back-link').textContent = currentLabels.back;
+  }
+
+  function showStatus(msg, type) {
+    if (!msg) { status.className = 'status'; status.textContent = ''; return; }
+    status.className = 'status ' + type;
+    status.textContent = msg;
+  }
+
+  function addMessage(role, text) {
+    const el = document.createElement('div');
+    el.className = 'msg ' + role;
+    el.textContent = text;
+    thread.appendChild(el);
+    thread.scrollTop = thread.scrollHeight;
+    return el;
+  }
+
+  async function loadTemplates() {
+    try {
+      const res = await fetch('/api/forms', { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Laden');
+      templateList.innerHTML = '';
+      resumeSlug.innerHTML = '';
+      if (data.templates.length === 0) {
+        templateList.innerHTML = '<div style="font-size:13px;color:#9ca3af;">Aktuell sind keine Formulare hinterlegt.</div>';
+        return;
+      }
+      data.templates.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'template-btn';
+        btn.innerHTML = '<div class="t-title">' + t.title + '</div>' + (t.description ? '<div class="t-desc"></div>' : '');
+        if (t.description) btn.querySelector('.t-desc').textContent = t.description;
+        btn.addEventListener('click', () => startForm(t.slug));
+        templateList.appendChild(btn);
+
+        const opt = document.createElement('option');
+        opt.value = t.slug;
+        opt.textContent = t.title;
+        resumeSlug.appendChild(opt);
+      });
+    } catch (e) {
+      showStatus(currentLabels.connectionError + e.message, 'error');
+    }
+  }
+
+  resumeToggle.addEventListener('click', () => resumeForm.classList.toggle('visible'));
+
+  function showPinBanner() {
+    if (!currentPin) return;
+    pinValue.textContent = currentPin.replace(/(\d{4})(\d{4})/, '$1 $2');
+    pinBanner.classList.add('visible');
+  }
+
+  function enterChatView(slug, data, pin, showPinNow) {
+    currentSlug = slug;
+    sessionId = data.sessionId;
+    if (pin) currentPin = pin;
+    pickerView.classList.remove('visible');
+    chatView.classList.add('visible');
+    thread.innerHTML = '';
+    showStatus('', '');
+    printConfirm.style.display = 'none';
+    finishBtn.style.display = 'none';
+    applyLabels(data.labels);
+    if (showPinNow) showPinBanner(); else pinBanner.classList.remove('visible');
+    renderState(data);
+  }
+
+  // Native HTML-Eingabetypen je Feldtyp (Zahlen-/Datumsprüfung übernimmt der Browser) - es gibt
+  // bewusst keine serverseitige/LLM-Prüfung der Antworten mehr (siehe formRoutes.js).
+  const INPUT_TYPES = { number: 'number', date: 'date' };
+
+  function renderState(data) {
+    if (data.done) {
+      progress.textContent = currentLabels.progressComplete;
+      inputRow.style.display = 'none';
+      skipBtn.style.display = 'none';
+      finishBtn.style.display = 'block';
+      addMessage('assistant', currentLabels.doneMessage);
+    } else {
+      progress.textContent = currentLabels.progressQuestion + ' ' + (data.fieldIndex + 1) + ' ' + currentLabels.progressOf + ' ' + data.totalFields + (data.required === false ? ' ' + currentLabels.progressOptional : '');
+      inputRow.style.display = 'flex';
+      chatInput.type = INPUT_TYPES[data.fieldType] || 'text';
+      skipBtn.style.display = data.required === false ? 'block' : 'none';
+      finishBtn.style.display = 'none';
+      if (data.error) addMessage('error', data.error);
+      addMessage('assistant', data.question);
+    }
+  }
+
+  async function startForm(slug) {
+    showStatus('', '');
+    try {
+      const res = await fetch('/api/forms/' + encodeURIComponent(slug) + '/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: languageInput.value })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Starten');
+      enterChatView(slug, data, data.pin, true);
+    } catch (e) {
+      showStatus(e.message, 'error');
+    }
+  }
+
+  resumeSubmit.addEventListener('click', async () => {
+    const slug = resumeSlug.value;
+    const pin = resumePin.value.trim();
+    if (!pin) return;
+    showStatus('', '');
+    try {
+      const res = await fetch('/api/forms/resume', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, pin })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fortsetzen fehlgeschlagen');
+      enterChatView(slug, data, pin, false);
+    } catch (e) {
+      showStatus(e.message, 'error');
+    }
+  });
+
+  pinCopy.addEventListener('click', () => {
+    navigator.clipboard?.writeText(pinValue.textContent.replace(/\s/g, ''));
+    pinCopy.textContent = currentLabels.pinCopied;
+    setTimeout(() => { pinCopy.textContent = currentLabels.pinCopy; }, 1500);
+  });
+
+  async function sendAnswer() {
+    const text = chatInput.value.trim();
+    if (!text || !sessionId) return;
+    chatInput.value = '';
+    sendBtn.disabled = true;
+    addMessage('user', text);
+    const pending = document.createElement('div');
+    pending.className = 'msg pending';
+    pending.textContent = currentLabels.pending;
+    thread.appendChild(pending);
+    thread.scrollTop = thread.scrollHeight;
+
+    try {
+      const res = await fetch('/api/forms/' + sessionId + '/answer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json();
+      pending.remove();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Unbekannter Fehler');
+      renderState(data);
+    } catch (e) {
+      pending.remove();
+      showStatus(e.message, 'error');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+
+  sendBtn.addEventListener('click', sendAnswer);
+  chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAnswer(); });
+
+  skipBtn.addEventListener('click', async () => {
+    if (!sessionId) return;
+    skipBtn.disabled = true;
+    try {
+      const res = await fetch('/api/forms/' + sessionId + '/answer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skip: true })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Unbekannter Fehler');
+      renderState(data);
+    } catch (e) {
+      showStatus(e.message, 'error');
+    } finally {
+      skipBtn.disabled = false;
+    }
+  });
+
+  finishBtn.addEventListener('click', async () => {
+    finishBtn.disabled = true;
+    finishBtn.textContent = currentLabels.generating;
+    try {
+      const res = await fetch('/api/forms/' + sessionId + '/finish', { method: 'POST' });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || 'Fehler beim Erzeugen');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (currentSlug || 'formular') + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Object-URL erst verzögert widerrufen: Firefox kann bei sofortigem revoke() den
+      // gerade erst gestarteten Download (v.a. bei größeren Dateien) noch abbrechen, ohne
+      // Fehler - der Download verschwindet dann lautlos, ohne im Download-Manager zu landen.
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+      // Sitzung bleibt bestehen, bis der Nutzer den erfolgreichen Ausdruck bestätigt -
+      // ein fehlgeschlagener Druck (Papierstau, falscher Drucker, ...) soll nicht dazu
+      // führen, dass alle Angaben verloren sind.
+      finishBtn.style.display = 'none';
+      printConfirm.style.display = 'block';
+      showStatus('', '');
+    } catch (e) {
+      showStatus(e.message, 'error');
+    } finally {
+      finishBtn.disabled = false;
+      finishBtn.textContent = currentLabels.finish;
+    }
+  });
+
+  printOk.addEventListener('click', async () => {
+    printOk.disabled = true;
+    try {
+      const res = await fetch('/api/forms/' + sessionId + '/confirm-print', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Bestätigen');
+      printConfirm.style.display = 'none';
+      pinBanner.classList.remove('visible');
+      chatView.classList.remove('visible');
+      pickerView.classList.add('visible');
+      sessionId = null;
+      currentPin = null;
+      showStatus(currentLabels.printedSuccess, 'success');
+    } catch (e) {
+      showStatus(e.message, 'error');
+    } finally {
+      printOk.disabled = false;
+    }
+  });
+
+  printRetry.addEventListener('click', () => {
+    printConfirm.style.display = 'none';
+    finishBtn.style.display = 'block';
+    showPinBanner();
+    showStatus(currentLabels.retryNote, 'success');
+  });
+
+  loadTemplates();
+</script>
+
+</body>
+</html>

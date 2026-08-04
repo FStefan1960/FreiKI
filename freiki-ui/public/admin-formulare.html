@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formular-Vorlagen (Admin)</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 800; font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 800; font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hanken Grotesk', sans-serif; background: #f1f5f9; min-height: 100vh; padding: 24px; }
+    .wrap { max-width: 840px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,58,138,0.10); padding: 32px; margin-bottom: 20px; }
+    .header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .header img { width: 44px; height: 44px; border-radius: 10px; }
+    .header h1 { font-size: 19px; font-weight: 700; color: #1E3A8A; }
+    .header p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    h2 { font-size: 15px; color: #1E3A8A; margin-bottom: 14px; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin: 10px 0 4px; }
+    input[type="text"], input[type="file"], select, textarea {
+      width: 100%; padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #2B9CD8; }
+
+    .btn {
+      padding: 9px 16px; background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.secondary { background: #e5e7eb; color: #374151; }
+    .btn.danger { background: #dc2626; }
+    .btn.small { padding: 5px 10px; font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #e5e7eb; }
+    th { color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+    .actions { display: flex; gap: 6px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .badge.on { background: #dcfce7; color: #166534; }
+    .badge.off { background: #f3f4f6; color: #6b7280; }
+
+    .page-block { margin-bottom: 20px; }
+    .page-block .page-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+    .page-container { position: relative; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; user-select: none; cursor: crosshair; }
+    .page-container img { display: block; width: 100%; height: auto; }
+    .field-box {
+      position: absolute; border: 2px solid #2B9CD8; background: rgba(43,156,216,0.18);
+      cursor: pointer; box-sizing: border-box;
+    }
+    .field-box .fb-label {
+      position: absolute; top: -20px; left: -2px; background: #1E3A8A; color: #fff;
+      font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+    }
+    .drawing-box { position: absolute; border: 2px dashed #22c55e; background: rgba(34,197,94,0.15); pointer-events: none; }
+
+    .field-form { background: #f8fafc; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin-top: 12px; display: none; }
+    .field-form.visible { display: block; }
+    .field-form-row { display: flex; gap: 10px; }
+    .field-form-row > div { flex: 1; }
+    .field-form-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+    .checkbox-row input { width: auto; }
+
+    .status { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; }
+    .status.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .status.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+
+    .hint { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <img src="/icons/app-mark.svg" alt="">
+      <div>
+        <h1>Formular-Vorlagen</h1>
+        <p>Scans hochladen, Felder markieren, für den Formular-Chat freigeben</p>
+      </div>
+    </div>
+
+    <div id="list-view">
+      <h2>Neue Vorlage anlegen</h2>
+      <form id="upload-form">
+        <div class="field-form-row">
+          <div><label>Kurzname (slug, z.B. bafoeg-antrag)</label><input type="text" id="new-slug" required></div>
+          <div><label>Titel</label><input type="text" id="new-title" required></div>
+        </div>
+        <label>Beschreibung (optional)</label>
+        <textarea id="new-desc" rows="2"></textarea>
+        <label>Scan (PDF, JPG oder PNG)</label>
+        <input type="file" id="new-file" accept=".pdf,.jpg,.jpeg,.png" required>
+        <div class="field-form-actions"><button type="submit" class="btn">Hochladen &amp; rasterisieren</button></div>
+      </form>
+      <div class="status" id="upload-status"></div>
+
+      <h2 style="margin-top:28px">Vorhandene Vorlagen</h2>
+      <table>
+        <thead><tr><th>Titel</th><th>Seiten</th><th>Felder</th><th>Status</th><th></th></tr></thead>
+        <tbody id="template-rows"></tbody>
+      </table>
+    </div>
+
+    <div id="editor-view" class="hidden">
+      <button type="button" class="btn secondary small" id="back-btn">← Zur Liste</button>
+      <h2 style="margin-top:14px" id="editor-title"></h2>
+      <div class="checkbox-row">
+        <input type="checkbox" id="editor-active">
+        <label style="margin:0" for="editor-active">Formular ist aktiv (im Formular-Chat sichtbar)</label>
+      </div>
+      <p class="hint" style="margin-top:14px">Auf einer Seite ziehen, um ein neues Feld zu markieren. Auf ein markiertes Feld klicken, um es zu bearbeiten.</p>
+      <div id="pages-container"></div>
+
+      <div class="field-form" id="field-form">
+        <div class="field-form-row">
+          <div><label>Feldname (technisch, z.B. vorname)</label><input type="text" id="ff-key"></div>
+          <div><label>Feldtyp</label>
+            <select id="ff-type">
+              <option value="text">Text</option>
+              <option value="number">Zahl</option>
+              <option value="date">Datum</option>
+              <option value="checkbox">Checkbox (Ja/Nein)</option>
+            </select>
+          </div>
+        </div>
+        <label>Frage im Chat</label>
+        <input type="text" id="ff-question">
+        <div class="checkbox-row">
+          <input type="checkbox" id="ff-required" checked>
+          <label style="margin:0" for="ff-required">Pflichtfeld</label>
+        </div>
+        <div class="field-form-actions">
+          <button type="button" class="btn" id="ff-save">Übernehmen</button>
+          <button type="button" class="btn secondary" id="ff-cancel">Abbrechen</button>
+          <button type="button" class="btn danger hidden" id="ff-delete">Löschen</button>
+        </div>
+      </div>
+
+      <div class="field-form-actions" style="margin-top:20px">
+        <button type="button" class="btn" id="save-fields-btn">Felder speichern</button>
+        <button type="button" class="btn danger" id="delete-template-btn">Vorlage löschen</button>
+      </div>
+      <div class="status" id="editor-status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      const me = await r.json();
+      if (!r.ok || !['admin', 'manager'].includes(me.role)) throw new Error();
+    } catch {
+      window.location.href = '/';
+    }
+  })();
+
+  const listView = document.getElementById('list-view');
+  const editorView = document.getElementById('editor-view');
+  const templateRows = document.getElementById('template-rows');
+  const uploadForm = document.getElementById('upload-form');
+  const uploadStatus = document.getElementById('upload-status');
+  const editorTitle = document.getElementById('editor-title');
+  const editorActive = document.getElementById('editor-active');
+  const pagesContainer = document.getElementById('pages-container');
+  const editorStatus = document.getElementById('editor-status');
+  const fieldForm = document.getElementById('field-form');
+  const ffKey = document.getElementById('ff-key');
+  const ffType = document.getElementById('ff-type');
+  const ffQuestion = document.getElementById('ff-question');
+  const ffRequired = document.getElementById('ff-required');
+  const ffDelete = document.getElementById('ff-delete');
+
+  let currentTemplate = null;
+  let currentPages = [];
+  let currentFields = [];
+  let editingIndex = null; // Index in currentFields, oder null bei neuem Feld
+  let pendingBox = null;   // {page_number, x, y, width, height} bei neuem Feld vor dem Speichern im Formular
+
+  function showStatus(el, msg, type) {
+    if (!msg) { el.className = 'status'; el.textContent = ''; return; }
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+
+  async function loadTemplates() {
+    const res = await fetch('/api/form-templates', { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { showStatus(uploadStatus, data.error || 'Fehler beim Laden', 'error'); return; }
+    templateRows.innerHTML = '';
+    data.templates.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + t.title + '<div style="font-size:11px;color:#9ca3af">' + t.slug + '</div></td>' +
+        '<td>' + t.page_count + '</td>' +
+        '<td>' + t.field_count + '</td>' +
+        '<td><span class="badge ' + (t.active ? 'on' : 'off') + '">' + (t.active ? 'aktiv' : 'inaktiv') + '</span></td>' +
+        '<td class="actions"></td>';
+      const actions = tr.querySelector('.actions');
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn small'; editBtn.textContent = 'Bearbeiten';
+      editBtn.onclick = () => openEditor(t.id);
+      actions.appendChild(editBtn);
+      templateRows.appendChild(tr);
+    });
+  }
+
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showStatus(uploadStatus, '', '');
+    const fd = new FormData();
+    fd.append('slug', document.getElementById('new-slug').value.trim().toLowerCase());
+    fd.append('title', document.getElementById('new-title').value.trim());
+    fd.append('description', document.getElementById('new-desc').value.trim());
+    fd.append('file', document.getElementById('new-file').files[0]);
+    try {
+      const res = await fetch('/api/form-templates', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
+      uploadForm.reset();
+      await loadTemplates();
+      openEditor(data.template.id);
+    } catch (err) {
+      showStatus(uploadStatus, err.message, 'error');
+    }
+  });
+
+  async function openEditor(id) {
+    const res = await fetch('/api/form-templates/' + id, { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { showStatus(uploadStatus, data.error || 'Fehler beim Laden', 'error'); return; }
+    currentTemplate = data.template;
+    currentPages = data.pages;
+    currentFields = data.fields.map(f => ({ ...f, x: Number(f.x), y: Number(f.y), width: Number(f.width), height: Number(f.height) }));
+    editorTitle.textContent = currentTemplate.title + ' (' + currentTemplate.slug + ')';
+    editorActive.checked = currentTemplate.active;
+    listView.classList.add('hidden');
+    editorView.classList.remove('hidden');
+    showStatus(editorStatus, '', '');
+    renderPages();
+  }
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    editorView.classList.add('hidden');
+    listView.classList.remove('hidden');
+    loadTemplates();
+  });
+
+  editorActive.addEventListener('change', async () => {
+    try {
+      const res = await fetch('/api/form-templates/' + currentTemplate.id, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: editorActive.checked })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler');
+      showStatus(editorStatus, editorActive.checked ? 'Vorlage ist jetzt aktiv.' : 'Vorlage ist jetzt inaktiv.', 'success');
+    } catch (e) {
+      showStatus(editorStatus, e.message, 'error');
+      editorActive.checked = !editorActive.checked;
+    }
+  });
+
+  function renderPages() {
+    pagesContainer.innerHTML = '';
+    currentPages.forEach(p => {
+      const block = document.createElement('div');
+      block.className = 'page-block';
+      block.innerHTML = '<div class="page-label">Seite ' + p.pageNumber + '</div>';
+      const container = document.createElement('div');
+      container.className = 'page-container';
+      container.dataset.page = p.pageNumber;
+      const img = document.createElement('img');
+      img.src = p.url;
+      container.appendChild(img);
+      block.appendChild(container);
+      pagesContainer.appendChild(block);
+      attachDrawing(container, p.pageNumber);
+      renderFieldBoxes(container, p.pageNumber);
+    });
+  }
+
+  function renderFieldBoxes(container, pageNumber) {
+    container.querySelectorAll('.field-box').forEach(el => el.remove());
+    currentFields
+      .map((f, idx) => ({ f, idx }))
+      .filter(({ f }) => f.page_number === pageNumber)
+      .forEach(({ f, idx }) => {
+        const box = document.createElement('div');
+        box.className = 'field-box';
+        box.style.left = (f.x * 100) + '%';
+        box.style.top = (f.y * 100) + '%';
+        box.style.width = (f.width * 100) + '%';
+        box.style.height = (f.height * 100) + '%';
+        box.innerHTML = '<span class="fb-label">' + f.field_key + '</span>';
+        box.addEventListener('click', (e) => { e.stopPropagation(); openFieldForm(idx); });
+        container.appendChild(box);
+      });
+  }
+
+  // Pointer Events statt mouse* + document-Listener: mit setPointerCapture bleiben
+  // move/up auf dem Container garantiert, auch wenn der Zeiger während des Ziehens kurz
+  // die Containergrenzen verlässt (z.B. bei hohen Seitenbildern im eingebetteten iframe) -
+  // sonst geht das Ende der Geste (pointerup/mouseup) verloren und das Ziehrechteck bleibt
+  // hängen, ohne dass sich das Feld-Formular öffnet.
+  function attachDrawing(container, pageNumber) {
+    container.addEventListener('pointerdown', (e) => {
+      if (e.target !== container && e.target.tagName !== 'IMG') return;
+      e.preventDefault();
+      container.setPointerCapture(e.pointerId);
+
+      const rect = container.getBoundingClientRect();
+      const startX = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+      const startY = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1);
+      const drawEl = document.createElement('div');
+      drawEl.className = 'drawing-box';
+      container.appendChild(drawEl);
+      let x = startX, y = startY, w = 0, h = 0;
+
+      const onMove = (ev) => {
+        const r = container.getBoundingClientRect();
+        const curX = Math.min(Math.max((ev.clientX - r.left) / r.width, 0), 1);
+        const curY = Math.min(Math.max((ev.clientY - r.top) / r.height, 0), 1);
+        x = Math.min(startX, curX); y = Math.min(startY, curY);
+        w = Math.abs(curX - startX); h = Math.abs(curY - startY);
+        drawEl.style.left = (x * 100) + '%';
+        drawEl.style.top = (y * 100) + '%';
+        drawEl.style.width = (w * 100) + '%';
+        drawEl.style.height = (h * 100) + '%';
+      };
+      const onUp = () => {
+        container.removeEventListener('pointermove', onMove);
+        container.removeEventListener('pointerup', onUp);
+        container.removeEventListener('pointercancel', onUp);
+        try { container.releasePointerCapture(e.pointerId); } catch (_) {}
+        drawEl.remove();
+        if (w < 0.01 || h < 0.01) return;
+        pendingBox = { page_number: pageNumber, x, y, width: w, height: h };
+        openFieldForm(null);
+      };
+      container.addEventListener('pointermove', onMove);
+      container.addEventListener('pointerup', onUp);
+      container.addEventListener('pointercancel', onUp);
+    });
+  }
+
+  function openFieldForm(idx) {
+    editingIndex = idx;
+    if (idx === null) {
+      ffKey.value = ''; ffType.value = 'text'; ffQuestion.value = ''; ffRequired.checked = true;
+      ffDelete.classList.add('hidden');
+    } else {
+      const f = currentFields[idx];
+      ffKey.value = f.field_key; ffType.value = f.field_type; ffQuestion.value = f.question_text; ffRequired.checked = f.required;
+      ffDelete.classList.remove('hidden');
+      pendingBox = null;
+    }
+    fieldForm.classList.add('visible');
+    ffKey.focus();
+  }
+
+  function closeFieldForm() {
+    fieldForm.classList.remove('visible');
+    pendingBox = null;
+    editingIndex = null;
+  }
+
+  document.getElementById('ff-cancel').addEventListener('click', closeFieldForm);
+
+  document.getElementById('ff-save').addEventListener('click', () => {
+    const key = ffKey.value.trim();
+    const question = ffQuestion.value.trim();
+    if (!/^[a-z][a-z0-9_]{0,49}$/.test(key)) { showStatus(editorStatus, 'Feldname: nur Kleinbuchstaben/Ziffern/_, muss mit Buchstabe beginnen.', 'error'); return; }
+    if (!question) { showStatus(editorStatus, 'Bitte eine Frage für dieses Feld eintragen.', 'error'); return; }
+
+    if (editingIndex !== null) {
+      const f = currentFields[editingIndex];
+      if (currentFields.some((other, i) => i !== editingIndex && other.field_key === key)) {
+        showStatus(editorStatus, 'Feldname bereits vergeben.', 'error'); return;
+      }
+      f.field_key = key; f.field_type = ffType.value; f.question_text = question; f.required = ffRequired.checked;
+    } else {
+      if (currentFields.some(other => other.field_key === key)) {
+        showStatus(editorStatus, 'Feldname bereits vergeben.', 'error'); return;
+      }
+      currentFields.push({
+        ...pendingBox, field_key: key, field_type: ffType.value, question_text: question,
+        required: ffRequired.checked, order_index: currentFields.length
+      });
+    }
+    closeFieldForm();
+    renderPages();
+    showStatus(editorStatus, '', '');
+  });
+
+  ffDelete.addEventListener('click', () => {
+    if (editingIndex === null) return;
+    if (!confirm('Feld "' + currentFields[editingIndex].field_key + '" wirklich entfernen?')) return;
+    currentFields.splice(editingIndex, 1);
+    currentFields.forEach((f, i) => { f.order_index = i; });
+    closeFieldForm();
+    renderPages();
+  });
+
+  document.getElementById('save-fields-btn').addEventListener('click', async () => {
+    showStatus(editorStatus, '', '');
+    try {
+      const res = await fetch('/api/form-templates/' + currentTemplate.id + '/fields', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: currentFields })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Speichern');
+      showStatus(editorStatus, 'Felder gespeichert.', 'success');
+    } catch (e) {
+      showStatus(editorStatus, e.message, 'error');
+    }
+  });
+
+  document.getElementById('delete-template-btn').addEventListener('click', async () => {
+    if (!confirm('Vorlage "' + currentTemplate.title + '" wirklich vollständig löschen?')) return;
+    try {
+      const res = await fetch('/api/form-templates/' + currentTemplate.id, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Löschen');
+      editorView.classList.add('hidden');
+      listView.classList.remove('hidden');
+      loadTemplates();
+    } catch (e) {
+      showStatus(editorStatus, e.message, 'error');
+    }
+  });
+
+  loadTemplates();
+</script>
+</body>
+</html>

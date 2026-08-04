@@ -9,6 +9,7 @@ const config = {
   APP_ROOT,
   PUBLIC_DIR: path.join(APP_ROOT, 'public'),
   PROMPT_DIR: path.join(APP_ROOT, 'prompts'),
+  FORM_TEMPLATES_DIR: path.join(APP_ROOT, 'form-templates'),
   PORT: 3000,
 
   VLLM_URL: process.env.VLLM_URL || 'http://vllm:8000',

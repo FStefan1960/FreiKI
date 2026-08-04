@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execFileSync } = require('child_process');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
@@ -23,17 +24,26 @@ function tesseractRecognize(imagePath) {
   }).toString('utf8');
 }
 
-// Rendert alle Seiten eines PDFs als PNG in ein Temp-Verzeichnis und OCRt sie.
-async function ocrPdf(pdfPath) {
-  const pngDir = `/tmp/ocr-${Date.now()}`;
+// Rendert alle Seiten eines PDFs als PNG in ein neues Temp-Verzeichnis (Aufrufer ist für das
+// Aufräumen des Verzeichnisses zuständig). Wird sowohl von ocrPdf() als auch vom Formular-Vorlagen-
+// Upload genutzt (dort werden die PNGs anschließend dauerhaft abgelegt statt gelöscht).
+function rasterizePdfToPngs(pdfPath, dpi = 200) {
+  const pngDir = `/tmp/rasterize-${Date.now()}-${crypto.randomUUID()}`;
   fs.mkdirSync(pngDir, { recursive: true });
+  execFileSync('pdftoppm', ['-r', String(dpi), '-png', pdfPath, `${pngDir}/page`], { timeout: 60000 });
+  const pages = fs.readdirSync(pngDir).filter(f => f.endsWith('.png')).sort()
+    .map(f => path.join(pngDir, f));
+  return { dir: pngDir, pages };
+}
+
+// Rendert alle Seiten eines PDFs als PNG und OCRt sie.
+async function ocrPdf(pdfPath) {
+  const { dir, pages } = rasterizePdfToPngs(pdfPath);
   try {
-    execFileSync('pdftoppm', ['-r', '200', '-png', pdfPath, `${pngDir}/page`], { timeout: 60000 });
-    const pages = fs.readdirSync(pngDir).filter(f => f.endsWith('.png')).sort();
-    const ocrResults = pages.map(p => tesseractRecognize(path.join(pngDir, p)));
+    const ocrResults = pages.map(p => tesseractRecognize(p));
     return { text: ocrResults.join('\n\n').trim(), pageCount: pages.length };
   } finally {
-    fs.rmSync(pngDir, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -75,4 +85,4 @@ async function ocrImage(imagePath) {
   return cleaned;
 }
 
-module.exports = { ocrPdf, ocrImage };
+module.exports = { ocrPdf, ocrImage, rasterizePdfToPngs };
