@@ -80,20 +80,131 @@ async function ingestText(bereich, text, source, sourceUrl) {
   return { inserted, chunks: chunks.length };
 }
 
-// Retrieval für den "Wissen"-Modus im interaktiven Chat (Streaming-Antwort lebt in ChatService)
-async function retrieveWissenChunks(wissenKey, queryText, limit = 8) {
+// Cosine-Distanz-Schwelle: schwächere Treffer nicht in den Kontext legen.
+const WISSEN_MAX_DISTANCE = 0.45;
+// Keyword-Treffer dürfen weiter entfernt sein; reine Vektor-Suche verfehlt oft Fachbegriffe.
+const WISSEN_KEYWORD_MAX_DISTANCE = 0.65;
+const WISSEN_KEYWORD_BOOST = 0.12; // wird von der Distanz abgezogen beim Ranking
+
+// Instanzspezifische Synonyme (Format: { suchbegriff: ['synonym1', 'synonym2', ...] }),
+// analog KorKI - aktuell leer, da keine passende Fachvokabular-Liste für diese Instanz vorliegt.
+const QUERY_SYNONYMS = {};
+
+function normalizeChunkRow(row) {
+  let metadata = row.metadata;
+  if (typeof metadata === 'string') {
+    try { metadata = JSON.parse(metadata); } catch (_) { metadata = {}; }
+  }
+  return {
+    pageContent: row.pageContent,
+    metadata: metadata || {},
+    distance: Number(row.distance),
+  };
+}
+
+function extractKeywordTerms(queryText) {
+  const q = (queryText || '').toLowerCase();
+  const terms = new Set();
+  for (const [key, syns] of Object.entries(QUERY_SYNONYMS)) {
+    if (q.includes(key) || syns.some(s => q.includes(s))) {
+      syns.forEach(s => terms.add(s));
+    }
+  }
+  // ISO-Datumsangaben (YYYY-MM-DD) als ganzes Token behalten – der generische Split
+  // unten würde sie am Bindestrich in unspezifische "2026"/"08"/"01"-Fragmente zerreißen.
+  for (const dateMatch of q.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)) {
+    terms.add(dateMatch[0]);
+  }
+  // zusätzliche Inhaltswörter aus der Frage (≥5 Zeichen, keine Stoppwörter)
+  const stop = new Set(['welche', 'welcher', 'welches', 'gibt', 'haben', 'oder', 'und', 'für', 'eine', 'einen', 'über', 'nach', 'bitte', 'sowie']);
+  for (const w of q.split(/[^a-zäöüß0-9]+/i)) {
+    if (w.length >= 5 && !stop.has(w)) terms.add(w);
+  }
+  return [...terms].slice(0, 12);
+}
+
+function mergeChunksByDistance(chunks, limit, maxPerSource = 3) {
+  const seen = new Set();
+  const perSource = new Map();
+  const out = [];
+  const sorted = [...chunks].sort((a, b) => a.distance - b.distance);
+  for (const c of sorted) {
+    const key = (c.pageContent || '').slice(0, 160);
+    if (!key || seen.has(key)) continue;
+    const src = c.metadata?.source || '_';
+    const n = perSource.get(src) || 0;
+    if (n >= maxPerSource) continue;
+    seen.add(key);
+    perSource.set(src, n + 1);
+    out.push(c);
+    if (out.length >= limit) break;
+  }
+  // Falls Diversität zu streng war: Rest nach Distanz auffüllen
+  if (out.length < limit) {
+    for (const c of sorted) {
+      const key = (c.pageContent || '').slice(0, 160);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
+}
+
+// Hybrid-Suche (Vektor + Keyword) auf genau einer Bereichs-Tabelle. Von retrieveWissenChunks
+// (ein Bereich) und retrieveWissenChunksMulti (alle erlaubten Bereiche) gemeinsam genutzt.
+async function hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistance, fetchLimit) {
+  const { rows: vectorRows } = await client.query(
+    `SELECT "pageContent", metadata, embedding <=> $1::vector AS distance
+     FROM ${table} ORDER BY distance ASC LIMIT $2`,
+    [vecStr, fetchLimit]
+  );
+  const merged = vectorRows
+    .map(normalizeChunkRow)
+    .filter((r) => Number.isFinite(r.distance) && r.distance < maxDistance);
+
+  if (terms.length) {
+    const likes = terms.map((_, i) => `"pageContent" ILIKE $${i + 2}`).join(' OR ');
+    const params = [vecStr, ...terms.map(t => `%${t}%`)];
+    const { rows: kwRows } = await client.query(
+      `SELECT "pageContent", metadata, embedding <=> $1::vector AS distance
+       FROM ${table}
+       WHERE ${likes}
+       ORDER BY distance ASC
+       LIMIT 40`,
+      params
+    );
+    for (const row of kwRows.map(normalizeChunkRow)) {
+      if (!Number.isFinite(row.distance) || row.distance >= WISSEN_KEYWORD_MAX_DISTANCE) continue;
+      // Keyword-Treffer im Ranking bevorzugen
+      merged.push({
+        ...row,
+        distance: Math.max(0, row.distance - WISSEN_KEYWORD_BOOST),
+      });
+    }
+  }
+
+  const area = kbAreas.getLabel(areaKey) || areaKey;
+  return merged.map((r) => ({ ...r, area }));
+}
+
+// Retrieval für den "Wissen"-Modus: Vektor + Keyword (Hybrid), damit Fachbegriffe nicht untergehen.
+async function retrieveWissenChunks(wissenKey, queryText, limit = 8, maxDistance = WISSEN_MAX_DISTANCE) {
   const table = kbAreas.getTable(wissenKey);
   if (!table) throw Object.assign(new Error('Unbekannter Wissensbereich: ' + wissenKey), { status: 400 });
-  const [queryEmbedding] = await getEmbeddings([queryText]);
+  const terms = extractKeywordTerms(queryText);
+  // Synonyme/Terme an die Embedding-Query hängen → bessere Nachbarn für Fachbegriffe
+  const embedQuery = terms.length
+    ? `${queryText}\n${terms.slice(0, 8).join(' ')}`
+    : queryText;
+  const [queryEmbedding] = await getEmbeddings([embedQuery]);
   const vecStr = '[' + queryEmbedding.join(',') + ']';
+  const fetchLimit = Math.min(50, Math.max(limit * 4, 20));
   const client = await pool.connect();
   try {
-    const { rows } = await client.query(
-      `SELECT "pageContent", metadata, embedding <=> $1::vector AS distance
-       FROM ${table} ORDER BY distance ASC LIMIT ${limit}`,
-      [vecStr]
-    );
-    return rows;
+    const rows = await hybridAreaChunks(client, wissenKey, table, vecStr, terms, maxDistance, fetchLimit);
+    return mergeChunksByDistance(rows, limit);
   } finally {
     client.release();
   }
@@ -107,33 +218,33 @@ const WISSEN_CURRENT_AREA_BOOST = 0.08;
 // hat (allowedAreaKeys === null -> alle Bereiche, analog answerBotChat). preferredAreaKey (der
 // angeklickte Menüpunkt) bekommt einen Ranking-Bonus, ist aber keine harte Grenze mehr – andere
 // erlaubte Bereiche werden trotzdem durchsucht.
-async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 8, preferredAreaKey = null } = {}) {
+async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 8, maxDistance = WISSEN_MAX_DISTANCE, preferredAreaKey = null } = {}) {
   const areaEntries = kbAreas.entries().filter(
     ([areaKey]) => !allowedAreaKeys || allowedAreaKeys.includes(normArea(areaKey))
   );
   if (!areaEntries.length) return [];
 
-  const [queryEmbedding] = await getEmbeddings([queryText]);
+  const terms = extractKeywordTerms(queryText);
+  const embedQuery = terms.length
+    ? `${queryText}\n${terms.slice(0, 8).join(' ')}`
+    : queryText;
+  const [queryEmbedding] = await getEmbeddings([embedQuery]);
   const vecStr = '[' + queryEmbedding.join(',') + ']';
+  // Pro Bereich weniger holen als bei Einzelbereichs-Suche, da mehrere Tabellen abgefragt werden.
+  const fetchLimit = Math.min(30, Math.max(limit * 2, 15));
   const preferredKey = preferredAreaKey ? normArea(preferredAreaKey) : null;
 
   const client = await pool.connect();
   try {
     let all = [];
     for (const [areaKey, table] of areaEntries) {
-      const { rows } = await client.query(
-        `SELECT "pageContent", metadata, embedding <=> $1::vector AS distance
-         FROM ${table} ORDER BY distance ASC LIMIT $2`,
-        [vecStr, BOT_CHUNKS_PER_AREA]
-      );
-      const boost = (preferredKey && normArea(areaKey) === preferredKey) ? WISSEN_CURRENT_AREA_BOOST : 0;
-      const area = kbAreas.getLabel(areaKey) || areaKey;
-      for (const row of rows) {
-        all.push({ ...row, distance: Math.max(0, Number(row.distance) - boost), area });
-      }
+      const rows = await hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistance, fetchLimit);
+      const boosted = preferredKey && normArea(areaKey) === preferredKey
+        ? rows.map((r) => ({ ...r, distance: Math.max(0, r.distance - WISSEN_CURRENT_AREA_BOOST) }))
+        : rows;
+      all = all.concat(boosted);
     }
-    all.sort((a, b) => a.distance - b.distance);
-    return all.slice(0, limit);
+    return mergeChunksByDistance(all, limit);
   } finally {
     client.release();
   }

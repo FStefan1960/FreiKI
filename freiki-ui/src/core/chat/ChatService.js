@@ -21,6 +21,52 @@ const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
   ? { chat_template_kwargs: { enable_thinking: false } }
   : {};
 
+// Relative/absolute deutsche Datumsangaben ("heute", "morgen", "1. August") in ISO-Daten
+// auflösen und der Retrieval-Query anhängen. Ohne das findet weder die Vektorsuche noch der
+// Keyword-Boost verlässliche Treffer, weil Wissensdokumente Tage typischerweise als ISO-Datum
+// ablegen, nie als deutsches Datum oder Monatsname.
+const MONTHS_DE = {
+  januar: 1, februar: 2, märz: 3, maerz: 3, april: 4, mai: 5, juni: 6,
+  juli: 7, august: 8, september: 9, oktober: 10, november: 11, dezember: 12,
+};
+
+function addDaysISO(iso, days) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+function resolveDateHints(text, todayISO) {
+  const q = (text || '').toLowerCase();
+  const hints = new Set();
+  if (/\bheute\b/.test(q)) hints.add(todayISO);
+  if (/\bübermorgen\b/.test(q)) hints.add(addDaysISO(todayISO, 2));
+  else if (/\bmorgen\b/.test(q)) hints.add(addDaysISO(todayISO, 1));
+  if (/\bgestern\b/.test(q)) hints.add(addDaysISO(todayISO, -1));
+
+  const todayY = parseInt(todayISO.slice(0, 4), 10);
+  const monthPattern = Object.keys(MONTHS_DE).join('|');
+  const re = new RegExp(`\\b(\\d{1,2})\\.\\s*(${monthPattern})\\b(?:\\s*(\\d{4}))?`, 'g');
+  let m;
+  while ((m = re.exec(q)) !== null) {
+    const day = parseInt(m[1], 10);
+    const month = MONTHS_DE[m[2]];
+    if (day < 1 || day > 31) continue;
+    const mm = String(month).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    if (m[3]) {
+      hints.add(`${m[3]}-${mm}-${dd}`);
+    } else {
+      // Kein Jahr genannt: beide naheliegenden Jahre als Kandidaten anhängen
+      // (kostet nur ein zusätzliches, ungefährliches Keyword bei Fehltreffer).
+      hints.add(`${todayY}-${mm}-${dd}`);
+      hints.add(`${todayY + 1}-${mm}-${dd}`);
+    }
+  }
+  return [...hints];
+}
+
 // Vage/kurze Folgefragen ("und was noch?", "warum?") anhand des Gesprächsverlaufs
 // in eine eigenständige, präzise Suchanfrage umformulieren (nur für den Wissen-RAG-Pfad relevant).
 async function rewriteQuery(question, hist) {
@@ -335,12 +381,20 @@ async function handlePaperlessMode(res, message) {
 
 async function handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys }) {
   const hist = parseHistory(history).slice(-6);
+  const originalQuestion = userMessage;
+  const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
   userMessage = await rewriteQuery(userMessage, hist);
+  // Für die Nutzerantwort Originalfrage behalten; Rewrite nur für Retrieval.
+  // Datumshinweise aus der Originalfrage (nicht der Umformulierung) auflösen, damit
+  // "heute"/"morgen"/"1. August" als ISO-Datum fürs Keyword-Boosting verfügbar sind.
+  const dateHints = resolveDateHints(originalQuestion, todayISO);
+  const retrievalQuery = dateHints.length ? `${userMessage} ${dateHints.join(' ')}` : userMessage;
+  userMessage = originalQuestion;
 
   // Sucht über alle Wissensbereiche, auf die der Nutzer Zugriff hat (nicht nur den angeklickten
   // wissenKey) – der bekommt aber weiterhin einen Ranking-Bonus (preferredAreaKey), damit der
   // Menüpunkt eine echte Präferenz bleibt statt nur den Systemprompt zu bestimmen.
-  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, userMessage, { limit: 8, preferredAreaKey: wissenKey });
+  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, retrievalQuery, { limit: 8, preferredAreaKey: wissenKey });
   const multiArea = new Set(chunks.map(c => c.area).filter(Boolean)).size > 1;
 
   const contextText = chunks.length
