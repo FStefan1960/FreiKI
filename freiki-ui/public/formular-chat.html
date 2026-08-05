@@ -431,26 +431,30 @@
     modalPinValue.textContent = currentPin.replace(/(\d{4})(\d{4})/, '$1 $2');
     savePinModal.classList.add('visible');
   });
-  modalPinClose.addEventListener('click', () => savePinModal.classList.remove('visible'));
-  savePinModal.addEventListener('click', (e) => { if (e.target === savePinModal) savePinModal.classList.remove('visible'); });
+
+  // Sobald das Modal geöffnet wurde, ist jede Art des Schließens (Kopieren, "Schließen",
+  // Klick daneben) ein "ich pausiere jetzt" - die Sitzung ist serverseitig längst gespeichert
+  // (jede Antwort wird sofort persistiert), daher wird IMMER zur Formularauswahl zurückgesetzt,
+  // statt verwirrend beim halb ausgefüllten Chat stehenzubleiben.
+  function resetToPicker(statusMsg) {
+    savePinModal.classList.remove('visible');
+    modalPinCopy.textContent = currentLabels.pinCopy;
+    thread.innerHTML = '';
+    chatInput.value = '';
+    pinBanner.classList.remove('visible');
+    chatView.classList.remove('visible');
+    pickerView.classList.add('visible');
+    sessionId = null;
+    currentPin = null;
+    if (statusMsg) showStatus(statusMsg, 'success');
+  }
+
+  modalPinClose.addEventListener('click', () => resetToPicker(currentLabels.savedNote));
+  savePinModal.addEventListener('click', (e) => { if (e.target === savePinModal) resetToPicker(currentLabels.savedNote); });
   modalPinCopy.addEventListener('click', () => {
     navigator.clipboard?.writeText(modalPinValue.textContent.replace(/\s/g, ''));
     modalPinCopy.textContent = currentLabels.pinCopied;
-    // PIN kopiert = Nutzer will pausieren - Sitzung bleibt serverseitig bestehen (nur
-    // /confirm-print löscht sie), aber die Ansicht wird geleert und zurück zur
-    // Formularauswahl gesetzt, statt verwirrend beim halb ausgefüllten Chat stehenzubleiben.
-    setTimeout(() => {
-      savePinModal.classList.remove('visible');
-      modalPinCopy.textContent = currentLabels.pinCopy;
-      thread.innerHTML = '';
-      chatInput.value = '';
-      pinBanner.classList.remove('visible');
-      chatView.classList.remove('visible');
-      pickerView.classList.add('visible');
-      sessionId = null;
-      currentPin = null;
-      showStatus(currentLabels.savedNote, 'success');
-    }, 900);
+    setTimeout(() => resetToPicker(currentLabels.savedNote), 900);
   });
 
   function enterChatView(slug, data, pin, showPinNow) {
