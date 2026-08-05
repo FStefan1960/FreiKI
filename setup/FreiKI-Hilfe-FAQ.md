@@ -15,6 +15,15 @@ Wählen Sie in der Seitenleiste „Transkription". Laden Sie Ihre Audiodatei hoc
 ## Wie finde ich Piktogramme (Bildkarten)?
 Wählen Sie in der Seitenleiste „Piktogramme". Geben Sie einen Begriff ein. Die Bilder stammen aus der freien ARASAAC-Sammlung.
 
+## Wie fülle ich ein Formular aus (Formular-Chat)?
+Wählen Sie „Formular-Chat" aus der Seitenleiste, wählen Sie die gewünschte Vorlage (z. B. Kindergeldantrag) und beantworten Sie die Fragen im Chat Schritt für Schritt. Am Ende erhalten Sie das ausgefüllte Formular als PDF zum Herunterladen und Ausdrucken.
+
+## Ich habe ein Formular begonnen, aber noch nicht fertig ausgefüllt – was jetzt?
+Klicken Sie im Formular-Chat auf „Speichern". Sie erhalten eine achtstellige PIN. Damit können Sie unter „Bereits begonnenes Formular fortsetzen (PIN)" innerhalb von 7 Tagen an derselben Stelle weitermachen. Danach wird die Sitzung automatisch gelöscht.
+
+## Wer kann neue Formularvorlagen anlegen?
+Nur Admins und Manager können über „Formular-Vorlagen" neue Scans hochladen und die Felder markieren. Alle angemeldeten Nutzer können anschließend den Formular-Chat nutzen.
+
 ## Wie ändere ich mein Passwort?
 Klicken Sie unten links auf das Schloss-Symbol.
 
