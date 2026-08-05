@@ -83,7 +83,10 @@ async function deleteSession(id) {
   await pool.query(`DELETE FROM form_sessions WHERE id=$1`, [id]);
 }
 
-const RETENTION_DAYS = 30; // DSGVO Art. 5 Abs. 1 lit. e - verwaiste (nie zu Ende geführte) Sitzungen
+// DSGVO Art. 5 Abs. 1 lit. e - verwaiste (nie zu Ende geführte) Sitzungen. Frontend verspricht
+// dem Nutzer "7 Tage" Zeit zum Fortsetzen (siehe pinNote/modalHint in FormDialogService.js) -
+// 10 Tage hier als bewusster Sicherheitspuffer, damit niemand exakt am 7. Tag ausgesperrt wird.
+const RETENTION_DAYS = 10;
 
 async function purgeOld() {
   try {

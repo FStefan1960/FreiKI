@@ -91,14 +91,7 @@
     .pin-banner .pin-value { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #78350f; margin: 6px 0; }
     .pin-banner button { background: none; border: 1px solid #d97706; color: #92400e; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
 
-    .progress-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-    .progress { font-size: 12px; color: #9ca3af; }
-    #save-pin-btn {
-      font-size: 12px; font-weight: 700; color: #92400e; background: #fffbeb;
-      border: 1px solid #fde68a; border-radius: 6px; padding: 4px 10px; cursor: pointer;
-      font-family: inherit; white-space: nowrap; flex-shrink: 0;
-    }
-    #save-pin-btn:hover { background: #fef3c7; }
+    .progress { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
 
     .thread { max-height: 360px; overflow-y: auto; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
     .msg { padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.5; max-width: 90%; }
@@ -107,9 +100,9 @@
     .msg.error { align-self: flex-start; background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
     .msg.pending { align-self: flex-start; background: #f3f4f6; color: #9ca3af; font-style: italic; }
 
-    .input-row { display: flex; gap: 8px; }
+    .input-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .input-row input[type="text"] {
-      flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
+      flex: 1 1 140px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
     }
     .input-row input[type="text"]:focus { border-color: #2B9CD8; }
     #send-btn {
@@ -123,6 +116,41 @@
       border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap;
     }
     #skip-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #save-pin-btn {
+      padding: 10px 14px; background: #fff; color: #92400e;
+      border: 1px solid #d97706; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+      font-family: inherit; white-space: nowrap;
+    }
+    #save-pin-btn:hover { background: #fffbeb; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(17,24,39,0.55);
+      align-items: center; justify-content: center; z-index: 2000; padding: 20px;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 16px; padding: 28px; max-width: 380px; width: 100%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    }
+    .modal-box h3 { font-size: 18px; color: #1E3A8A; margin-bottom: 12px; }
+    .modal-box p { font-size: 14px; color: #374151; line-height: 1.5; }
+    .modal-pin-value {
+      font-size: 26px; font-weight: 800; letter-spacing: 2px; color: #78350f; text-align: center;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px; margin: 14px 0;
+    }
+    .modal-hint { font-size: 13px; color: #6b7280; margin-top: 4px; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+    .modal-actions button { flex: 1; }
+    #modal-pin-copy {
+      padding: 10px; background: #fff; color: #2B9CD8; border: 1px solid #2B9CD8;
+      border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    #modal-pin-copy:hover { background: #f0f9ff; }
+    #modal-pin-close {
+      padding: 10px; background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
 
     .finish-btn {
       width: 100%; padding: 12px; margin-top: 6px;
@@ -188,17 +216,15 @@
     <div class="pin-banner" id="pin-banner">
       <span id="pin-intro-text">Deine DokumentenPIN zum späteren Fortsetzen (falls du zwischendurch etwas nachschauen musst):</span>
       <div class="pin-value" id="pin-value"></div>
-      <span id="pin-note-text">Bitte notieren – erst nach bestätigtem, erfolgreichem Ausdruck wird die Sitzung gelöscht.</span>
+      <span id="pin-note-text">Bitte notieren – innerhalb von 7 Tagen kannst du damit weitermachen, danach wird die Sitzung automatisch gelöscht.</span>
       <div style="margin-top:8px"><button type="button" id="pin-copy">PIN kopieren</button></div>
     </div>
-    <div class="progress-row">
-      <div class="progress" id="progress"></div>
-      <button type="button" id="save-pin-btn">Zwischenspeichern – PIN anzeigen</button>
-    </div>
+    <div class="progress" id="progress"></div>
     <div class="thread" id="thread"></div>
     <div class="input-row" id="input-row">
       <input type="text" id="chat-input" placeholder="Antwort eingeben …">
       <button type="button" id="send-btn">Senden</button>
+      <button type="button" id="save-pin-btn">Speichern</button>
       <button type="button" id="skip-btn" style="display:none;">Überspringen</button>
     </div>
     <button type="button" class="finish-btn" id="finish-btn" style="display:none">PDF erzeugen &amp; herunterladen</button>
@@ -217,6 +243,19 @@
   <div class="status" id="status"></div>
 
   <button class="back-link" id="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<div class="modal-overlay" id="save-pin-modal">
+  <div class="modal-box">
+    <h3 id="modal-title">Zwischenspeichern</h3>
+    <p>Deine DokumentenPIN:</p>
+    <div class="modal-pin-value" id="modal-pin-value"></div>
+    <p class="modal-hint" id="modal-hint">Mit dieser PIN kannst du innerhalb von 7 Tagen hier weitermachen. Danach wird die Sitzung automatisch gelöscht.</p>
+    <div class="modal-actions">
+      <button type="button" id="modal-pin-copy">PIN kopieren</button>
+      <button type="button" id="modal-pin-close">Schließen</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -242,6 +281,10 @@
   const pinValue = document.getElementById('pin-value');
   const pinCopy = document.getElementById('pin-copy');
   const savePinBtn = document.getElementById('save-pin-btn');
+  const savePinModal = document.getElementById('save-pin-modal');
+  const modalPinValue = document.getElementById('modal-pin-value');
+  const modalPinCopy = document.getElementById('modal-pin-copy');
+  const modalPinClose = document.getElementById('modal-pin-close');
   const progress = document.getElementById('progress');
   const thread = document.getElementById('thread');
   const inputRow = document.getElementById('input-row');
@@ -262,7 +305,7 @@
     printOk: 'Ja, fertig', printRetry: 'Nein, nochmal', placeholder: 'Antwort eingeben …',
     pinCopy: 'PIN kopieren', pinCopied: 'Kopiert!',
     pinIntro: 'Deine DokumentenPIN zum späteren Fortsetzen (falls du zwischendurch etwas nachschauen musst):',
-    pinNote: 'Bitte notieren – erst nach bestätigtem, erfolgreichem Ausdruck wird die Sitzung gelöscht.',
+    pinNote: 'Bitte notieren – innerhalb von 7 Tagen kannst du damit weitermachen, danach wird die Sitzung automatisch gelöscht.',
     doneMessage: 'Danke, alle Angaben sind vollständig. Du kannst jetzt das ausgefüllte PDF herunterladen.',
     printQuestion: 'War der Ausdruck erfolgreich?',
     printedSuccess: 'Fertig. Die Sitzung wurde gelöscht.',
@@ -270,6 +313,9 @@
     progressQuestion: 'Frage', progressOf: 'von', progressOptional: '(optional)',
     progressComplete: 'Alle Angaben vollständig.', back: '← Zurück',
     pending: 'Einen Moment …', generating: 'Erzeuge PDF …', connectionError: 'Verbindungsfehler: ',
+    saveBtn: 'Speichern', modalTitle: 'Zwischenspeichern',
+    modalHint: 'Mit dieser PIN kannst du innerhalb von 7 Tagen hier weitermachen. Danach wird die Sitzung automatisch gelöscht.',
+    modalClose: 'Schließen',
   };
 
   function applyLabels(labels) {
@@ -285,6 +331,11 @@
     document.getElementById('pin-note-text').textContent = currentLabels.pinNote;
     document.getElementById('print-question-text').textContent = currentLabels.printQuestion;
     document.getElementById('back-link').textContent = currentLabels.back;
+    savePinBtn.textContent = currentLabels.saveBtn;
+    document.getElementById('modal-title').textContent = currentLabels.modalTitle;
+    document.getElementById('modal-hint').textContent = currentLabels.modalHint;
+    modalPinCopy.textContent = currentLabels.pinCopy;
+    modalPinClose.textContent = currentLabels.modalClose;
   }
 
   function showStatus(msg, type) {
@@ -340,8 +391,16 @@
   }
 
   savePinBtn.addEventListener('click', () => {
-    showPinBanner();
-    pinBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!currentPin) return;
+    modalPinValue.textContent = currentPin.replace(/(\d{4})(\d{4})/, '$1 $2');
+    savePinModal.classList.add('visible');
+  });
+  modalPinClose.addEventListener('click', () => savePinModal.classList.remove('visible'));
+  savePinModal.addEventListener('click', (e) => { if (e.target === savePinModal) savePinModal.classList.remove('visible'); });
+  modalPinCopy.addEventListener('click', () => {
+    navigator.clipboard?.writeText(modalPinValue.textContent.replace(/\s/g, ''));
+    modalPinCopy.textContent = currentLabels.pinCopied;
+    setTimeout(() => { modalPinCopy.textContent = currentLabels.pinCopy; }, 1500);
   });
 
   function enterChatView(slug, data, pin, showPinNow) {

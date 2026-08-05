@@ -56,7 +56,7 @@ const UI_LABELS_DE = {
   pinCopy: 'PIN kopieren',
   pinCopied: 'Kopiert!',
   pinIntro: 'Deine DokumentenPIN zum späteren Fortsetzen (falls du zwischendurch etwas nachschauen musst):',
-  pinNote: 'Bitte notieren – erst nach bestätigtem, erfolgreichem Ausdruck wird die Sitzung gelöscht.',
+  pinNote: 'Bitte notieren – innerhalb von 7 Tagen kannst du damit weitermachen, danach wird die Sitzung automatisch gelöscht.',
   doneMessage: 'Danke, alle Angaben sind vollständig. Du kannst jetzt das ausgefüllte PDF herunterladen.',
   printQuestion: 'War der Ausdruck erfolgreich?',
   printedSuccess: 'Fertig. Die Sitzung wurde gelöscht.',
@@ -66,6 +66,9 @@ const UI_LABELS_DE = {
   progressOptional: '(optional)',
   progressComplete: 'Alle Angaben vollständig.',
   back: '← Zurück', pending: 'Einen Moment …', generating: 'Erzeuge PDF …', connectionError: 'Verbindungsfehler: ',
+  saveBtn: 'Speichern', modalTitle: 'Zwischenspeichern',
+  modalHint: 'Mit dieser PIN kannst du innerhalb von 7 Tagen hier weitermachen. Danach wird die Sitzung automatisch gelöscht.',
+  modalClose: 'Schließen',
 };
 
 async function translateLabels(language) {
