@@ -48,7 +48,7 @@ async function translateQuestion(questionText, language) {
 // jeder einzelnen Antwort. Nur die Fragen selbst (admin-verfasst) laufen über translateQuestion.
 const UI_LABELS_DE = {
   send: 'Senden',
-  skip: 'Feld überspringen (optional)',
+  skip: 'Überspringen',
   finish: 'PDF erzeugen & herunterladen',
   printOk: 'Ja, fertig',
   printRetry: 'Nein, nochmal',
