@@ -69,6 +69,7 @@ const UI_LABELS_DE = {
   saveBtn: 'Speichern', modalTitle: 'Zwischenspeichern',
   modalHint: 'Mit dieser PIN kannst du innerhalb von 7 Tagen hier weitermachen. Danach wird die Sitzung automatisch gelöscht.',
   modalClose: 'Schließen',
+  savedNote: 'Zwischengespeichert. Du kannst mit der PIN innerhalb von 7 Tagen hier weitermachen.',
 };
 
 async function translateLabels(language) {

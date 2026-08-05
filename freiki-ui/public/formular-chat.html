@@ -316,6 +316,7 @@
     saveBtn: 'Speichern', modalTitle: 'Zwischenspeichern',
     modalHint: 'Mit dieser PIN kannst du innerhalb von 7 Tagen hier weitermachen. Danach wird die Sitzung automatisch gelöscht.',
     modalClose: 'Schließen',
+    savedNote: 'Zwischengespeichert. Du kannst mit der PIN innerhalb von 7 Tagen hier weitermachen.',
   };
 
   function applyLabels(labels) {
@@ -359,7 +360,6 @@
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Laden');
       templateList.innerHTML = '';
-      resumeSlug.innerHTML = '';
       if (data.templates.length === 0) {
         templateList.innerHTML = '<div style="font-size:13px;color:#9ca3af;">Aktuell sind keine Formulare hinterlegt.</div>';
         return;
@@ -371,10 +371,42 @@
         if (t.description) btn.querySelector('.t-desc').textContent = t.description;
         btn.addEventListener('click', () => startForm(t.slug));
         templateList.appendChild(btn);
+      });
+    } catch (e) {
+      showStatus(currentLabels.connectionError + e.message, 'error');
+    }
+  }
 
+  function formatRelativeTime(iso) {
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'gerade eben';
+    if (mins < 60) return 'vor ' + mins + ' Min.';
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return 'vor ' + hours + ' Std.';
+    const days = Math.round(hours / 24);
+    return 'vor ' + days + ' Tag' + (days === 1 ? '' : 'en');
+  }
+
+  // Zeigt tatsächlich offene Sitzungen (nicht nur Vorlagen) inkl. Nutzername - mehrere Nutzer
+  // können dieselbe Vorlage parallel begonnen haben, die PIN allein reicht zur Unterscheidung
+  // nicht als Übersicht.
+  async function loadOpenSessions() {
+    resumeSlug.innerHTML = '';
+    try {
+      const res = await fetch('/api/forms/sessions', { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Laden');
+      if (data.sessions.length === 0) {
         const opt = document.createElement('option');
-        opt.value = t.slug;
-        opt.textContent = t.title;
+        opt.textContent = 'Keine offenen Formulare';
+        opt.disabled = true;
+        resumeSlug.appendChild(opt);
+        return;
+      }
+      data.sessions.forEach(sess => {
+        const opt = document.createElement('option');
+        opt.value = sess.slug;
+        opt.textContent = sess.title + ' – ' + (sess.username || 'unbekannt') + ' (' + formatRelativeTime(sess.updatedAt) + ')';
         resumeSlug.appendChild(opt);
       });
     } catch (e) {
@@ -382,7 +414,11 @@
     }
   }
 
-  resumeToggle.addEventListener('click', () => resumeForm.classList.toggle('visible'));
+  resumeToggle.addEventListener('click', () => {
+    const opening = !resumeForm.classList.contains('visible');
+    resumeForm.classList.toggle('visible');
+    if (opening) loadOpenSessions();
+  });
 
   function showPinBanner() {
     if (!currentPin) return;
@@ -400,7 +436,21 @@
   modalPinCopy.addEventListener('click', () => {
     navigator.clipboard?.writeText(modalPinValue.textContent.replace(/\s/g, ''));
     modalPinCopy.textContent = currentLabels.pinCopied;
-    setTimeout(() => { modalPinCopy.textContent = currentLabels.pinCopy; }, 1500);
+    // PIN kopiert = Nutzer will pausieren - Sitzung bleibt serverseitig bestehen (nur
+    // /confirm-print löscht sie), aber die Ansicht wird geleert und zurück zur
+    // Formularauswahl gesetzt, statt verwirrend beim halb ausgefüllten Chat stehenzubleiben.
+    setTimeout(() => {
+      savePinModal.classList.remove('visible');
+      modalPinCopy.textContent = currentLabels.pinCopy;
+      thread.innerHTML = '';
+      chatInput.value = '';
+      pinBanner.classList.remove('visible');
+      chatView.classList.remove('visible');
+      pickerView.classList.add('visible');
+      sessionId = null;
+      currentPin = null;
+      showStatus(currentLabels.savedNote, 'success');
+    }, 900);
   });
 
   function enterChatView(slug, data, pin, showPinNow) {

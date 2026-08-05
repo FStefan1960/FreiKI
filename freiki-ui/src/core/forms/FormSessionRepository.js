@@ -10,13 +10,15 @@ async function ensureSchema() {
       answers              JSONB NOT NULL DEFAULT '{}'::jsonb,
       current_field_index  INT NOT NULL DEFAULT 0,
       language             TEXT NOT NULL DEFAULT 'Deutsch',
+      username             TEXT,
       created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
   // ADD COLUMN IF NOT EXISTS zusätzlich zum CREATE TABLE: Tabelle existiert auf bereits
-  // deployten Instanzen schon ohne diese Spalte (Mehrsprachigkeit kam nachträglich dazu).
+  // deployten Instanzen schon ohne diese Spalten (Mehrsprachigkeit/Username kamen nachträglich dazu).
   await pool.query(`ALTER TABLE form_sessions ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'Deutsch'`);
+  await pool.query(`ALTER TABLE form_sessions ADD COLUMN IF NOT EXISTS username TEXT`);
   // PIN wird per SHA-256 statt bcrypt gehasht: sie muss beim Fortsetzen direkt per Query
   // gefunden werden (kein Session-Cookie vorhanden), bcrypt erlaubt nur Vergleich, kein
   // Lookup. Da die PIN zufällig/serverseitig generiert wird (kein wiederverwendetes
@@ -33,14 +35,27 @@ function generatePin() {
   return String(crypto.randomInt(0, 100000000)).padStart(8, '0');
 }
 
-async function create(templateId, language = 'Deutsch') {
+async function create(templateId, language = 'Deutsch', username = null) {
   const id = crypto.randomUUID();
   const pin = generatePin();
   await pool.query(
-    `INSERT INTO form_sessions (id, template_id, pin_hash, language) VALUES ($1,$2,$3,$4)`,
-    [id, templateId, hashPin(pin), language]
+    `INSERT INTO form_sessions (id, template_id, pin_hash, language, username) VALUES ($1,$2,$3,$4,$5)`,
+    [id, templateId, hashPin(pin), language, username]
   );
   return { id, pin };
+}
+
+// Für die Fortsetzen-Auswahl im Formular-Chat: zeigt WER welches Formular offen hat, damit sich
+// mehrere Nutzer mit derselben Vorlage nicht verwechseln - die PIN selbst bleibt trotzdem der
+// einzige Weg, tatsächlich fortzusetzen (keine sensiblen Antwortinhalte in dieser Liste).
+async function listOpen() {
+  const { rows } = await pool.query(
+    `SELECT ft.slug, ft.title, fs.username, fs.updated_at
+     FROM form_sessions fs
+     JOIN form_templates ft ON ft.id = fs.template_id
+     ORDER BY fs.updated_at DESC`
+  );
+  return rows;
 }
 
 async function getById(id) {
@@ -103,6 +118,6 @@ function startFormSessionPurgeSchedule() {
 }
 
 module.exports = {
-  ensureSchema, create, getById, findByPin, saveAnswer, advanceField, deleteSession,
+  ensureSchema, create, listOpen, getById, findByPin, saveAnswer, advanceField, deleteSession,
   purgeOld, startFormSessionPurgeSchedule,
 };

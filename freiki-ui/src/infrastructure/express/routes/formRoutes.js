@@ -47,6 +47,20 @@ router.get('/api/forms', asyncHandler(async (req, res) => {
   res.json({ ok: true, templates: list.map(t => ({ slug: t.slug, title: t.title, description: t.description })) });
 }));
 
+// Offene (pausierte) Sitzungen für die Fortsetzen-Auswahl - zeigt WER welches Formular
+// begonnen hat, damit sich mehrere Nutzer mit derselben Vorlage nicht verwechseln. Enthält
+// bewusst keine Antwortinhalte, nur Vorlage + Nutzername + letzte Aktivität; die PIN bleibt
+// der einzige Weg, tatsächlich fortzusetzen.
+router.get('/api/forms/sessions', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+  const list = await sessions.listOpen();
+  res.json({
+    ok: true,
+    sessions: list.map(r => ({ slug: r.slug, title: r.title, username: r.username, updatedAt: r.updated_at })),
+  });
+}));
+
 router.post('/api/forms/:slug/start', asyncHandler(async (req, res) => {
   const s = getSession(req);
   if (!s) return res.status(401).json({ error: 'Bitte neu anmelden.' });
@@ -56,7 +70,7 @@ router.post('/api/forms/:slug/start', asyncHandler(async (req, res) => {
   if (fields.length === 0) return res.status(400).json({ error: 'Dieses Formular hat noch keine Felder.' });
 
   const language = sanitizeLanguage(req.body?.language);
-  const { id, pin } = await sessions.create(template.id, language);
+  const { id, pin } = await sessions.create(template.id, language, s.username);
   const [question, labels] = await Promise.all([
     translateQuestion(fields[0].question_text, language),
     translateLabels(language),
