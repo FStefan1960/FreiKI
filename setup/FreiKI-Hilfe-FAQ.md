@@ -24,6 +24,15 @@ Klicken Sie im Formular-Chat auf „Speichern". Sie erhalten eine achtstellige P
 ## Wer kann neue Formularvorlagen anlegen?
 Nur Admins und Manager können über „Formular-Vorlagen" neue Scans hochladen und die Felder markieren. Alle angemeldeten Nutzer können anschließend den Formular-Chat nutzen.
 
+## Wie lege ich als Admin/Manager eine neue Formularvorlage an?
+Öffnen Sie „Formular-Vorlagen" in der Seitenleiste, vergeben Sie Kurzname und Titel und laden Sie den Scan als PDF, JPG oder PNG hoch. Das Formular wird automatisch in Seitenbilder zerlegt, danach gelangen Sie direkt in den Editor zum Markieren der Felder.
+
+## Wie markiere ich die Felder auf dem Scan?
+Ziehen Sie im Editor mit der Maus ein Feld über die Stelle im Scan, an der die Antwort später eingetragen werden soll. Vergeben Sie einen technischen Feldnamen, wählen Sie den Feldtyp (Text, Zahl, Datum oder Checkbox) und formulieren Sie die Frage, die im Formular-Chat gestellt wird. Ein Klick auf ein bereits markiertes Feld öffnet es wieder zum Bearbeiten oder Löschen.
+
+## Wie schalte ich eine Formularvorlage für alle Nutzer frei?
+Setzen Sie im Editor den Haken bei „Formular ist aktiv" und klicken Sie auf „Felder speichern". Nur aktive Vorlagen erscheinen später im Formular-Chat.
+
 ## Wie ändere ich mein Passwort?
 Klicken Sie unten links auf das Schloss-Symbol.
 
