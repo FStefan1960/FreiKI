@@ -833,6 +833,7 @@ body {
 }
 
 .mermaid-diagram {
+  position: relative;
   background: #fff;
   border: 1px solid var(--fk-border);
   border-radius: 10px;
@@ -845,6 +846,14 @@ body {
 .mermaid-diagram svg {
   max-width: 100%;
   height: auto;
+}
+.mermaid-ai-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  height: 18px;
+  width: auto;
+  pointer-events: none;
 }
 .math-display {
   overflow-x: auto;
@@ -877,9 +886,15 @@ body {
   box-shadow: 0 8px 32px rgba(0,0,0,.25);
   text-align: center;
 }
+.mermaid-lightbox-diagram-wrap {
+  position: relative;
+}
 .mermaid-lightbox svg {
   width: 100%;
   height: auto;
+}
+.mermaid-lightbox-ai-badge {
+  height: 28px;
 }
 .mermaid-lightbox-actions {
   display: flex;
@@ -966,6 +981,7 @@ body {
 .tts-btn.tts-active { background: var(--fk-primary); color: #fff; }
 .tts-btn:disabled { opacity: 0.7; cursor: default; }
 .tts-btn svg, .copy-btn svg { display: block; }
+.tts-ai-badge { height: 18px; width: 18px; display: block; flex-shrink: 0; }
 .tts-spinner {
   width: 12px; height: 12px;
   border: 2px solid currentColor;
