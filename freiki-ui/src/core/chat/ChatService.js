@@ -1,6 +1,8 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 const { config } = require('../../shared/config');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { fetchWithTimeout, normArea } = require('../../shared/utils/text');
@@ -302,6 +304,37 @@ async function enhanceImagePrompt(prompt) {
   return prompt;
 }
 
+// Rechtlich vorgeschriebene sichtbare KI-Kennzeichnung (Art. 50 EU AI Act, ab 02.08.2026).
+// Zuvor liess KorKIs lokaler image-gen-Service das Diffusionsmodell selbst einen Text
+// ("KI-pic") ins Bild rendern - unzuverlässig und nur auf KorKI. Jetzt wird das offizielle
+// EU-Icon (https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content)
+// hier zentral per ImageMagick eingefügt, damit alle drei Instanzen (FreiKI/KorKI/FrankKI,
+// egal ob DeepInfra oder KorKIs lokaler GPU-Server) denselben, verlässlichen Weg nutzen.
+const AI_LABEL_ICON_PATH = path.join(config.APP_ROOT, 'assets', 'ai-label.png');
+
+function applyAiLabel(buf, ext) {
+  const tmpIn = path.join(os.tmpdir(), `${crypto.randomUUID()}-src.${ext}`);
+  const tmpOut = path.join(os.tmpdir(), `${crypto.randomUUID()}-out.${ext}`);
+  try {
+    fs.writeFileSync(tmpIn, buf);
+    const dims = execFileSync('identify', ['-format', '%w %h', tmpIn]).toString().trim();
+    const [w, h] = dims.split(' ').map(Number);
+    const iconSize = Math.max(48, Math.floor(Math.min(w, h) * 0.12));
+    const margin = Math.floor(iconSize * 0.15);
+    execFileSync('convert', [
+      tmpIn,
+      '(', AI_LABEL_ICON_PATH, '-resize', `${iconSize}x${iconSize}`, ')',
+      '-gravity', 'southeast',
+      '-geometry', `+${margin}+${margin}`,
+      '-composite', tmpOut,
+    ]);
+    return fs.readFileSync(tmpOut);
+  } finally {
+    fs.rmSync(tmpIn, { force: true });
+    fs.rmSync(tmpOut, { force: true });
+  }
+}
+
 // Generierte Bilder als Datei statt Base64 im Chatverlauf: Base64-Inline-Bilder blähen die
 // "history" bei jeder Folgenachricht auf mehrere hundert KB auf (Multer-Feldlimit, siehe
 // FileStorage.js) und landen 1:1 im "Kopieren"-Button (dataset.copyText = Rohtext) – dort
@@ -332,8 +365,9 @@ async function handleImageGenMode(res, message) {
     // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
     // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
     const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
+    const labeledBuf = applyAiLabel(buf, ext);
     const filename = `${crypto.randomUUID()}.${ext}`;
-    fs.writeFileSync(path.join(GENERATED_IMAGES_DIR, filename), buf);
+    fs.writeFileSync(path.join(GENERATED_IMAGES_DIR, filename), labeledBuf);
     const url = `/api/generated-images/${filename}`;
     const alt = prompt.replace(/[[\]]/g, '');
     const md = `![${alt}](${url})\n\n<a href="${url}" download="bild.${ext}">⬇️ Bild herunterladen</a>`;
