@@ -11,6 +11,7 @@ const chatRepo = require('../../core/chat/ChatRepository');
 const auditLog = require('../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../core/audit/SensitiveQueryLog');
 const users = require('../../core/auth/UserRepository');
+const webauthnCreds = require('../../core/auth/WebauthnCredentialRepository');
 const formTemplates = require('../../core/forms/FormTemplateRepository');
 const formSessions = require('../../core/forms/FormSessionRepository');
 
@@ -68,6 +69,7 @@ async function start() {
   await auditLog.ensureSchema();
   await sensitiveLog.ensureSchema();
   await users.ensureSchema();
+  await webauthnCreds.ensureSchema();
   await formTemplates.ensureSchema();
   await formSessions.ensureSchema();
   fs.mkdirSync(config.FORM_TEMPLATES_DIR, { recursive: true });

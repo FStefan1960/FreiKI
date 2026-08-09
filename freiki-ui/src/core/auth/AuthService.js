@@ -2,8 +2,11 @@ const bcrypt = require('bcryptjs');
 const users = require('./UserRepository');
 const { signToken, signPendingToken, verifyPendingToken } = require('./AuthMiddleware');
 const totp = require('./TotpService');
+const webauthn = require('./WebauthnService');
+const webauthnCreds = require('./WebauthnCredentialRepository');
 const { sendWelcomeMail } = require('../integrations/EmailService');
 const { generatePassword } = require('../../shared/utils/text');
+const { getBrandConfig } = require('../../shared/config/BrandConfig');
 
 async function login(username, password) {
   const u = await users.findByUsername(username);
@@ -12,7 +15,8 @@ async function login(username, password) {
   if (!ok) return { error: 'invalid' };
 
   if (u.totp_enabled) {
-    return { requires2fa: true, pendingToken: signPendingToken(u) };
+    const hasPasskeys = (await webauthnCreds.countByUser(u.id)) > 0;
+    return { requires2fa: true, pendingToken: signPendingToken(u), hasPasskeys };
   }
 
   const token = signToken(u);
@@ -52,7 +56,7 @@ async function verifyTwoFactor(pendingToken, code) {
 async function start2FASetup(uid) {
   const u = await users.findById(uid);
   if (!u) return { error: 'no-session' };
-  const { secret, otpauth } = totp.generateSecret(u.username, 'KorKI');
+  const { secret, otpauth } = totp.generateSecret(u.username, getBrandConfig().name);
   await users.setPendingTotpSecret(uid, secret);
   const qrCode = await totp.qrDataUrl(otpauth);
   return { secret, qrCode };
@@ -135,7 +139,57 @@ async function resendWelcome(id) {
   return { ok: true };
 }
 
+// Passkey als Alternative zum TOTP-Code im 2. Login-Schritt: gleicher Pending-Token wie
+// verifyTwoFactor(), aber Bestätigung per Face ID/Touch ID statt Code-Eingabe.
+async function getPasskeyLoginOptions(pendingToken) {
+  const pending = verifyPendingToken(pendingToken);
+  if (!pending) return { error: 'invalid-pending' };
+  const u = await users.findById(pending.uid);
+  if (!u || u.suspended || !u.totp_enabled) return { error: 'invalid-pending' };
+  return webauthn.getAuthenticationOptions(u.id);
+}
+
+async function verifyPasskeyLogin(pendingToken, response) {
+  const pending = verifyPendingToken(pendingToken);
+  if (!pending) return { error: 'invalid-pending' };
+  const u = await users.findById(pending.uid);
+  if (!u || u.suspended || !u.totp_enabled) return { error: 'invalid-pending' };
+
+  const result = await webauthn.verifyAuthentication(u.id, response);
+  if (result.error) return result;
+
+  const token = signToken(u);
+  return { token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas };
+}
+
+// Passkey-Selbstverwaltung für eingeloggte Nutzer (Registrieren/Auflisten/Löschen).
+async function getPasskeyRegistrationOptions(uid) {
+  const u = await users.findById(uid);
+  if (!u) return { error: 'no-session' };
+  return webauthn.getRegistrationOptions(uid, u.username);
+}
+
+async function confirmPasskeyRegistration(uid, response, nickname) {
+  return webauthn.verifyRegistration(uid, response, nickname);
+}
+
+function listPasskeys(uid) {
+  return webauthnCreds.listByUser(uid);
+}
+
+function removePasskey(uid, credentialDbId) {
+  return webauthnCreds.remove(credentialDbId, uid);
+}
+
+// Admin-Aktion bei Gerätewechsel/-verlust ohne Zugriff mehr auf die Passkeys.
+async function resetPasskeys(uid) {
+  await webauthnCreds.removeAllForUser(uid);
+  return { ok: true };
+}
+
 module.exports = {
   login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA, requestReinit2FA,
   changePassword, createUser, resetPassword, resendWelcome,
+  getPasskeyLoginOptions, verifyPasskeyLogin, getPasskeyRegistrationOptions,
+  confirmPasskeyRegistration, listPasskeys, removePasskey, resetPasskeys,
 };

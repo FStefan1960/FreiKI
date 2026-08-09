@@ -63,6 +63,36 @@ router.post('/api/login/verify-2fa', loginLimiter, asyncHandler(async (req, res)
   }
 }));
 
+// Passkey als Alternative zum TOTP-Code im 2. Login-Schritt (gleicher Pending-Token). Bewusst
+// OHNE loginLimiter: eine WebAuthn-Antwort ist eine kryptografische Signatur des physischen
+// Authenticators, nicht erratbar wie ein Passwort/TOTP-Code - die strenge Brute-Force-Bremse
+// (5/15min) passt hier nicht und hat beim Testen auf mehreren Geräten (geteiltes Budget mit
+// Passwort+TOTP) zu Fehlsperren geführt. Der globale apiLimiter (100/15min) greift weiterhin.
+router.post('/api/webauthn/login/options', asyncHandler(async (req, res) => {
+  const { pendingToken } = req.body || {};
+  if (!pendingToken) return res.status(400).json({ error: 'Ungültige Anfrage' });
+  const result = await AuthService.getPasskeyLoginOptions(pendingToken);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+}));
+
+router.post('/api/webauthn/login/verify', asyncHandler(async (req, res) => {
+  const { pendingToken, response } = req.body || {};
+  if (!pendingToken || !response) return res.status(400).json({ error: 'Ungültige Anfrage' });
+  try {
+    const result = await AuthService.verifyPasskeyLogin(pendingToken, response);
+    if (result.error) {
+      console.warn(`Passkey-Login fehlgeschlagen von ${req.ip}: ${result.error}`);
+      return res.status(401).json({ error: 'Passkey-Anmeldung fehlgeschlagen' });
+    }
+    setSessionCookie(res, result.token);
+    res.json(result);
+  } catch (e) {
+    console.error('webauthn/login/verify error:', e.message);
+    res.status(500).json({ error: 'Verbindungsfehler' });
+  }
+}));
+
 router.post('/api/logout', (req, res) => {
   res.clearCookie('freiki_session', { path: '/' });
   res.json({ ok: true });
@@ -119,6 +149,48 @@ router.post('/api/change-password', asyncHandler(async (req, res) => {
     console.error('change-password error:', e.message);
     res.status(500).json({ error: 'Verbindungsfehler' });
   }
+}));
+
+// Passkey-Selbstverwaltung (nur für eingeloggte Nutzer - Registrieren/Auflisten/Löschen).
+router.post('/api/webauthn/register/options', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    const result = await AuthService.getPasskeyRegistrationOptions(s.uid);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(result);
+  } catch (e) { console.error('webauthn/register/options:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
+router.post('/api/webauthn/register/verify', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const { response, nickname } = req.body || {};
+  if (!response) return res.status(400).json({ error: 'Ungültige Anfrage' });
+  try {
+    const result = await AuthService.confirmPasskeyRegistration(s.uid, response, nickname);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(result);
+  } catch (e) { console.error('webauthn/register/verify:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
+router.get('/api/webauthn/credentials', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    const list = await AuthService.listPasskeys(s.uid);
+    res.json({ passkeys: list });
+  } catch (e) { console.error('webauthn/credentials:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
+router.delete('/api/webauthn/credentials/:id', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    const removed = await AuthService.removePasskey(s.uid, parseInt(req.params.id, 10));
+    if (!removed) return res.status(404).json({ error: 'Nicht gefunden' });
+    res.json({ ok: true });
+  } catch (e) { console.error('webauthn/credentials delete:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
 
 router.get('/api/me', asyncHandler(async (req, res) => {

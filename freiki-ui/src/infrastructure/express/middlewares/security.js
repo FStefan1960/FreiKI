@@ -55,6 +55,7 @@ const formResumeLimiter = rateLimit({
 // interaktiver TOTP-Flow möglich.
 const TWO_FA_SETUP_ALLOWLIST = new Set([
   '/api/login', '/api/login/verify-2fa',
+  '/api/webauthn/login/options', '/api/webauthn/login/verify',
   '/api/logout', '/api/me',
   '/api/2fa/setup', '/api/2fa/confirm', '/api/2fa/reinit',
 ]);

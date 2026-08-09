@@ -328,7 +328,7 @@ function buildEditCard(u){
         const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); statusMsg('ok','Passwort für „'+u.username+'" gesetzt.');
       }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); }
     });
-    let reset2fa=null;
+    let reset2fa=null, resetPasskeys=null;
     if(u.role==='admin'||u.role==='high_risk'){
       reset2fa=document.createElement('button'); reset2fa.className='btn btn-ghost'; reset2fa.textContent='2FA zurücksetzen';
       reset2fa.addEventListener('click',async()=>{ if(!confirm('2FA für „'+u.username+'" zurücksetzen? Der Nutzer muss sich beim nächsten Login neu einrichten (neuer QR-Code, alte Backup-Codes werden ungültig).')) return;
@@ -336,6 +336,13 @@ function buildEditCard(u){
         try{ const r=await fetch('/api/admin/users/'+u.id+'/reset-2fa',{method:'POST',headers:H});
           const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); statusMsg('ok','2FA für „'+u.username+'" zurückgesetzt.');
         }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); } finally{ reset2fa.disabled=false; }
+      });
+      resetPasskeys=document.createElement('button'); resetPasskeys.className='btn btn-ghost'; resetPasskeys.textContent='Passkeys zurücksetzen';
+      resetPasskeys.addEventListener('click',async()=>{ if(!confirm('Alle Passkeys von „'+u.username+'" löschen? Der Nutzer kann sich beim nächsten Login nicht mehr per Face ID/Touch ID anmelden, TOTP-Codes funktionieren weiter.')) return;
+        resetPasskeys.disabled=true;
+        try{ const r=await fetch('/api/admin/users/'+u.id+'/reset-passkeys',{method:'POST',headers:H});
+          const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); statusMsg('ok','Passkeys von „'+u.username+'" gelöscht.');
+        }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); } finally{ resetPasskeys.disabled=false; }
       });
     }
     const resend=document.createElement('button'); resend.className='btn btn-ghost'; resend.textContent='Willkommensmail';
@@ -350,7 +357,7 @@ function buildEditCard(u){
       try{ const r=await fetch('/api/admin/users/'+u.id,{method:'DELETE',headers:H}); const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); load();
       }catch(e){ statusMsg('err','Löschen fehlgeschlagen: '+e.message); }
     });
-    acts.append(save,susp,pw); if(reset2fa) acts.append(reset2fa); acts.append(resend,del); card.appendChild(acts);
+    acts.append(save,susp,pw); if(reset2fa) acts.append(reset2fa); if(resetPasskeys) acts.append(resetPasskeys); acts.append(resend,del); card.appendChild(acts);
     return card;
 }
 
