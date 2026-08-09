@@ -11,7 +11,8 @@ async function ensureSchema() {
     ALTER TABLE freiki_users
       ADD COLUMN IF NOT EXISTS totp_secret TEXT,
       ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false,
-      ADD COLUMN IF NOT EXISTS totp_backup_codes JSONB NOT NULL DEFAULT '[]'
+      ADD COLUMN IF NOT EXISTS totp_backup_codes JSONB NOT NULL DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS telefon TEXT NOT NULL DEFAULT ''
   `);
 }
 
@@ -25,7 +26,7 @@ function findById(id) {
 }
 
 function findProfileById(id) {
-  return pool.query('SELECT username, email, role, first_name, last_name FROM freiki_users WHERE id=$1', [id])
+  return pool.query('SELECT username, email, role, first_name, last_name, funktion, telefon FROM freiki_users WHERE id=$1', [id])
     .then(r => r.rows[0] || null);
 }
 
@@ -36,28 +37,28 @@ function findLiveAreasById(id) {
 
 async function listAll() {
   const { rows } = await pool.query(
-    `SELECT id, username, role, first_name, last_name, funktion, email,
+    `SELECT id, username, role, first_name, last_name, funktion, telefon, email,
             use_areas, manage_areas, suspended, use_paperless FROM freiki_users ORDER BY username`);
   return rows.map(u => ({
     id: u.id, username: u.username, role: u.role, suspended: !!u.suspended,
-    first_name: u.first_name || '', last_name: u.last_name || '', funktion: u.funktion || '', email: u.email || '',
+    first_name: u.first_name || '', last_name: u.last_name || '', funktion: u.funktion || '', telefon: u.telefon || '', email: u.email || '',
     use: u.use_areas || [], manage: u.manage_areas || [], use_paperless: !!u.use_paperless,
   }));
 }
 
-async function create({ username, passwordHash, role, first_name, last_name, funktion, email, use, manage, use_paperless }) {
+async function create({ username, passwordHash, role, first_name, last_name, funktion, telefon, email, use, manage, use_paperless }) {
   const r = VALID_ROLES.includes(role) ? role : 'default';
   const { rows } = await pool.query(
-    `INSERT INTO freiki_users (username,password_hash,role,first_name,last_name,funktion,email,use_areas,manage_areas,use_paperless)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-    [username.trim(), passwordHash, r, first_name||'', last_name||'', funktion||'', email||'', cleanAreas(use), cleanAreas(manage), !!use_paperless]);
+    `INSERT INTO freiki_users (username,password_hash,role,first_name,last_name,funktion,telefon,email,use_areas,manage_areas,use_paperless)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+    [username.trim(), passwordHash, r, first_name||'', last_name||'', funktion||'', telefon||'', email||'', cleanAreas(use), cleanAreas(manage), !!use_paperless]);
   return rows[0].id;
 }
 
-async function update(id, { role, use, manage, suspended, first_name, last_name, funktion, email, use_paperless }) {
+async function update(id, { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, use_paperless }) {
   const r = VALID_ROLES.includes(role) ? role : 'default';
-  const fields = ['role=$2','use_areas=$3','manage_areas=$4','first_name=$5','last_name=$6','funktion=$7','email=$8','updated_at=now()'];
-  const vals = [id, r, cleanAreas(use), cleanAreas(manage), first_name||'', last_name||'', funktion||'', email||''];
+  const fields = ['role=$2','use_areas=$3','manage_areas=$4','first_name=$5','last_name=$6','funktion=$7','telefon=$8','email=$9','updated_at=now()'];
+  const vals = [id, r, cleanAreas(use), cleanAreas(manage), first_name||'', last_name||'', funktion||'', telefon||'', email||''];
   if (suspended !== undefined) { fields.push(`suspended=$${vals.length+1}`); vals.push(!!suspended); }
   if (use_paperless !== undefined) { fields.push(`use_paperless=$${vals.length+1}`); vals.push(!!use_paperless); }
   const { rowCount } = await pool.query(`UPDATE freiki_users SET ${fields.join(',')} WHERE id=$1`, vals);

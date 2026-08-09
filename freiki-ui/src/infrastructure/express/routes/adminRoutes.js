@@ -261,12 +261,12 @@ router.get('/api/admin/users', asyncHandler(async (req, res) => {
 }));
 
 router.post('/api/admin/users', asyncHandler(async (req, res) => {
-  const { username, role, use, manage, first_name, last_name, funktion, email, use_paperless, password } = req.body || {};
+  const { username, role, use, manage, first_name, last_name, funktion, telefon, email, use_paperless, password } = req.body || {};
   if (!users.isValidUsername(username)) return res.status(400).json({ error: 'Benutzername: 3–64 Zeichen, nur Buchstaben, Zahlen und ._-' });
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
   if (password && password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
   try {
-    const result = await AuthService.createUser({ username, role, use, manage, first_name, last_name, funktion, email, use_paperless, password });
+    const result = await AuthService.createUser({ username, role, use, manage, first_name, last_name, funktion, telefon, email, use_paperless, password });
     auditLog.log(req.admin, 'user.create', { id: result.id, username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless });
     res.json({ ok: true, id: result.id, mailSent: result.mailSent });
   } catch (e) {
@@ -278,14 +278,14 @@ router.post('/api/admin/users', asyncHandler(async (req, res) => {
 router.post('/api/admin/users/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Ungültige Nutzer-ID' });
-  const { role, use, manage, suspended, first_name, last_name, funktion, email, use_paperless } = req.body || {};
+  const { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, use_paperless } = req.body || {};
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
   // Selbstschutz: eigenes Konto nicht sperren / nicht zu Nicht-Admin herabstufen
   if (id === req.admin.uid && (suspended === true || (role && role !== 'admin')))
     return res.status(400).json({ error: 'Das eigene Admin-Konto kann nicht gesperrt oder herabgestuft werden.' });
   try {
     const before = await users.findById(id);
-    const ok = await users.update(id, { role, use, manage, suspended, first_name, last_name, funktion, email, use_paperless });
+    const ok = await users.update(id, { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, use_paperless });
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     if (before) {
       const changes = {};

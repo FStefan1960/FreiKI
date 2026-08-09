@@ -34,6 +34,7 @@ fs.readdirSync(config.PROMPT_DIR)
       hidden:     meta.hidden     === 'true',
       paperless:  meta.paperless  === 'true',
       imagegen:   meta.imagegen   === 'true',
+      qrgen:      meta.qrgen      === 'true',
       examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
       // Menüreihenfolge: standardmäßig alphabetisch (Dateiname), per "order:" im Frontmatter
       // gezielt dazwischenschiebbar, ohne key/Bereichs-Zuordnung oder die Dateireihenfolge der

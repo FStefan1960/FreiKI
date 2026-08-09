@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { execFileSync } = require('child_process');
+const QRCode = require('qrcode');
 const { config } = require('../../shared/config');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { fetchWithTimeout, normArea } = require('../../shared/utils/text');
@@ -166,6 +167,7 @@ async function handleChat(req, res) {
     const useWebSearch = modeConf?.websearch || false;
     const isPaperless  = modeConf?.paperless || false;
     const isImageGen   = modeConf?.imagegen || false;
+    const isQrGen      = modeConf?.qrgen || false;
     const wissenKey    = mode.startsWith('w_') ? mode.slice(2) : mode;
     const isWissen     = modeConf?.workspace === 'wissen';
     const username = req.body.username || 'unknown';
@@ -242,6 +244,8 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
       await handlePaperlessMode(res, message);
     } else if (isImageGen) {
       await handleImageGenMode(res, message);
+    } else if (isQrGen) {
+      await handleQrGenMode(res, message);
     } else if (isWissen) {
       await handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys });
     } else {
@@ -375,6 +379,32 @@ async function handleImageGenMode(res, message) {
   } catch (e) {
     console.error('Bildgenerierung Fehler:', e.message);
     res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '⚠️ Bildgenerierung nicht erreichbar.' } }] })}\n\n`);
+  }
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
+// QR-Codes sind deterministisch codierte Nutzereingaben, keine KI-generierten Inhalte -
+// bekommen bewusst KEIN applyAiLabel()-Badge (anders als handleImageGenMode).
+async function handleQrGenMode(res, message) {
+  const text = (message || '').trim();
+  if (!text) {
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '🔲 Bitte einen Text oder eine URL eingeben.' } }] })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    return res.end();
+  }
+  try {
+    const dataUrl = await QRCode.toDataURL(text, { width: 512, margin: 2 });
+    const buf = Buffer.from(dataUrl.split(',')[1], 'base64');
+    const filename = `${crypto.randomUUID()}.png`;
+    fs.writeFileSync(path.join(GENERATED_IMAGES_DIR, filename), buf);
+    const url = `/api/generated-images/${filename}`;
+    const alt = text.replace(/[[\]]/g, '');
+    const md = `![${alt}](${url})\n\n\`\`\`\n${text}\n\`\`\`\n\n<a href="${url}" download="qrcode.png">⬇️ QR-Code herunterladen</a>`;
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: md } }] })}\n\n`);
+  } catch (e) {
+    console.error('QR-Code-Generierung Fehler:', e.message);
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '⚠️ QR-Code konnte nicht erstellt werden.' } }] })}\n\n`);
   }
   res.write('data: [DONE]\n\n');
   res.end();
