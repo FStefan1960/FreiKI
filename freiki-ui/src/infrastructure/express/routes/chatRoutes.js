@@ -61,7 +61,7 @@ router.get('/api/modes', asyncHandler(async (req, res) => {
     .filter(m => !m.hidden)
     .filter(m => !m.paperless || hasPaperless);
 
-  // 'default'- und 'high_risk'-Nutzer mit gesetzten use-Bereichen werden eingeschränkt.
+  // 'default'-, 'high_risk'- und 'manager'-Nutzer mit gesetzten use-Bereichen werden eingeschränkt.
   if (session && (session.role === 'default' || session.role === 'high_risk' || session.role === 'manager') && liveUse.length) {
     const allowed = userAreas;
     return res.json(visible.filter(m => !prompts.isWissenMode(m) || allowed.includes(normArea(m.key))));

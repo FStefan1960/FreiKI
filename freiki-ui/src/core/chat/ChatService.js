@@ -492,7 +492,7 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
   // Sucht über alle Wissensbereiche, auf die der Nutzer Zugriff hat (nicht nur den angeklickten
   // wissenKey) – der bekommt aber weiterhin einen Ranking-Bonus (preferredAreaKey), damit der
   // Menüpunkt eine echte Präferenz bleibt statt nur den Systemprompt zu bestimmen.
-  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, retrievalQuery, { limit: 8, preferredAreaKey: wissenKey });
+  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, retrievalQuery, { limit: 10, preferredAreaKey: wissenKey });
   const multiArea = new Set(chunks.map(c => c.area).filter(Boolean)).size > 1;
 
   const contextText = chunks.length

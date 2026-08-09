@@ -44,10 +44,10 @@ router.post('/api/kb-ingest-text', asyncHandler(async (req, res) => {
   if (!config.KB_INGEST_API_KEY || req.headers['x-api-key'] !== config.KB_INGEST_API_KEY) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
-  const { bereich, text, source, source_url } = req.body || {};
+  const { bereich, text, source, source_url, replace } = req.body || {};
   if (!text || !text.trim()) return res.status(400).json({ error: 'Kein Text übergeben' });
   try {
-    const result = await kb.ingestText(bereich, text, source, source_url);
+    const result = await kb.ingestText(bereich, text, source, source_url, { replace: !!replace });
     res.json({ ok: true, ...result });
   } catch (e) {
     console.error('kb-ingest-text Fehler:', e.message);

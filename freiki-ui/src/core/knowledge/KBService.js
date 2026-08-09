@@ -72,12 +72,28 @@ async function clearTable(table) {
   await pool.query('DELETE FROM ' + table);
 }
 
-async function ingestText(bereich, text, source, sourceUrl) {
+async function deleteBySource(bereich, source) {
   const table = kbAreas.getTable((bereich || '').toLowerCase().trim());
   if (!table) throw Object.assign(new Error('Unbekannter Bereich: ' + bereich), { status: 400 });
-  const chunks = chunkText(text, source || 'Paperless-Dokument');
+  if (!source) return { deleted: 0 };
+  const result = await pool.query(
+    `DELETE FROM ${table} WHERE metadata->>'source' = $1`,
+    [source]
+  );
+  return { deleted: result.rowCount || 0 };
+}
+
+async function ingestText(bereich, text, source, sourceUrl, opts = {}) {
+  const table = kbAreas.getTable((bereich || '').toLowerCase().trim());
+  if (!table) throw Object.assign(new Error('Unbekannter Bereich: ' + bereich), { status: 400 });
+  const src = source || 'Paperless-Dokument';
+  let deleted = 0;
+  if (opts.replace) {
+    deleted = (await deleteBySource(bereich, src)).deleted;
+  }
+  const chunks = chunkText(text, src);
   const inserted = await insertChunks(table, chunks, sourceUrl);
-  return { inserted, chunks: chunks.length };
+  return { inserted, chunks: chunks.length, deleted };
 }
 
 // Cosine-Distanz-Schwelle: schwächere Treffer nicht in den Kontext legen.
@@ -190,7 +206,7 @@ async function hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistan
 }
 
 // Retrieval für den "Wissen"-Modus: Vektor + Keyword (Hybrid), damit Fachbegriffe nicht untergehen.
-async function retrieveWissenChunks(wissenKey, queryText, limit = 8, maxDistance = WISSEN_MAX_DISTANCE) {
+async function retrieveWissenChunks(wissenKey, queryText, limit = 10, maxDistance = WISSEN_MAX_DISTANCE) {
   const table = kbAreas.getTable(wissenKey);
   if (!table) throw Object.assign(new Error('Unbekannter Wissensbereich: ' + wissenKey), { status: 400 });
   const terms = extractKeywordTerms(queryText);
@@ -218,7 +234,7 @@ const WISSEN_CURRENT_AREA_BOOST = 0.08;
 // hat (allowedAreaKeys === null -> alle Bereiche, analog answerBotChat). preferredAreaKey (der
 // angeklickte Menüpunkt) bekommt einen Ranking-Bonus, ist aber keine harte Grenze mehr – andere
 // erlaubte Bereiche werden trotzdem durchsucht.
-async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 8, maxDistance = WISSEN_MAX_DISTANCE, preferredAreaKey = null } = {}) {
+async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 10, maxDistance = WISSEN_MAX_DISTANCE, preferredAreaKey = null } = {}) {
   const areaEntries = kbAreas.entries().filter(
     ([areaKey]) => !allowedAreaKeys || allowedAreaKeys.includes(normArea(areaKey))
   );
@@ -341,9 +357,11 @@ async function answerBotChat(message, username) {
     ? topChunks.map((c, i) => `[${i + 1}] (Bereich: ${c.area})\n${c.content}`).join('\n\n')
     : '';
 
+  const heuteDatum = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
+
   const systemPrompt = (contextText
-    ? `Du bist ${brand.name}, ein interner KI-Assistent. Beantworte die Frage des Nutzers ausschließlich auf Basis der folgenden Auszüge aus den Wissensbereichen. Nenne den jeweiligen Bereich, wenn du dich auf eine Quelle beziehst. Wenn die Auszüge die Frage nicht beantworten, sage das ehrlich – erfinde nichts.\n\n${contextText}`
-    : `Du bist ${brand.name}, ein interner KI-Assistent. Es wurden keine passenden Treffer in den Wissensbereichen gefunden – beantworte die Frage nach bestem Wissen, weise aber darauf hin, dass keine interne Quelle gefunden wurde.`
+    ? `Du bist ${brand.name}, ein interner KI-Assistent. Heutiges Datum: ${heuteDatum}. Beantworte die Frage des Nutzers ausschließlich auf Basis der folgenden Auszüge aus den Wissensbereichen. Nenne den jeweiligen Bereich, wenn du dich auf eine Quelle beziehst. Wenn die Auszüge die Frage nicht beantworten, sage das ehrlich – erfinde nichts.\n\n${contextText}`
+    : `Du bist ${brand.name}, ein interner KI-Assistent. Heutiges Datum: ${heuteDatum}. Es wurden keine passenden Treffer in den Wissensbereichen gefunden – beantworte die Frage nach bestem Wissen, weise aber darauf hin, dass keine interne Quelle gefunden wurde.`
   ) + '\n\nAntworte direkt, ohne Gedankengang. /no_think';
 
   const llmRes = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
@@ -369,6 +387,6 @@ async function answerBotChat(message, username) {
 }
 
 module.exports = {
-  chunkText, insertChunks, clearTable, ingestText,
+  chunkText, insertChunks, clearTable, deleteBySource, ingestText,
   retrieveWissenChunks, retrieveWissenChunksMulti, answerHilfeChat, answerBotChat,
 };
