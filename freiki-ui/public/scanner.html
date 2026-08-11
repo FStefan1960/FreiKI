@@ -470,15 +470,41 @@
     analyzeCode(text, formatName);
   }
 
-  // Fragt das lokale LLM, welche Folgeaktionen zum gescannten Inhalt passen (Link öffnen,
-  // Produktsuche, ...). Das Modell schlägt nur Aktions-Typen aus einem festen Vokabular vor
-  // (serverseitig zusätzlich gefiltert) - die eigentliche Ausführung übernimmt fest
-  // verdrahteter Code hier im Frontend, nie das Modell selbst.
+  const EAN_FORMATS = new Set(['EAN_8', 'EAN_13', 'UPC_A', 'UPC_E']);
+  const OTHER_PRODUCT_FORMATS = new Set(['CODE_39', 'CODE_93', 'CODE_128', 'ITF', 'CODABAR']);
+
+  // Erkennt Aktionen direkt aus Inhalt/Format, unabhängig vom LLM - deckt die Fälle ab, bei
+  // denen das Format selbst schon eindeutig ist (z.B. EAN-Barcode-Formate, http(s)-URL).
+  // Das LLM ergänzt zusätzlich Fälle ohne festes Format (Freitext-Codes), ersetzt diese
+  // Erkennung aber nicht: bei rein numerischem Inhalt hat sich die Modell-Klassifikation als
+  // uneinheitlich erwiesen (mal ean_lookup statt web_lookup, siehe PZN-Fund auf KorKI), und ein
+  // Sonderzeichen wie der bei PZN-Barcodes übliche führende Bindestrich kann die LLM-Antwort
+  // sogar ganz leer laufen lassen.
+  function deriveDeterministicActions(text, formatName) {
+    const t = text.trim();
+    const actions = [];
+    if (/^https?:\/\//i.test(t)) actions.push({ type: 'open_url' });
+    else if (/^BEGIN:VCARD/i.test(t)) actions.push({ type: 'save_contact' });
+    else if (/^mailto:/i.test(t)) actions.push({ type: 'send_email' });
+    else if (/^WIFI:/i.test(t)) actions.push({ type: 'wifi_info' });
+    else if (EAN_FORMATS.has(formatName) && /^-?\d{6,14}$/.test(t)) actions.push({ type: 'ean_lookup' });
+    else if (OTHER_PRODUCT_FORMATS.has(formatName) && /^-?\d{4,14}$/.test(t)) actions.push({ type: 'web_lookup' });
+    return actions;
+  }
+
+  // Fragt zusätzlich das lokale LLM nach Folgeaktionen (z.B. für Freitext-QR-Codes ohne festes
+  // Barcode-Format, wo die deterministische Erkennung oben nicht greift). Das Modell schlägt
+  // nur Aktions-Typen aus einem festen Vokabular vor (serverseitig zusätzlich gefiltert) - die
+  // eigentliche Ausführung übernimmt fest verdrahteter Code hier im Frontend, nie das Modell
+  // selbst. Bei gleichem Typ gewinnt das deterministische Ergebnis (zuverlässiger als die
+  // Modell-Klassifikation), das LLM liefert höchstens den Button-Text.
   async function analyzeCode(text, formatName) {
     smartAction.classList.add('visible');
     smartAction.innerHTML = '<div class="smart-loading">🔍 Prüfe mögliche Aktionen…</div>';
 
-    let actions = [];
+    const detActions = deriveDeterministicActions(text, formatName);
+
+    let llmActions = [];
     try {
       const r = await fetch('/api/scanner/analyze', {
         method: 'POST',
@@ -486,11 +512,14 @@
         body: JSON.stringify({ text, format: formatName }),
       });
       const data = await r.json();
-      actions = Array.isArray(data.actions) ? data.actions : [];
+      llmActions = Array.isArray(data.actions) ? data.actions : [];
     } catch (e) {
-      // Stiller Fallback: ohne Vorschläge bleibt einfach nur der reine Text stehen (oben
-      // bereits angezeigt) - kein Blocker für den eigentlichen Scan-Erfolg.
+      // Stiller Fallback: die deterministischen Aktionen (falls vorhanden) bleiben trotzdem
+      // nutzbar - kein Blocker für den eigentlichen Scan-Erfolg.
     }
+
+    const seen = new Set(detActions.map(a => a.type));
+    const actions = detActions.concat(llmActions.filter(a => !seen.has(a.type)));
 
     if (!actions.length) {
       smartAction.classList.remove('visible');
@@ -519,12 +548,14 @@
         smartAction.appendChild(warn);
       }
 
-      if (action.type === 'ean_lookup' && /^\d{6,14}$/.test(text.trim())) {
+      if (action.type === 'ean_lookup' && /^-?\d{6,14}$/.test(text.trim())) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'action-btn action-btn-ext';
         btn.textContent = '🛒 ' + (action.label || 'Produktinfo abrufen');
-        btn.addEventListener('click', () => lookupProduct(text.trim(), btn));
+        // Führender Bindestrich (Barcode-Konvention, z.B. bei manchen Code-39-Codes) ist kein
+        // Teil der eigentlichen Nummer - für den API-Lookup entfernen.
+        btn.addEventListener('click', () => lookupProduct(text.trim().replace(/^-+/, ''), btn));
         smartAction.appendChild(btn);
       }
 
@@ -537,8 +568,11 @@
         btn.type = 'button';
         btn.className = 'action-btn action-btn-ext';
         btn.textContent = '🔍 ' + (action.label || 'Code online nachschlagen');
+        // Führender Bindestrich (Barcode-Konvention, z.B. PZN-Code-39) ist kein Teil der
+        // Nummer, wie sie auf Webseiten/in Suchergebnissen tatsächlich auftaucht - entfernen,
+        // sonst verfehlt die exakte Phrasensuche echte Treffer.
         btn.addEventListener('click', () => runSearch(
-          '/api/barcode/websearch?' + new URLSearchParams({ code: text.trim(), format: formatName || '' }),
+          '/api/barcode/websearch?' + new URLSearchParams({ code: text.trim().replace(/^-+/, ''), format: formatName || '' }),
           btn, 'Keine Treffer gefunden.'
         ));
         smartAction.appendChild(btn);
