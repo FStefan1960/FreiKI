@@ -86,6 +86,27 @@ router.post('/api/scanner/analyze', asyncHandler(async (req, res) => {
   }
 }));
 
+// Open Food Facts liefert Allergene/Spuren im freien "allergens"-Textfeld nur in der Sprache,
+// in der ein Contributor sie ursprünglich eingetragen hat (lc=de übersetzt das NICHT
+// zuverlässig - z.B. blieb "milk, nuts, soybeans" bei Nutella trotz lc=de englisch). Die
+// strukturierten "*_tags"-Taxonomie-IDs (immer "en:xxx") sind dagegen stabil und lassen sich
+// über die 14 EU-Pflichtallergene fest übersetzen.
+const EU_ALLERGEN_DE = {
+  gluten: 'Gluten', crustaceans: 'Krebstiere', eggs: 'Eier', fish: 'Fisch',
+  peanuts: 'Erdnüsse', soybeans: 'Soja', milk: 'Milch', nuts: 'Schalenfrüchte (Nüsse)',
+  celery: 'Sellerie', mustard: 'Senf', 'sesame-seeds': 'Sesam',
+  'sulphur-dioxide-and-sulphites': 'Schwefeldioxid und Sulfite', lupin: 'Lupinen', molluscs: 'Weichtiere',
+};
+
+function translateAllergenTags(tags) {
+  if (!Array.isArray(tags) || !tags.length) return null;
+  const names = tags.map(t => {
+    const id = String(t).replace(/^en:/, '');
+    return EU_ALLERGEN_DE[id] || id.replace(/-/g, ' ');
+  });
+  return [...new Set(names)].join(', ');
+}
+
 // EAN/UPC-Produktsuche über Open Food Facts (öffentliche API, kein Key nötig). Deckt primär
 // Lebensmittel/Konsumgüter ab, viele andere Hersteller sind aber ebenfalls registriert -
 // reicht als erster Produkt-Hinweis, ohne eigene Produktdatenbank aufzubauen.
@@ -96,7 +117,7 @@ router.get('/api/barcode/product', asyncHandler(async (req, res) => {
 
   try {
     const r = await fetchWithTimeout(
-      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,image_front_small_url,quantity`,
+      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,image_front_small_url,quantity,allergens_tags,traces_tags`,
       { headers: { 'User-Agent': 'FreiKI-Scanner/1.0 (+https://freiki.com)' } },
       8000
     );
@@ -110,6 +131,8 @@ router.get('/api/barcode/product', asyncHandler(async (req, res) => {
       brand: p.brands || null,
       quantity: p.quantity || null,
       image: p.image_front_small_url || null,
+      allergens: translateAllergenTags(p.allergens_tags),
+      traces: translateAllergenTags(p.traces_tags),
     });
   } catch (e) {
     res.json({ found: false });
