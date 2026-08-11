@@ -624,7 +624,21 @@
       const r = await fetch('/api/barcode/product?code=' + encodeURIComponent(code));
       const data = await r.json();
       if (!data.found) {
+        // Open Food Facts kennt nur EAN/UPC - Codes wie PZN oder Artikelnummern landen
+        // trotzdem manchmal hier, weil das LLM bei rein numerischen Codes nicht immer zwischen
+        // "ean_lookup" und "web_lookup" unterscheidet (modellabhängig). Statt stumm aufzugeben,
+        // bleibt die generische Websuche als Fallback erreichbar.
         resultBox.innerHTML = '<div class="smart-loading">Kein Produkt zu diesem Code gefunden.</div>';
+        const fallbackBtn = document.createElement('button');
+        fallbackBtn.type = 'button';
+        fallbackBtn.className = 'action-btn action-btn-ext';
+        fallbackBtn.style.marginTop = '8px';
+        fallbackBtn.textContent = '🔍 Trotzdem im Web suchen';
+        fallbackBtn.addEventListener('click', () => runSearch(
+          '/api/barcode/websearch?' + new URLSearchParams({ code }),
+          fallbackBtn, 'Keine Treffer gefunden.'
+        ));
+        resultBox.appendChild(fallbackBtn);
       } else {
         resultBox.innerHTML = `
           <div class="product-card">
