@@ -18,7 +18,7 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 
 **Als App installieren (empfohlen):** FreiKI kann auf Smartphones, Tablets und Desktop-PCs als App installiert werden (PWA). Öffnen Sie FreiKI im Browser und wählen Sie im Browser-Menü „Zum Startbildschirm hinzufügen" (iOS/Android) bzw. das Installations-Symbol in der Adressleiste (Chrome/Edge am PC).
 
-**Anmeldung:** Benutzername und Passwort erhalten Sie von Ihrer IT-Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Schloss-Symbol unten links in der Seitenleiste).
+**Anmeldung:** Benutzername und Passwort erhalten Sie von Ihrer IT-Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Konto-Menü → Passwort ändern, siehe Kapitel 9).
 
 ---
 
@@ -247,7 +247,7 @@ Nein. Das Modell ist statisch und lernt nicht aus Ihren Eingaben. Es gibt keine 
 Wissensbereiche werden individuell für jeden Benutzer freigeschaltet. Wenden Sie sich an Ihre Administration, wenn Sie Zugriff benötigen.
 
 **Kann ich FreiKI in meiner Muttersprache nutzen?**
-Ja. FreiKI versteht und antwortet in über 100 Sprachen. Sie müssen nicht auf Deutsch schreiben.
+Ja. FreiKI versteht und antwortet in über 100 Sprachen. Sie müssen nicht auf Deutsch schreiben. Zusätzlich können Sie im Konto-Menü eine feste Standard-Antwortsprache hinterlegen (siehe Kapitel 9) – dann antwortet FreiKI dauerhaft in dieser Sprache, unabhängig davon, in welcher Sprache Sie schreiben.
 
 **Was passiert, wenn ich eine Audiodatei hochlade?**
 Die Datei wird lokal auf dem Server transkribiert. Sie verlässt die Infrastruktur Ihrer Organisation nicht.
@@ -257,8 +257,16 @@ Nein. Die Archivsuche zeigt Suchergebnisse und erkannte Texte an, erlaubt aber k
 
 ---
 
-## 9. Support und Feedback
+## 9. Konto-Menü und Support
 
-- **Feedback-Button** (Sprechblasen-Symbol unten links in der Seitenleiste): Wünsche, Fehler oder Verbesserungsvorschläge direkt aus der App melden.
-- **Passwort ändern:** Schloss-Symbol unten links in der Seitenleiste.
+Klicken Sie auf Ihren Avatar/Namen unten links in der Seitenleiste, um das Konto-Menü zu öffnen:
+
+- **Feedback & Wünsche:** Fehler oder Verbesserungsvorschläge direkt aus der App melden.
+- **Benutzerverwaltung** (nur für Administratoren)
+- **Passwort ändern**
+- **Sicherheit** (2FA/Passkeys – nur für Rollen mit Zwei-Faktor-Pflicht)
+- **Antwortsprache ändern:** Legen Sie eine feste Standard-Antwortsprache fest (Freitext, z. B. „Englisch", „italiano", „français" – wird automatisch erkannt). Gilt sofort für alle künftigen Chats.
+
+Zum Abmelden nutzen Sie den separaten Ausgang-Button direkt neben dem Avatar.
+
 - **IT-Administration:** Bei Login-Problemen, Zugriffsfragen oder technischen Störungen wenden Sie sich an Ihre interne IT-Administration.

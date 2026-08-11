@@ -5,8 +5,13 @@ const totp = require('./TotpService');
 const webauthn = require('./WebauthnService');
 const webauthnCreds = require('./WebauthnCredentialRepository');
 const { sendWelcomeMail } = require('../integrations/EmailService');
-const { generatePassword } = require('../../shared/utils/text');
+const { generatePassword, fetchWithTimeout } = require('../../shared/utils/text');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
+const { config } = require('../../shared/config');
+
+const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
+  ? { chat_template_kwargs: { enable_thinking: false } }
+  : {};
 
 async function login(username, password) {
   const u = await users.findByUsername(username);
@@ -103,6 +108,48 @@ async function changePassword(uid, currentPassword, newPassword) {
   return { ok: true };
 }
 
+// Freitext-Eingabe ("italiano", "auf Englisch bitte") auf ein einzelnes deutsches Adjektiv
+// normalisieren, bevor sie in freiki_users.language landet. Wichtig: dieser Wert wird später
+// ungefiltert in eine "SPRACHANWEISUNG MIT HÖCHSTER PRIORITÄT"-Systemnachricht gespliced
+// (siehe ChatService.js languageInstruction()) - ohne diese Normalisierung könnte ein Nutzer
+// sich darüber eine dauerhafte Prompt-Injection in jede eigene Chat-Anfrage schreiben.
+async function normalizeLanguage(rawInput) {
+  const input = (rawInput || '').trim().slice(0, 100);
+  if (!input) return null;
+  if (/^(de|deutsch)$/i.test(input)) return 'deutsch';
+  try {
+    const r = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
+      body: JSON.stringify({
+        model: config.VLLM_MODEL,
+        messages: [
+          { role: 'system', content: 'Extrahiere aus der folgenden Nutzereingabe ausschließlich das deutsche Adjektiv der gemeinten Sprache (z.B. "italienisch", "englisch", "französisch"). Die Eingabe kann auf Deutsch oder in der Fremdsprache selbst erfolgen (z.B. "italiano" -> "italienisch"). Antworte NUR mit dem Adjektiv in Kleinschreibung, ohne Satzzeichen oder weitere Wörter. Ist keine Sprache erkennbar, antworte ausschließlich mit "ungueltig". /no_think' },
+          { role: 'user', content: `Nutzereingabe: "${input}"` }
+        ],
+        max_tokens: 20,
+        temperature: 0.1,
+        ...THINKING_KWARGS
+      })
+    });
+    const d = await r.json();
+    const out = (d.choices?.[0]?.message?.content || '').trim().toLowerCase()
+      .replace(/[^a-zäöüß\s]/g, '').replace(/\s+/g, ' ').trim();
+    if (!out || out === 'ungueltig' || out.length > 30) return null;
+    return out;
+  } catch (e) {
+    console.warn('Sprach-Normalisierung fehlgeschlagen:', e.message);
+    return null;
+  }
+}
+
+async function changeLanguage(uid, rawInput) {
+  const normalized = await normalizeLanguage(rawInput);
+  if (!normalized) return { error: 'invalid-language' };
+  await users.updateLanguage(uid, normalized);
+  return { ok: true, language: normalized };
+}
+
 // Legt einen Nutzer an; generiert bei Bedarf ein Passwort und verschickt die Willkommensmail.
 async function createUser(fields) {
   let password = fields.password;
@@ -189,7 +236,7 @@ async function resetPasskeys(uid) {
 
 module.exports = {
   login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA, requestReinit2FA,
-  changePassword, createUser, resetPassword, resendWelcome,
+  changePassword, changeLanguage, createUser, resetPassword, resendWelcome,
   getPasskeyLoginOptions, verifyPasskeyLogin, getPasskeyRegistrationOptions,
   confirmPasskeyRegistration, listPasskeys, removePasskey, resetPasskeys,
 };

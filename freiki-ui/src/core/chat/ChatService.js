@@ -512,14 +512,19 @@ function languageInstruction(userLanguage, mode) {
 // Fast jeder Modus-Prompt enthält selbst "Schreibe immer auf Deutsch" (siehe z.B. 0chat.md,
 // 5berichte.md, w_*.md). Ein bloß an den Systemprompt angehängter Override verliert im Test
 // zuverlässig gegen diese Anweisung (nur eine Signaturzeile wurde übersetzt, der Rest blieb
-// Deutsch). Als eigene, LETZTE System-Nachricht direkt vor der User-Anfrage eingefügt (statt an
-// den langen Haupt-Systemprompt angehängt) befolgt das Modell sie dagegen zuverlässig - siehe
-// project_freiki_sprache_feld_2026-08-10 in den Memories für die Testreihe.
+// Deutsch) - siehe project_freiki_sprache_feld_2026-08-10 in den Memories für die Testreihe.
+// Eine zusätzliche role:'system'-Nachricht vor der letzten User-Message (frühere Version) verletzt
+// bei vorhandenem Chatverlauf Qwens Vorgabe "System message must be at the beginning" (vLLM
+// antwortet dann mit HTTP 400, das Frontend zeigt fälschlich "Anfrage zu lang") - stattdessen wird
+// die Anweisung direkt in die letzte User-Message eingebettet (gleiche Zuverlässigkeit im Test,
+// aber schema-konform, da sich Anzahl/Rollen der Messages nicht ändern).
 function withLanguageMessage(messages, userLanguage, mode) {
   const instruction = languageInstruction(userLanguage, mode);
   if (!instruction) return messages;
-  const userIdx = messages.length - 1;
-  return [...messages.slice(0, userIdx), { role: 'system', content: instruction }, messages[userIdx]];
+  const lastIdx = messages.length - 1;
+  const last = messages[lastIdx];
+  const wrapped = { ...last, content: `${instruction}\n\n---\n\n${last.content}` };
+  return [...messages.slice(0, lastIdx), wrapped];
 }
 
 async function handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys, userLanguage }) {

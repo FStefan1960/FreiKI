@@ -456,6 +456,41 @@ body {
 .user-name { font-size: var(--fk-fs-sub); font-weight: 600; color: var(--fk-ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .user-avatar.role-high_risk { background: #d97706; }
+.user-info { cursor: pointer; border-radius: var(--fk-radius-sm); }
+.user-info:hover { background: var(--fk-canvas); }
+
+.account-menu {
+  position: fixed;
+  z-index: 1000;
+  width: min(230px, calc(100vw - 24px));
+  background: var(--fk-surface);
+  border-radius: var(--fk-radius-lg);
+  box-shadow: var(--fk-shadow-pop);
+  padding: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.97);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.account-menu.open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
+
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--fk-radius-sm);
+  color: var(--fk-ink);
+  font-family: inherit;
+  font-size: var(--fk-fs-sub);
+  text-align: left;
+  cursor: pointer;
+}
+.account-menu-item svg { flex-shrink: 0; color: var(--fk-text-muted); }
+.account-menu-item:hover { background: var(--fk-canvas); }
 
 .logout-btn {
   flex-shrink: 0;

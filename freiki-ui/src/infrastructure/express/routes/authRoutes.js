@@ -151,6 +151,21 @@ router.post('/api/change-password', asyncHandler(async (req, res) => {
   }
 }));
 
+router.post('/api/change-language', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const { language } = req.body || {};
+  if (!language || !String(language).trim()) return res.status(400).json({ error: 'Sprache erforderlich' });
+  try {
+    const result = await AuthService.changeLanguage(s.uid, language);
+    if (result.error === 'invalid-language') return res.status(400).json({ error: 'Sprache nicht erkannt – bitte anders formulieren' });
+    res.json(result);
+  } catch (e) {
+    console.error('change-language error:', e.message);
+    res.status(500).json({ error: 'Verbindungsfehler' });
+  }
+}));
+
 // Passkey-Selbstverwaltung (nur für eingeloggte Nutzer - Registrieren/Auflisten/Löschen).
 router.post('/api/webauthn/register/options', asyncHandler(async (req, res) => {
   const s = getSession(req);

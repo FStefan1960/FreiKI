@@ -80,6 +80,13 @@ async function updatePasswordHash(id, hash) {
   return rowCount > 0;
 }
 
+// Gezielte Selbst-Service-Änderung nur der Sprache (im Unterschied zu update(), das ein
+// komplettes Admin-Formular erwartet und sonst first_name/last_name/etc. mit '' überschreiben würde).
+async function updateLanguage(id, language) {
+  const { rowCount } = await pool.query('UPDATE freiki_users SET language=$1, updated_at=now() WHERE id=$2', [language, id]);
+  return rowCount > 0;
+}
+
 async function remove(id) {
   const { rowCount } = await pool.query('DELETE FROM freiki_users WHERE id=$1', [id]);
   return rowCount > 0;
@@ -122,7 +129,7 @@ const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@
 
 module.exports = {
   VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById,
-  listAll, create, update, updatePasswordHash, remove, listAdminEmails,
+  listAll, create, update, updatePasswordHash, updateLanguage, remove, listAdminEmails,
   setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes,
   isValidUsername, isValidEmail, cleanAreas,
 };
