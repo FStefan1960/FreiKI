@@ -27,7 +27,7 @@ fs.readdirSync(config.PROMPT_DIR)
       title:      meta.title      || toTitle(key),
       desc:       meta.desc       || '',
       welcome:    meta.welcome    || 'Text eingeben oder Datei hochladen.',
-      hint:       meta.hint       || '💡 Datei hochladen mit 📎, dann senden.',
+      hint:       meta.hint       || '💡 Datei hochladen mit <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="vertical-align:-2px"><path d="M14 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M12 12v7"></path><path d="m9 16 3-3 3 3"></path></svg>, dann senden.',
       workspace:  meta.workspace  || null,
       websearch:  meta.websearch === 'true',
       multifile:  meta.multifile  === 'true',

@@ -6,7 +6,7 @@ function securityHeaders(_req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'microphone=(), camera=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'microphone=(self), camera=(self), geolocation=()');
   next();
 }
 

@@ -40,6 +40,22 @@ function normArea(a) {
   return String(a || '').toLowerCase().trim().replace(/^w_/, '');
 }
 
+// Leitet aus einem Text einen dateinamentauglichen Slug ab (Kleinbuchstaben, Umlaute
+// transkribiert, Sonderzeichen raus, Leerzeichen zu Bindestrichen). Serverseitiges
+// Gegenstück zu slugifyForFilename() in public/index.html (dort fürs PNG-/draw.io-Export
+// von Diagrammen genutzt) - gleiche Logik, damit Download-Dateinamen app-weit einheitlich
+// aussehen statt generischer Namen wie "bild.png" oder des rohen Modus-Schlüssels.
+function slugifyForFilename(text, fallback) {
+  const slug = String(text || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/g, '');
+  return slug || fallback;
+}
+
 function htmlAttrEscape(s) {
   return String(s || '')
     .replace(/&/g, '&amp;')
@@ -72,5 +88,5 @@ function secondsUntilMidnightBerlin() {
 
 module.exports = {
   fetchWithTimeout, withRetry, parseFrontmatter, toTitle, normArea,
-  htmlAttrEscape, generatePassword, secondsUntilMidnightBerlin,
+  htmlAttrEscape, generatePassword, secondsUntilMidnightBerlin, slugifyForFilename,
 };

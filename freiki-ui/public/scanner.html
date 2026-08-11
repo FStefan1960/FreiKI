@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR/Barcode-Scanner</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hanken Grotesk', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 40px;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .header img { width: 48px; height: 48px; border-radius: 10px; }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1E3A8A;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .video-wrap {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0f172a;
+      aspect-ratio: 4 / 3;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .video-wrap.active { display: block; }
+
+    #preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .scan-frame {
+      position: absolute;
+      inset: 15% 20%;
+      border: 2.5px solid rgba(255,255,255,0.85);
+      border-radius: 12px;
+      box-shadow: 0 0 0 2000px rgba(15,23,42,0.35);
+      pointer-events: none;
+    }
+
+    .start-zone {
+      border: 2px dashed #bfdbfe;
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .start-zone.hidden { display: none; }
+
+    .start-icon { font-size: 36px; margin-bottom: 10px; }
+
+    .start-text {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .start-sub {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      margin-top: 10px;
+    }
+
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:hover:not(:disabled) { opacity: 0.9; }
+
+    .status {
+      display: none;
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .result-card {
+      display: none;
+      margin-bottom: 20px;
+      padding: 16px;
+      border-radius: 10px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+    }
+
+    .result-card.visible { display: block; }
+
+    .result-format {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #166534;
+      margin-bottom: 6px;
+    }
+
+    .result-text {
+      font-size: 15px;
+      color: #14532d;
+      word-break: break-word;
+      white-space: pre-wrap;
+      margin-bottom: 12px;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .result-actions button { width: auto; flex: 1; padding: 8px 12px; font-size: 13px; }
+
+    .result-actions .btn-link {
+      background: #dcfce7;
+      color: #166534;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .smart-action { margin-top: 14px; display: none; }
+    .smart-action.visible { display: block; }
+
+    .smart-loading {
+      font-size: 13px;
+      color: #6b7280;
+      padding: 4px 0;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: #1E3A8A;
+      color: #fff;
+      text-decoration: none;
+      border: none;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .action-btn:hover { opacity: 0.9; }
+
+    /* Eigene Farbe wie "Web-Recherche"/"Symbole" (#ea580c) - markiert im gesamten Styleguide
+       Aktionen, bei denen Daten die App verlassen (externe Website, externer API-Call). */
+    .action-btn-ext { background: #ea580c; }
+    .action-btn-ext:hover { background: #c2410c; opacity: 1; }
+
+    .external-warning {
+      font-size: 11px;
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .product-card {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 4px;
+    }
+    .product-img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      flex-shrink: 0;
+    }
+    .product-title { font-size: 13px; font-weight: 700; color: #1e293b; }
+    .product-brand { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .back-link {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(30,58,138,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+      width: auto;
+    }
+    .back-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(30,58,138,0.45);
+      color: #fff;
+    }
+    .embedded .back-link { display: none !important; }
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+
+<div class="card">
+  <div class="header">
+    <img src="/icons/app-mark.svg" alt="">
+    <div>
+      <h1>QR/Barcode-Scanner</h1>
+      <p>Code mit der Kamera scannen</p>
+    </div>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <div class="result-format" id="result-format"></div>
+    <div class="result-text" id="result-text"></div>
+    <div class="result-actions">
+      <button class="btn-secondary" id="copy-btn" type="button">📋 Kopieren</button>
+      <button class="btn-secondary" id="rescan-btn" type="button">🔄 Erneut scannen</button>
+    </div>
+    <div class="smart-action" id="smart-action"></div>
+  </div>
+
+  <div class="start-zone" id="start-zone">
+    <div class="start-icon">📷</div>
+    <div class="start-text">Kamera für Scan starten</div>
+    <div class="start-sub">QR-Codes, EAN, Code128 und weitere Barcode-Formate</div>
+  </div>
+
+  <div class="video-wrap" id="video-wrap">
+    <video id="preview" playsinline muted></video>
+    <div class="scan-frame"></div>
+  </div>
+
+  <button class="btn-primary" id="start-btn" type="button">Scan starten</button>
+  <button class="btn-secondary" id="stop-btn" type="button" style="display:none;">Scan beenden</button>
+
+  <div class="status" id="status"></div>
+
+  <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<script src="/vendor/zxing-browser.min.js"></script>
+<script>
+  // Auth-Guard wie bei den übrigen Werkzeug-Panels (whisper.html etc.) - Session-Cookie
+  // ist HttpOnly, daher entscheidet /api/me (Server-Rundruf) statt eines lokalen Tokens.
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) throw new Error('not logged in');
+    } catch (e) {
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
+    }
+  })();
+
+  const startZone = document.getElementById('start-zone');
+  const videoWrap = document.getElementById('video-wrap');
+  const preview = document.getElementById('preview');
+  const startBtn = document.getElementById('start-btn');
+  const stopBtn = document.getElementById('stop-btn');
+  const status = document.getElementById('status');
+  const resultCard = document.getElementById('result-card');
+  const resultFormat = document.getElementById('result-format');
+  const resultText = document.getElementById('result-text');
+  const copyBtn = document.getElementById('copy-btn');
+  const rescanBtn = document.getElementById('rescan-btn');
+  const smartAction = document.getElementById('smart-action');
+
+  let reader = null;
+  let controls = null;
+
+  // ZXing liefert BarcodeFormat als numerischen Enum-Wert (z.B. 7 für EAN_13), nicht als
+  // String - Reihenfolge exakt wie in @zxing/library's BarcodeFormat-Enum deklariert.
+  const BARCODE_FORMAT_NAMES = [
+    'AZTEC', 'CODABAR', 'CODE_39', 'CODE_93', 'CODE_128', 'DATA_MATRIX', 'EAN_8', 'EAN_13',
+    'ITF', 'MAXICODE', 'PDF_417', 'QR_CODE', 'RSS_14', 'RSS_EXPANDED', 'UPC_A', 'UPC_E',
+    'UPC_EAN_EXTENSION', 'MICRO_QR_CODE',
+  ];
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // WIFI:T:WPA;S:Netzname;P:passwort;H:true;; - Reihenfolge der Felder ist laut Spezifikation
+  // nicht garantiert, Escaping von ; , : \ per Backslash. Regex holt Key:Value-Paare unabhängig
+  // von ihrer Position im String.
+  function parseWifi(text) {
+    const body = text.replace(/^WIFI:/i, '');
+    const out = {};
+    const re = /([TSPH]):((?:\\.|[^\\;])*);/g;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+      const val = m[2].replace(/\\(.)/g, '$1');
+      if (m[1] === 'T') out.type = val;
+      if (m[1] === 'S') out.ssid = val;
+      if (m[1] === 'P') out.password = val;
+      if (m[1] === 'H') out.hidden = val === 'true';
+    }
+    return out;
+  }
+
+  function showStatus(msg) {
+    status.className = 'status error';
+    status.textContent = msg;
+  }
+  function clearStatus() {
+    status.className = 'status';
+    status.textContent = '';
+  }
+
+  async function startScan() {
+    clearStatus();
+    resultCard.classList.remove('visible');
+    smartAction.classList.remove('visible');
+    smartAction.innerHTML = '';
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showStatus('Kamerazugriff wird von diesem Browser nicht unterstützt.');
+      return;
+    }
+
+    startBtn.disabled = true;
+    startBtn.textContent = 'Kamera wird gestartet…';
+
+    try {
+      reader = new ZXingBrowser.BrowserMultiFormatReader();
+      // deviceId=undefined lässt ZXing selbst wählen - bevorzugt die rückseitige
+      // (environment-facing) Kamera auf Mobilgeräten, kein manuelles facingMode-Handling nötig.
+      controls = await reader.decodeFromVideoDevice(undefined, preview, (result, err) => {
+        // NotFoundException feuert bei jedem Frame ohne erkannten Code - erwartetes Rauschen,
+        // kein echter Fehler, deshalb hier stumm ignoriert.
+        if (result) onDecoded(result);
+      });
+
+      startZone.classList.add('hidden');
+      videoWrap.classList.add('active');
+      startBtn.style.display = 'none';
+      stopBtn.style.display = '';
+    } catch (e) {
+      showStatus(
+        e && e.name === 'NotAllowedError'
+          ? 'Kamerazugriff wurde verweigert. Bitte in den Browser-Einstellungen erlauben.'
+          : 'Kamera konnte nicht gestartet werden: ' + (e && e.message ? e.message : e)
+      );
+    } finally {
+      startBtn.disabled = false;
+      startBtn.textContent = 'Scan starten';
+    }
+  }
+
+  function stopScan() {
+    if (controls) { controls.stop(); controls = null; }
+    startZone.classList.remove('hidden');
+    videoWrap.classList.remove('active');
+    startBtn.style.display = '';
+    stopBtn.style.display = 'none';
+  }
+
+  function onDecoded(result) {
+    if (controls) { controls.stop(); controls = null; }
+    videoWrap.classList.remove('active');
+    stopBtn.style.display = 'none';
+
+    const formatIdx = result.getBarcodeFormat ? result.getBarcodeFormat() : -1;
+    const formatName = BARCODE_FORMAT_NAMES[formatIdx] || 'Unbekannt';
+    const text = result.getText();
+
+    resultFormat.textContent = formatName.replace(/_/g, ' ');
+    resultText.textContent = text;
+    resultCard.classList.add('visible');
+
+    analyzeCode(text, formatName);
+  }
+
+  // Fragt das lokale LLM, welche Folgeaktionen zum gescannten Inhalt passen (Link öffnen,
+  // Produktsuche, ...). Das Modell schlägt nur Aktions-Typen aus einem festen Vokabular vor
+  // (serverseitig zusätzlich gefiltert) - die eigentliche Ausführung übernimmt fest
+  // verdrahteter Code hier im Frontend, nie das Modell selbst.
+  async function analyzeCode(text, formatName) {
+    smartAction.classList.add('visible');
+    smartAction.innerHTML = '<div class="smart-loading">🔍 Prüfe mögliche Aktionen…</div>';
+
+    let actions = [];
+    try {
+      const r = await fetch('/api/scanner/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, format: formatName }),
+      });
+      const data = await r.json();
+      actions = Array.isArray(data.actions) ? data.actions : [];
+    } catch (e) {
+      // Stiller Fallback: ohne Vorschläge bleibt einfach nur der reine Text stehen (oben
+      // bereits angezeigt) - kein Blocker für den eigentlichen Scan-Erfolg.
+    }
+
+    if (!actions.length) {
+      smartAction.classList.remove('visible');
+      smartAction.innerHTML = '';
+      return;
+    }
+    renderActions(actions, text, formatName);
+  }
+
+  function renderActions(actions, text, formatName) {
+    smartAction.innerHTML = '';
+
+    actions.forEach(action => {
+      if (action.type === 'open_url' && /^https?:\/\//i.test(text.trim())) {
+        const a = document.createElement('a');
+        a.className = 'action-btn action-btn-ext';
+        a.href = text.trim();
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = '🔗 ' + (action.label || 'Link öffnen');
+        smartAction.appendChild(a);
+
+        const warn = document.createElement('div');
+        warn.className = 'external-warning';
+        warn.textContent = '⚠️ Öffnet eine externe Website in einem neuen Tab – der Inhalt wird nicht von uns geprüft.';
+        smartAction.appendChild(warn);
+      }
+
+      if (action.type === 'ean_lookup' && /^\d{6,14}$/.test(text.trim())) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'action-btn action-btn-ext';
+        btn.textContent = '🛒 ' + (action.label || 'Produktinfo abrufen');
+        btn.addEventListener('click', () => lookupProduct(text.trim(), btn));
+        smartAction.appendChild(btn);
+      }
+
+      // Sammelbecken für Codes ohne eigene freie Lookup-API (PZN/Pharmazentralnummer,
+      // ITF-Artikelnummern wie bei IKEA, Code 39 allgemein, ...) - anders als bei EAN/UPC
+      // (Open Food Facts) gibt es dafür keine einzelne verlässliche offene Datenbank, daher
+      // generische SearXNG-Suche statt eines strukturierten Produkt-Lookups.
+      if (action.type === 'web_lookup' && !/^https?:\/\//i.test(text.trim()) && !/^(BEGIN:VCARD|mailto:|WIFI:)/i.test(text.trim())) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'action-btn action-btn-ext';
+        btn.textContent = '🔍 ' + (action.label || 'Code online nachschlagen');
+        btn.addEventListener('click', () => runSearch(
+          '/api/barcode/websearch?' + new URLSearchParams({ code: text.trim(), format: formatName || '' }),
+          btn, 'Keine Treffer gefunden.'
+        ));
+        smartAction.appendChild(btn);
+      }
+
+      if (action.type === 'save_contact' && /^BEGIN:VCARD/i.test(text.trim())) {
+        // Kein Browser-API für "in Kontakte speichern" - der Umweg über einen .vcf-Download
+        // ist der Standardweg, das Betriebssystem übernimmt danach den eigentlichen Import.
+        const blob = new Blob([text], { type: 'text/vcard' });
+        const a = document.createElement('a');
+        a.className = 'action-btn';
+        a.href = URL.createObjectURL(blob);
+        a.download = 'kontakt.vcf';
+        a.textContent = '📇 ' + (action.label || 'Kontakt speichern');
+        smartAction.appendChild(a);
+      }
+
+      if (action.type === 'send_email' && /^mailto:/i.test(text.trim())) {
+        const a = document.createElement('a');
+        a.className = 'action-btn';
+        a.href = text.trim();
+        // target="_blank" ist hier kein "neuer Tab für Web-Inhalt" wie beim open_url-Fall,
+        // sondern nötig, damit der Browser den mailto:-Klick als externen Protokoll-Handler
+        // behandelt statt zu versuchen, den eingebetteten iframe selbst dorthin zu navigieren
+        // (dort verpufft der Klick sonst wirkungslos).
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = '✉️ ' + (action.label || 'E-Mail senden');
+        smartAction.appendChild(a);
+
+        const note = document.createElement('div');
+        note.className = 'smart-loading';
+        note.textContent = 'Öffnet dein E-Mail-Programm.';
+        smartAction.appendChild(note);
+      }
+
+      if (action.type === 'wifi_info' && /^WIFI:/i.test(text.trim())) {
+        const wifi = parseWifi(text.trim());
+        if (wifi.ssid) {
+          const box = document.createElement('div');
+          box.className = 'product-card';
+          box.innerHTML = `
+            <div>
+              <div class="product-title">📶 ${escapeHtml(wifi.ssid)}</div>
+              ${wifi.password ? `<div class="product-brand">Passwort: <code>${escapeHtml(wifi.password)}</code></div>` : '<div class="product-brand">Kein Passwort (offenes Netz)</div>'}
+            </div>`;
+          smartAction.appendChild(box);
+
+          if (wifi.password) {
+            const copyWifiBtn = document.createElement('button');
+            copyWifiBtn.type = 'button';
+            copyWifiBtn.className = 'btn-secondary';
+            copyWifiBtn.style.marginTop = '8px';
+            copyWifiBtn.textContent = '📋 ' + (action.label || 'Passwort kopieren');
+            copyWifiBtn.addEventListener('click', async () => {
+              try {
+                await navigator.clipboard.writeText(wifi.password);
+                const orig = copyWifiBtn.textContent;
+                copyWifiBtn.textContent = '✅ Kopiert';
+                setTimeout(() => { copyWifiBtn.textContent = orig; }, 1500);
+              } catch (e) { /* Zwischenablage nicht verfügbar - Passwort steht ja bereits sichtbar da */ }
+            });
+            smartAction.appendChild(copyWifiBtn);
+          }
+
+          const note = document.createElement('div');
+          note.className = 'smart-loading';
+          note.textContent = 'Automatisches Verbinden ist im Browser nicht möglich – bitte manuell in den WLAN-Einstellungen eintragen.';
+          smartAction.appendChild(note);
+        }
+      }
+    });
+  }
+
+  async function lookupProduct(code, triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = '🔍 Suche läuft…';
+
+    const resultBox = document.createElement('div');
+    smartAction.appendChild(resultBox);
+
+    try {
+      const r = await fetch('/api/barcode/product?code=' + encodeURIComponent(code));
+      const data = await r.json();
+      if (!data.found) {
+        resultBox.innerHTML = '<div class="smart-loading">Kein Produkt zu diesem Code gefunden.</div>';
+      } else {
+        resultBox.innerHTML = `
+          <div class="product-card">
+            ${data.image ? `<img class="product-img" src="${escapeHtml(data.image)}" alt="">` : ''}
+            <div>
+              <div class="product-title">${escapeHtml(data.title || 'Unbekanntes Produkt')}</div>
+              ${data.brand ? `<div class="product-brand">${escapeHtml(data.brand)}</div>` : ''}
+              ${data.quantity ? `<div class="product-brand">${escapeHtml(data.quantity)}</div>` : ''}
+            </div>
+          </div>`;
+
+        if (data.title) {
+          const manualBtn = document.createElement('button');
+          manualBtn.type = 'button';
+          manualBtn.className = 'action-btn action-btn-ext';
+          manualBtn.style.marginTop = '8px';
+          manualBtn.textContent = '📄 Bedienungsanleitung suchen';
+          manualBtn.addEventListener('click', () => runSearch(
+            '/api/barcode/manual?' + new URLSearchParams({ title: data.title, brand: data.brand || '' }),
+            manualBtn, 'Keine Anleitung gefunden.'
+          ));
+          resultBox.appendChild(manualBtn);
+        }
+      }
+    } catch (e) {
+      resultBox.innerHTML = '<div class="smart-loading">Produktsuche fehlgeschlagen.</div>';
+    } finally {
+      triggerBtn.remove();
+    }
+  }
+
+  // Gemeinsame Ausführung für alle "Ergebnisliste per SearXNG"-Buttons (Bedienungsanleitung,
+  // generische Web-Suche) - unterscheiden sich nur im aufgerufenen Endpunkt und der
+  // Leer-Meldung, das Rendering der externen Trefferliste ist identisch.
+  async function runSearch(url, triggerBtn, emptyMessage) {
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = '🔍 Suche läuft…';
+
+    const resultBox = document.createElement('div');
+    smartAction.appendChild(resultBox);
+
+    try {
+      const r = await fetch(url);
+      const data = await r.json();
+      const results = Array.isArray(data.results) ? data.results : [];
+
+      if (!results.length) {
+        resultBox.innerHTML = `<div class="smart-loading">${escapeHtml(emptyMessage)}</div>`;
+      } else {
+        const warn = document.createElement('div');
+        warn.className = 'external-warning';
+        warn.textContent = '⚠️ Ergebnisse führen zu externen Websites – Inhalt wird nicht von uns geprüft.';
+        resultBox.appendChild(warn);
+
+        results.forEach(res => {
+          const a = document.createElement('a');
+          a.className = 'action-btn action-btn-ext';
+          a.style.marginBottom = '6px';
+          a.href = res.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = '🔗 ' + res.title;
+          resultBox.appendChild(a);
+        });
+      }
+    } catch (e) {
+      resultBox.innerHTML = '<div class="smart-loading">Suche fehlgeschlagen.</div>';
+    } finally {
+      triggerBtn.remove();
+    }
+  }
+
+  startBtn.addEventListener('click', startScan);
+  stopBtn.addEventListener('click', stopScan);
+  rescanBtn.addEventListener('click', () => {
+    resultCard.classList.remove('visible');
+    startZone.classList.remove('hidden');
+    startScan();
+  });
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(resultText.textContent);
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = '✅ Kopiert';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    } catch (e) { showStatus('Kopieren nicht möglich: ' + e.message); }
+  });
+
+  window.addEventListener('beforeunload', () => { if (controls) controls.stop(); });
+</script>
+
+</body>
+</html>

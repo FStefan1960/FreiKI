@@ -1,9 +1,9 @@
 const express = require('express');
 const fs = require('fs');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
-const { uploadAudio } = require('../../../infrastructure/storage/FileStorage');
+const { uploadAudio, uploadDictation } = require('../../../infrastructure/storage/FileStorage');
 const users = require('../../../core/auth/UserRepository');
-const { transcribeAndEmail } = require('../../../core/speech/TranscriptionService');
+const { transcribeAndEmail, transcribeAudio } = require('../../../core/speech/TranscriptionService');
 const TTSService = require('../../../core/speech/TTSService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
@@ -31,6 +31,28 @@ router.post('/api/transcribe', uploadAudio.single('audio'), asyncHandler(async (
   res.json({ ok: true, message: 'Datei empfangen. Das Transkript wird per E-Mail gesendet.' });
 
   transcribeAndEmail(file, email); // fire-and-forget
+}));
+
+// Kurzes Diktat aus dem Mic-Button in der Eingabezeile - anders als /api/transcribe synchron
+// und ohne E-Mail-Versand: Antwort geht direkt zurück, landet im Eingabefeld zum Nachbessern.
+// Bewusst OHNE formatTranscript()-Durchlauf (LLM-Absatzformatierung) - bei kurzen Diktaten
+// unnötige Zusatzlatenz, der Rohtext ist eh sofort editierbar bevor er gesendet wird.
+router.post('/api/dictate', uploadDictation.single('audio'), asyncHandler(async (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'Keine Audiodaten' });
+
+  const s = getSession(req);
+  if (!s) { fs.unlink(file.path, () => {}); return res.status(401).json({ error: 'Bitte neu anmelden.' }); }
+
+  try {
+    const text = await transcribeAudio(file.path);
+    res.json({ text });
+  } catch (e) {
+    console.error('Diktat-Transkription Fehler:', e.message);
+    res.status(502).json({ error: 'Spracherkennung nicht verfügbar' });
+  } finally {
+    fs.unlink(file.path, () => {});
+  }
 }));
 
 router.post('/api/tts', asyncHandler(async (req, res) => {

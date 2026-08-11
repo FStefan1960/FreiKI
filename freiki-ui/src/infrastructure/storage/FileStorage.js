@@ -31,6 +31,19 @@ const uploadAudio = multer({
   }
 });
 
+// Für kurzes Chat-Diktat (Mic-Button in der Eingabezeile) - anders als uploadAudio bewusst
+// klein limitiert (kurze Aufnahmen von Sekunden bis wenigen Minuten) und mimetype-tolerant,
+// weil Browser/Betriebssystem beim MediaRecorder unterschiedliche Codecs liefern (Chrome/
+// Android meist audio/webm, iOS Safari meist audio/mp4).
+const uploadDictation = multer({
+  dest: '/tmp/uploads/',
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('audio/')) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp für Diktat.'), false);
+  }
+});
+
 // Für Wissensdatenbank-Uploads (KB-Ingest)
 const uploadKB = multer({
   dest: '/tmp/kb_uploads/',
@@ -69,4 +82,4 @@ function startUploadCleanupSchedule() {
   setInterval(cleanupUploads, 6 * 60 * 60 * 1000);
 }
 
-module.exports = { upload, uploadAudio, uploadKB, uploadFormScan, cleanupUploads, startUploadCleanupSchedule };
+module.exports = { upload, uploadAudio, uploadDictation, uploadKB, uploadFormScan, cleanupUploads, startUploadCleanupSchedule };

@@ -17,4 +17,19 @@ async function webSearch(query) {
   }
 }
 
-module.exports = { webSearch };
+// Wie webSearch(), aber als strukturierte Titel/URL-Paare statt vorformatiertem LLM-Kontext-
+// Text - für Stellen, die die Trefferliste selbst rendern (z.B. Scanner-Manual-Suche), statt
+// sie an ein Sprachmodell weiterzureichen.
+async function searchLinks(query, limit = 4) {
+  try {
+    const url = `${config.SEARXNG_URL}/search?q=${encodeURIComponent(query)}&format=json&language=de`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.results || []).slice(0, limit).map(r => ({ title: r.title, url: r.url }));
+  } catch (e) {
+    console.error('SearXNG Fehler:', e.message);
+    return [];
+  }
+}
+
+module.exports = { webSearch, searchLinks };

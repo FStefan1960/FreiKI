@@ -41,14 +41,14 @@ async function formatTranscript(transcript) {
   return transcript;
 }
 
-// Läuft asynchron im Hintergrund (fire-and-forget vom Route-Handler aus aufgerufen):
-// konvertiert Audio, transkribiert per Whisper, formatiert per vLLM, verschickt per Mail.
-async function transcribeAndEmail(file, email) {
-  const wavPath = file.path + '.wav';
+// Konvertiert eine Audiodatei zu 16kHz-Mono-WAV und transkribiert sie per Whisper. Wirft bei
+// Fehlern (kein try/catch) - Aufrufer entscheiden selbst, wie sie damit umgehen (E-Mail-Fehler-
+// Benachrichtigung vs. HTTP-Fehlerantwort). Geteilt zwischen der E-Mail-Transkription (lange
+// Dateien) und dem kurzen Chat-Diktat, damit die Whisper-Anbindung nicht doppelt existiert.
+async function transcribeAudio(filePath) {
+  const wavPath = filePath + '.wav';
   try {
-    console.log(`Transkription gestartet: ${file.originalname}`);
-
-    await execFileAsync('ffmpeg', ['-y', '-i', file.path, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', wavPath]);
+    await execFileAsync('ffmpeg', ['-y', '-i', filePath, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', wavPath]);
 
     const form = new FormData();
     form.append('audio_file', fs.createReadStream(wavPath), { filename: 'audio.wav', contentType: 'audio/wav' });
@@ -57,7 +57,7 @@ async function transcribeAndEmail(file, email) {
       method: 'POST',
       body: form,
       headers: form.getHeaders(),
-      timeout: 7200000 // 2 Stunden
+      timeout: 7200000 // 2 Stunden - deckt auch lange Datei-Uploads ab, kurze Diktate sind ohnehin in Sekunden fertig
     });
     if (!whisperRes.ok) {
       const errBody = await whisperRes.text();
@@ -65,9 +65,21 @@ async function transcribeAndEmail(file, email) {
     }
 
     const whisperJson = await whisperRes.json();
-    console.log(`Whisper Antwort: ${whisperJson.text?.length ?? 0} Zeichen`);
     const transcript = (whisperJson.text || '').trim();
     if (!transcript) throw new Error('Whisper hat kein Transkript zurückgegeben (leeres Ergebnis)');
+    return transcript;
+  } finally {
+    fs.unlink(wavPath, () => {});
+  }
+}
+
+// Läuft asynchron im Hintergrund (fire-and-forget vom Route-Handler aus aufgerufen):
+// konvertiert Audio, transkribiert per Whisper, formatiert per vLLM, verschickt per Mail.
+async function transcribeAndEmail(file, email) {
+  try {
+    console.log(`Transkription gestartet: ${file.originalname}`);
+    const transcript = await transcribeAudio(file.path);
+    console.log(`Whisper Antwort: ${transcript.length} Zeichen`);
 
     console.log('Formatiere Transkript mit vLLM...');
     const formatted = await formatTranscript(transcript);
@@ -83,8 +95,7 @@ async function transcribeAndEmail(file, email) {
     }
   } finally {
     fs.unlink(file.path, () => {});
-    fs.unlink(wavPath, () => {});
   }
 }
 
-module.exports = { transcribeAndEmail };
+module.exports = { transcribeAndEmail, transcribeAudio };

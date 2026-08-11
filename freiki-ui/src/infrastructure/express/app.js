@@ -40,6 +40,7 @@ app.use(require('./routes/speechRoutes'));
 app.use(require('./routes/paperlessRoutes'));
 app.use(require('./routes/oidcRoutes'));
 app.use(require('./routes/extrasRoutes'));
+app.use(require('./routes/scannerRoutes'));
 app.use(require('./routes/healthRoutes'));
 
 app.use(errorHandler);
