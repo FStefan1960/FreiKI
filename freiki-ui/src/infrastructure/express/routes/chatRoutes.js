@@ -61,12 +61,15 @@ router.get('/api/modes', asyncHandler(async (req, res) => {
     .filter(m => !m.hidden)
     .filter(m => !m.paperless || hasPaperless);
 
+  const lang = prompts.UI_LANGS.includes(req.query.lang) ? req.query.lang : 'de';
+  const localize = (list) => list.map(m => prompts.localizeMode(m, lang));
+
   // 'default'-, 'high_risk'- und 'manager'-Nutzer mit gesetzten use-Bereichen werden eingeschränkt.
   if (session && (session.role === 'default' || session.role === 'high_risk' || session.role === 'manager') && liveUse.length) {
     const allowed = userAreas;
-    return res.json(visible.filter(m => !prompts.isWissenMode(m) || allowed.includes(normArea(m.key))));
+    return res.json(localize(visible.filter(m => !prompts.isWissenMode(m) || allowed.includes(normArea(m.key)))));
   }
-  res.json(visible);
+  res.json(localize(visible));
 }));
 
 router.post('/api/feedback', asyncHandler(async (req, res) => {

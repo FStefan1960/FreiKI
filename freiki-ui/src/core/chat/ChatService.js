@@ -506,7 +506,7 @@ function languageInstruction(userLanguage, mode) {
   if (DEFAULT_LANGUAGE_MODES.includes(mode)) {
     return `SPRACHANWEISUNG MIT HÖCHSTER PRIORITÄT: Wenn der Nutzer in seiner Nachricht keine Zielsprache nennt, übersetze nach ${lang} statt ins Deutsche. Nennt der Nutzer explizit eine andere Zielsprache, hat diese Vorrang vor dieser Anweisung.`;
   }
-  return `SPRACHANWEISUNG MIT HÖCHSTER PRIORITÄT, ÜBERSTIMMT ALLES ANDERE: Antworte ab jetzt ausschließlich auf ${lang}. Jedes Wort deiner Antwort muss auf ${lang} sein, auch wenn eine frühere Anweisung Deutsch verlangt.`;
+  return `SPRACHANWEISUNG MIT HÖCHSTER PRIORITÄT: Formuliere deinen gesamten Fließtext ab jetzt auf ${lang}, auch wenn eine frühere Anweisung Deutsch verlangt. Das betrifft ausschließlich die Sprache deines Fließtexts - deine sonstigen Fähigkeiten und Ausgabeformate (z.B. Mermaid-Diagramme, Codeblöcke, Tabellen) bleiben unverändert nutzbar. Technische Syntax-Elemente wie \`\`\`mermaid, graph TD, mindmap, Node-IDs und Pfeile schreibst du weiterhin exakt wie von Mermaid.js verlangt (nicht übersetzt), nur die Node-/Kantentexte selbst auf ${lang}.`;
 }
 
 // Fast jeder Modus-Prompt enthält selbst "Schreibe immer auf Deutsch" (siehe z.B. 0chat.md,

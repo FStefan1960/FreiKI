@@ -15,6 +15,17 @@
   src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+/* Hanken Grotesk hat kein eigenes Cyrillic-Subset - Manrope (visuell verwandter Grotesk-Schnitt)
+   liefert die russischen Glyphen unter demselben Font-Namen, damit UI-Sprache "ru" ohne
+   Font-Bruch in den restlichen Systemfont faellt. */
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/fonts/manrope-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
 
 :root {
   /* Brand */
@@ -201,7 +212,7 @@ body {
   gap: 10px;
 }
 
-.login-form input {
+.login-form input, .login-form select {
   width: 100%;
   padding: 11px 14px;
   border: 1px solid var(--fk-border-strong);
@@ -213,7 +224,8 @@ body {
   color: var(--fk-ink);
   transition: border-color 0.2s;
 }
-.login-form input:focus { border-color: var(--fk-primary); }
+.login-form input:focus, .login-form select:focus { border-color: var(--fk-primary); }
+.login-form select { cursor: pointer; }
 
 .login-btn {
   width: 100%;
