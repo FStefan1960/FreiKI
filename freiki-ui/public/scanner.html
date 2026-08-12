@@ -485,6 +485,11 @@
 
   const EAN_FORMATS = new Set(['EAN_8', 'EAN_13', 'UPC_A', 'UPC_E']);
   const OTHER_PRODUCT_FORMATS = new Set(['CODE_39', 'CODE_93', 'CODE_128', 'ITF', 'CODABAR']);
+  // Eigenes Präfix für intern aufgeklebte Codes (z.B. Bedienungsanleitungen, Pflegehinweise),
+  // die auf ein Paperless-Dokument dieser Instanz verweisen - kollidiert nicht mit EAN/Code39/
+  // etc., da diese rein numerisch sind, und ist bewusst instanzunabhängig gehalten (identischer
+  // Code auf FreiKI/KorKI/FrankKI), damit ein Aufkleber nicht den Namen einer fremden Instanz trägt.
+  const APPDOC_RE = /^APPDOC:(\d+)$/i;
 
   // Erkennt Aktionen direkt aus Inhalt/Format, unabhängig vom LLM - deckt die Fälle ab, bei
   // denen das Format selbst schon eindeutig ist (z.B. EAN-Barcode-Formate, http(s)-URL).
@@ -496,10 +501,12 @@
   function deriveDeterministicActions(text, formatName) {
     const t = text.trim();
     const actions = [];
+    const appdocMatch = t.match(APPDOC_RE);
     if (/^https?:\/\//i.test(t)) actions.push({ type: 'open_url' });
     else if (/^BEGIN:VCARD/i.test(t)) actions.push({ type: 'save_contact' });
     else if (/^mailto:/i.test(t)) actions.push({ type: 'send_email' });
     else if (/^WIFI:/i.test(t)) actions.push({ type: 'wifi_info' });
+    else if (appdocMatch) actions.push({ type: 'paperless_doc', id: appdocMatch[1] });
     else if (EAN_FORMATS.has(formatName) && /^-?\d{6,14}$/.test(t)) actions.push({ type: 'ean_lookup' });
     else if (OTHER_PRODUCT_FORMATS.has(formatName) && /^-?\d{4,14}$/.test(t)) actions.push({ type: 'web_lookup' });
     return actions;
@@ -657,7 +664,61 @@
           smartAction.appendChild(note);
         }
       }
+
+      if (action.type === 'paperless_doc' && action.id) {
+        // Plain .action-btn statt -ext: das Dokument bleibt innerhalb der App, es wird nur der
+        // schon bestehende, sessionbasierte Paperless-Zugriff (hasPaperlessAccess) verwendet -
+        // keine Daten verlassen die App.
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'action-btn';
+        btn.textContent = '📄 ' + (action.label || 'Dokument öffnen');
+        btn.addEventListener('click', () => openPaperlessDoc(action.id, btn));
+        smartAction.appendChild(btn);
+      }
     });
+  }
+
+  // APPDOC:<id>-Codes verweisen auf ein Paperless-Dokument dieser Instanz. Zugriff läuft über
+  // dieselbe sessionbasierte Berechtigungsprüfung wie der reguläre Paperless-Suchmodus in
+  // index.html (Route /api/paperless/document/:id prüft hasPaperlessAccess selbst) - kein
+  // separater Auth-Weg für gescannte Codes.
+  async function openPaperlessDoc(id, triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = '🔍 Lade Dokument…';
+
+    const resultBox = document.createElement('div');
+    smartAction.appendChild(resultBox);
+
+    try {
+      const r = await fetch(`/api/paperless/document/${id}`);
+      if (r.status === 403) {
+        resultBox.innerHTML = '<div class="smart-loading">Kein Zugriff auf das Archiv.</div>';
+      } else if (!r.ok) {
+        resultBox.innerHTML = '<div class="smart-loading">Dokument nicht gefunden.</div>';
+      } else {
+        const d = await r.json();
+        resultBox.innerHTML = `
+          <div class="product-card">
+            <div>
+              <div class="product-title">📄 ${escapeHtml(d.title || 'Dokument')}</div>
+              ${d.document_type ? `<div class="product-brand">${escapeHtml(d.document_type)}</div>` : ''}
+            </div>
+          </div>`;
+        const openLink = document.createElement('a');
+        openLink.className = 'action-btn';
+        openLink.style.marginTop = '8px';
+        openLink.href = `/api/paperless/download/${id}`;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.textContent = '📖 Öffnen';
+        resultBox.appendChild(openLink);
+      }
+    } catch (e) {
+      resultBox.innerHTML = '<div class="smart-loading">Dokument konnte nicht geladen werden.</div>';
+    } finally {
+      triggerBtn.remove();
+    }
   }
 
   async function lookupProduct(code, triggerBtn) {

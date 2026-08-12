@@ -1,8 +1,39 @@
 const fetch = require('node-fetch');
 const { config } = require('../../shared/config');
+const kbAreas = require('../knowledge/KBAreaRepository');
 
 function authHeader() {
   return { 'Authorization': `Token ${config.PAPERLESS_TOKEN}` };
+}
+
+let tagNameByIdCache = null;
+let tagNameByIdCacheAt = 0;
+const TAG_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getTagNameById() {
+  if (tagNameByIdCache && Date.now() - tagNameByIdCacheAt < TAG_CACHE_TTL_MS) return tagNameByIdCache;
+  const res = await fetch(`${config.PAPERLESS_INTERNAL_URL}/api/tags/?page_size=200`, { headers: authHeader() });
+  const data = await res.json();
+  tagNameByIdCache = new Map((data.results || []).map(t => [t.id, t.name]));
+  tagNameByIdCacheAt = Date.now();
+  return tagNameByIdCache;
+}
+
+// Ein Dokument gehört zu einem Bereich, wenn es einen Paperless-Tag trägt, der (mit oder ohne
+// "bereich-"-Präfix) auf einen echten Bereichs-Key aus areas.json passt - deckt beide auf den
+// Instanzen beobachteten Konventionen ab: FreiKI taggt "bereich-maerchen" (Präfix-Form), KorKI
+// taggt die Bereiche direkt beim Klarnamen (z.B. "klinik", "kita"), ohne Präfix.
+async function getDocumentBereiche(tagIds, tagNameById) {
+  const map = tagNameById || await getTagNameById();
+  const knownAreaKeys = Object.keys(kbAreas.KB_TABLES);
+  const areas = new Set();
+  for (const id of (tagIds || [])) {
+    const name = (map.get(id) || '').toLowerCase().trim();
+    if (!name) continue;
+    const stripped = name.startsWith('bereich-') ? name.slice('bereich-'.length) : name;
+    if (knownAreaKeys.includes(stripped)) areas.add(stripped);
+  }
+  return [...areas];
 }
 
 async function getMeta() {
@@ -32,21 +63,32 @@ async function getDocument(id) {
     created:       d.created_date || d.created || '',
     correspondent: d.correspondent_name || null,
     document_type: d.document_type_name || null,
+    bereiche:      await getDocumentBereiche(d.tags),
   };
 }
 
-// Gibt { ok, status, contentType, filename, body } zurück; body ist der node-fetch Response-Stream.
+// Gibt { ok, status, contentType, filename, body, bereiche } zurück; body ist der node-fetch
+// Response-Stream. bereiche wird aus der Metadaten-Abfrage mitgeliefert, die für filename ohnehin
+// schon nötig ist - die Route prüft damit den Zugriff, BEVOR die eigentliche Datei angefragt wird.
 async function downloadDocument(id) {
   const metaRes = await fetch(`${config.PAPERLESS_INTERNAL_URL}/api/documents/${id}/`, { headers: authHeader() });
   if (!metaRes.ok) return { ok: false, status: 404 };
   const meta = await metaRes.json();
-  const dlRes = await fetch(`${config.PAPERLESS_INTERNAL_URL}/api/documents/${id}/download/`, { headers: authHeader() });
-  if (!dlRes.ok) return { ok: false, status: dlRes.status };
   return {
     ok: true,
-    contentType: dlRes.headers.get('content-type') || 'application/pdf',
-    filename: (meta.title || `dokument-${id}`) + '.pdf',
-    body: dlRes.body,
+    meta: { title: meta.title, bereiche: await getDocumentBereiche(meta.tags) },
+    // Lädt die eigentliche Datei erst bei Bedarf - erlaubt der Route, vorher den Bereichs-
+    // Zugriff zu prüfen, ohne unnötig das PDF vom Paperless-Server zu ziehen.
+    fetchBody: async () => {
+      const dlRes = await fetch(`${config.PAPERLESS_INTERNAL_URL}/api/documents/${id}/download/`, { headers: authHeader() });
+      if (!dlRes.ok) return { ok: false, status: dlRes.status };
+      return {
+        ok: true,
+        contentType: dlRes.headers.get('content-type') || 'application/pdf',
+        filename: (meta.title || `dokument-${id}`) + '.pdf',
+        body: dlRes.body,
+      };
+    },
   };
 }
 
@@ -64,14 +106,16 @@ async function searchDocuments({ tag_ids, correspondent_id, document_type_id, cr
   }
   const plRes = await fetch(`${config.PAPERLESS_INTERNAL_URL}/api/documents/?${params}`, { headers: authHeader() });
   const plData = await plRes.json();
-  const docs = (plData.results || []).map(d => ({
+  const tagNameById = await getTagNameById();
+  const docs = await Promise.all((plData.results || []).map(async d => ({
     id:            d.id,
     title:         d.title,
     created:       d.created_date || d.created || '',
     correspondent: d.correspondent_name || null,
     document_type: d.document_type_name || null,
     url:           `/api/paperless/download/${d.id}`,
-  }));
+    bereiche:      await getDocumentBereiche(d.tags, tagNameById),
+  })));
   return { count: plData.count || docs.length, docs };
 }
 
