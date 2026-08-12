@@ -4,9 +4,17 @@ const { config } = require('../../shared/config');
 // Zusaetzliche Stimme neben dem Default (config.TTS_MODEL/TTS_VOICE) -- Kerstin
 // gibt es bei Piper nur in "low"-Qualitaet (kein medium/high), klanglich also
 // hörbar simpler als die Thorsten-Stimme, aber vom Nutzer bewusst gewuenscht.
+// Je eine Stimme für EN/FR/ES/RU (UI-Sprachen aus dem i18n-Rollout) - anders als bei
+// Deutsch bewusst nur eine Stimme pro Sprache, nicht m/w. Durchgehend "low"-Qualität
+// gewählt (wie Kerstin) für kurze Antwortzeit; für Russisch gibt es bei Piper keine
+// low-Stufe, daher dort "medium" als einzige verfügbare Option.
 const VOICE_MAP = {
   thorsten: { model: config.TTS_MODEL, voice: config.TTS_VOICE },
   kerstin: { model: 'speaches-ai/piper-de_DE-kerstin-low', voice: 'kerstin' },
+  en: { model: 'speaches-ai/piper-en_US-amy-low', voice: 'amy' },
+  fr: { model: 'speaches-ai/piper-fr_FR-siwis-low', voice: 'siwis' },
+  es: { model: 'speaches-ai/piper-es_ES-carlfm-x_low', voice: 'carlfm' },
+  ru: { model: 'speaches-ai/piper-ru_RU-irina-medium', voice: 'irina' },
 };
 
 function sanitizeForSpeech(text) {
@@ -46,4 +54,4 @@ async function synthesize(text, voiceKey) {
   }
 }
 
-module.exports = { synthesize, sanitizeForSpeech };
+module.exports = { synthesize, sanitizeForSpeech, VOICE_KEYS: Object.keys(VOICE_MAP) };

@@ -195,5 +195,6 @@
   "admin.sending": "Отправка…",
   "admin.sent_check": "✓ отправлено",
   "admin.error_x": "✗ Ошибка",
-  "admin.report_send_failed": "Ошибка при отправке дневного отчёта"
+  "admin.report_send_failed": "Ошибка при отправке дневного отчёта",
+  "tts.read": "Прослушать"
 }

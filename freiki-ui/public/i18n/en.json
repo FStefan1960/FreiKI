@@ -195,5 +195,6 @@
   "admin.sending": "Sending…",
   "admin.sent_check": "✓ sent",
   "admin.error_x": "✗ Error",
-  "admin.report_send_failed": "Error sending the daily report"
+  "admin.report_send_failed": "Error sending the daily report",
+  "tts.read": "Read aloud"
 }
