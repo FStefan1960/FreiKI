@@ -355,14 +355,47 @@
 <script>
   // Auth-Guard wie bei den übrigen Werkzeug-Panels (whisper.html etc.) - Session-Cookie
   // ist HttpOnly, daher entscheidet /api/me (Server-Rundruf) statt eines lokalen Tokens.
+  // language kommt mit (normalisiertes Adjektiv, z.B. "türkisch") und beschriftet den
+  // zweiten APPDOC-Button ("Dokument in Türkisch öffnen").
+  let userLanguage = 'deutsch';
   (async function() {
     try {
       const r = await fetch('/api/me', { cache: 'no-store' });
       if (!r.ok) throw new Error('not logged in');
+      const me = await r.json();
+      if (me && me.language) userLanguage = String(me.language).trim() || 'deutsch';
     } catch (e) {
       if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
     }
   })();
+
+  function languageDisplayName(lang) {
+    const raw = String(lang || 'deutsch').trim() || 'deutsch';
+    if (/^de$/i.test(raw)) return 'Deutsch';
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  async function refreshUserLanguage() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) return userLanguage;
+      const me = await r.json();
+      if (me && me.language) userLanguage = String(me.language).trim() || userLanguage;
+    } catch (e) { /* Fallback: Wert vom Seitenstart */ }
+    return userLanguage;
+  }
+
+  function addTranslateDocButton(parent, id) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'action-btn';
+    btn.textContent = '🌐 Dokument in ' + languageDisplayName(userLanguage) + ' öffnen';
+    btn.addEventListener('click', () => openPaperlessDocTranslated(id, btn));
+    parent.appendChild(btn);
+    refreshUserLanguage().then(lang => {
+      if (btn.isConnected) btn.textContent = '🌐 Dokument in ' + languageDisplayName(lang) + ' öffnen';
+    });
+  }
 
   const startZone = document.getElementById('start-zone');
   const videoWrap = document.getElementById('video-wrap');
@@ -711,13 +744,51 @@
         openLink.href = `/api/paperless/download/${id}`;
         openLink.target = '_blank';
         openLink.rel = 'noopener noreferrer';
-        openLink.textContent = '📖 Öffnen';
+        openLink.textContent = '📖 Zum Originaldokument';
         resultBox.appendChild(openLink);
+        addTranslateDocButton(resultBox, id);
       }
     } catch (e) {
       resultBox.innerHTML = '<div class="smart-loading">Dokument konnte nicht geladen werden.</div>';
     } finally {
       triggerBtn.remove();
+    }
+  }
+
+  // Zweiter APPDOC-Button: Paperless-OCR in den Übersetzen-Modus der umgebenden App legen
+  // (gleiche Berechtigungsprüfung wie openPaperlessDoc). Ohne erkennbaren Text bleibt das
+  // Original der richtige Weg - neu OCR'en des PDFs wäre doppelte Arbeit.
+  async function openPaperlessDocTranslated(id, triggerBtn) {
+    const origLabel = triggerBtn.textContent;
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = '🔍 Lade Dokument…';
+
+    const resultBox = document.createElement('div');
+    smartAction.appendChild(resultBox);
+
+    try {
+      const r = await fetch(`/api/paperless/document/${id}`);
+      if (r.status === 403) {
+        resultBox.innerHTML = '<div class="smart-loading">Kein Zugriff auf das Archiv.</div>';
+      } else if (!r.ok) {
+        resultBox.innerHTML = '<div class="smart-loading">Dokument nicht gefunden.</div>';
+      } else {
+        const d = await r.json();
+        const text = (d.content || '').trim();
+        if (!text) {
+          resultBox.innerHTML = '<div class="smart-loading">Kein Textinhalt zum Übersetzen – bitte das Original öffnen.</div>';
+        } else if (!window.parent || typeof window.parent.openTranslateWithText !== 'function') {
+          resultBox.innerHTML = '<div class="smart-loading">Übersetzung ist nur in der App verfügbar.</div>';
+        } else {
+          window.parent.openTranslateWithText(text, userLanguage);
+          return;
+        }
+      }
+    } catch (e) {
+      resultBox.innerHTML = '<div class="smart-loading">Dokument konnte nicht geladen werden.</div>';
+    } finally {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = origLabel;
     }
   }
 
