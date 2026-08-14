@@ -21,11 +21,14 @@ CREATE TABLE IF NOT EXISTS korki_users (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- embedding-Dimension (1024) muss feststehen, sonst schlägt der HNSW-Index direkt beim
+-- Anlegen fehl ("column does not have dimensions") - 1024 passt zum aktuell genutzten
+-- BGE-M3-Embedding-Modell (siehe embedding/-Service).
 CREATE TABLE IF NOT EXISTS kb_stvo (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   "pageContent" text,
   metadata jsonb,
-  embedding vector
+  embedding vector(1024)
 );
 CREATE INDEX IF NOT EXISTS kb_stvo_embedding_hnsw ON kb_stvo USING hnsw (embedding vector_cosine_ops);
 
@@ -33,6 +36,6 @@ CREATE TABLE IF NOT EXISTS kb_sgb9 (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   "pageContent" text,
   metadata jsonb,
-  embedding vector
+  embedding vector(1024)
 );
 CREATE INDEX IF NOT EXISTS kb_sgb9_embedding_hnsw ON kb_sgb9 USING hnsw (embedding vector_cosine_ops);
