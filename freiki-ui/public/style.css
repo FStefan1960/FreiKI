@@ -476,8 +476,9 @@ body {
   z-index: 1000;
   width: min(230px, calc(100vw - 24px));
   background: var(--fk-surface);
+  border: 1px solid var(--fk-border-strong);
   border-radius: var(--fk-radius-lg);
-  box-shadow: var(--fk-shadow-pop);
+  box-shadow: 0 16px 40px rgba(16,32,64,.22), 0 2px 6px rgba(16,32,64,.14);
   padding: 6px;
   opacity: 0;
   pointer-events: none;

@@ -233,18 +233,49 @@ function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 
 function renderTable(users){ USERS=users; renderRows(); }
 
+let sortKey=null, sortDir=1;
+function sortValue(u,key){
+  switch(key){
+    case 'username': return (u.username||'').toLowerCase();
+    case 'name': return ((u.first_name||'')+' '+(u.last_name||'')).trim().toLowerCase();
+    case 'funktion': return (u.funktion||'').toLowerCase();
+    case 'language': return (u.language||'de').toLowerCase();
+    case 'role': return (u.role||'').toLowerCase();
+    case 'status': return u.suspended?1:0;
+    default: return '';
+  }
+}
 function renderRows(){
   const wrap=document.getElementById('table-wrap');
   const q=(document.getElementById('u-filter').value||'').toLowerCase().trim();
-  const list=USERS.filter(u=> !q || (u.username+' '+(u.first_name||'')+' '+(u.last_name||'')+' '+(u.funktion||'')+' '+(u.telefon||'')+' '+(u.email||'')).toLowerCase().includes(q));
+  let list=USERS.filter(u=> !q || (u.username+' '+(u.first_name||'')+' '+(u.last_name||'')+' '+(u.funktion||'')+' '+(u.telefon||'')+' '+(u.email||'')).toLowerCase().includes(q));
+  if(sortKey){
+    list=list.slice().sort((a,b)=>{
+      const va=sortValue(a,sortKey), vb=sortValue(b,sortKey);
+      if(va<vb) return -1*sortDir;
+      if(va>vb) return 1*sortDir;
+      return 0;
+    });
+  }
   if(!list.length){ wrap.innerHTML='<p style="color:#9ca3af">Keine Treffer.</p>'; return; }
   const table=document.createElement('table'); table.className='utable';
-  table.innerHTML='<thead><tr><th>Benutzer</th><th>Name</th><th>Funktion</th><th>Rolle</th><th>Status</th></tr></thead>';
+  const cols=[['Benutzer','username'],['Name','name'],['Funktion','funktion'],['Sprache','language'],['Rolle','role'],['Status','status']];
+  table.innerHTML='<thead><tr>'+cols.map(([label,key])=>{
+    const arrow=sortKey===key?(sortDir===1?' ▲':' ▼'):'';
+    return '<th data-sort="'+key+'" style="cursor:pointer;user-select:none;">'+label+arrow+'</th>';
+  }).join('')+'</tr></thead>';
+  table.querySelector('thead').addEventListener('click',e=>{
+    const th=e.target.closest('th'); if(!th) return;
+    const key=th.dataset.sort;
+    if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=1; }
+    renderRows();
+  });
   const tb=document.createElement('tbody');
   list.forEach(u=>{
     const tr=document.createElement('tr');
     const name=((u.first_name||'')+' '+(u.last_name||'')).trim()||'—';
     tr.innerHTML='<td><span class="uname">'+esc(u.username)+'</span></td><td>'+esc(name)+'</td><td>'+esc(u.funktion||'—')+'</td>'
+      +'<td>'+esc(u.language||'de')+'</td>'
       +'<td><span class="role-pill '+u.role+'">'+roleLabel(u.role)+'</span></td>'
       +'<td>'+(u.suspended?'<span class="badge susp">gesperrt</span>':'<span class="badge ok">aktiv</span>')+'</td>';
     tr.addEventListener('click',()=>openEdit(u));
