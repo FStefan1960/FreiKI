@@ -12,6 +12,7 @@ const kb = require('../../../core/knowledge/KBService');
 const users = require('../../../core/auth/UserRepository');
 const { sendToN8n } = require('../../../core/integrations/N8nService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const { safeEqual } = require('../../../shared/utils/security');
 
 const router = express.Router();
 router.use(express.json({ limit: '2mb' }));
@@ -110,7 +111,7 @@ router.post('/api/hilfe-chat', asyncHandler(async (req, res) => {
 
 // IT-Sicherheitslage (n8n): Digest speichern, API-Key statt Session
 router.post('/api/bot/sicherheitslage', (req, res) => {
-  if (!config.BOT_API_KEY || req.headers['x-api-key'] !== config.BOT_API_KEY) {
+  if (!config.BOT_API_KEY || !safeEqual(config.BOT_API_KEY, req.headers['x-api-key'])) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
   const { html, date } = req.body || {};
@@ -124,7 +125,7 @@ router.post('/api/bot/sicherheitslage', (req, res) => {
 
 // Bot-Chat (z.B. Mattermost via n8n): RAG über ALLE Wissensbereiche, API-Key statt Session
 router.post('/api/bot-chat', asyncHandler(async (req, res) => {
-  if (!config.BOT_API_KEY || req.headers['x-api-key'] !== config.BOT_API_KEY) {
+  if (!config.BOT_API_KEY || !safeEqual(config.BOT_API_KEY, req.headers['x-api-key'])) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
   const { message, username } = req.body || {};

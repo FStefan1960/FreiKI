@@ -9,6 +9,7 @@ const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
 const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const { safeEqual } = require('../../../shared/utils/security');
 
 const router = express.Router();
 router.use(express.json({ limit: '10mb' }));
@@ -29,7 +30,7 @@ router.post('/api/export-docx', asyncHandler(async (req, res) => {
 
 // Wissensbereiche aus Prompts-Dir auflisten (für n8n-Ingest-Workflows)
 router.get('/api/kb-areas', (req, res) => {
-  if (!config.KB_INGEST_API_KEY || req.headers['x-api-key'] !== config.KB_INGEST_API_KEY) {
+  if (!config.KB_INGEST_API_KEY || !safeEqual(config.KB_INGEST_API_KEY, req.headers['x-api-key'])) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
   const areas = fs.readdirSync(config.PROMPT_DIR)
@@ -41,7 +42,7 @@ router.get('/api/kb-areas', (req, res) => {
 // Paperless-ngx-Ingest: nimmt bereits OCR'ten Text entgegen (z.B. von n8n) und
 // verlinkt jeden Chunk per source_url auf das Originaldokument in Paperless
 router.post('/api/kb-ingest-text', asyncHandler(async (req, res) => {
-  if (!config.KB_INGEST_API_KEY || req.headers['x-api-key'] !== config.KB_INGEST_API_KEY) {
+  if (!config.KB_INGEST_API_KEY || !safeEqual(config.KB_INGEST_API_KEY, req.headers['x-api-key'])) {
     return res.status(403).json({ error: 'Ungültiger oder fehlender API-Key (Header X-API-Key)' });
   }
   const { bereich, text, source, source_url, replace } = req.body || {};

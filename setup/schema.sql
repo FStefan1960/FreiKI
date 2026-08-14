@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS kb_stvo (
   metadata jsonb,
   embedding vector
 );
+CREATE INDEX IF NOT EXISTS kb_stvo_embedding_hnsw ON kb_stvo USING hnsw (embedding vector_cosine_ops);
 
 CREATE TABLE IF NOT EXISTS kb_sgb9 (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -34,3 +35,4 @@ CREATE TABLE IF NOT EXISTS kb_sgb9 (
   metadata jsonb,
   embedding vector
 );
+CREATE INDEX IF NOT EXISTS kb_sgb9_embedding_hnsw ON kb_sgb9 USING hnsw (embedding vector_cosine_ops);

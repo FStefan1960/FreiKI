@@ -29,6 +29,11 @@ function getIndexHtml() {
       '<a href="https://github.com/FStefan1960/FreiKI" target="_blank" rel="noopener" style="color:inherit">Lizenz: AGPL-3.0-or-later</a>');
 }
 
+// index.html liegt in PUBLIC_DIR und würde von express.static sonst roh (mit ungefüllten
+// {{...}}-Platzhaltern) ausgeliefert, wenn man es direkt aufruft statt über '/'. Deshalb
+// hier vorher abfangen.
+router.get('/index.html', (_req, res) => res.redirect(301, '/'));
+
 router.get('/', (_req, res) => res.type('html').send(getIndexHtml()));
 
 // Dynamisch: Cache-Name + Assets richten sich nach der aktuellen Marke (Name, Logo, swVersion).

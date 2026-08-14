@@ -10,6 +10,9 @@ const pool = new Pool({
   user: config.PG_USER_KB,
   password: config.PG_PASS_KB,
   port: 5432,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
 
 module.exports = pool;
