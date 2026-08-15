@@ -109,12 +109,15 @@ async function loadModes() {
     try {
       const extRes = await fetch('/api/extras', { cache: 'no-store' });
       const extras = await extRes.json();
+      // Optionales roles-Feld im Manifest (analog zum admin/manager-Filter oben bei
+      // builtinTools): fehlt es, ist das Extra wie bisher für alle Rollen sichtbar.
+      const visibleExtras = extras.filter(t => !t.roles || t.roles.includes(currentRole));
       const ce = document.getElementById('mode-buttons-extras');
       const tabExtras = document.getElementById('tab-extras');
       if (ce) ce.innerHTML = '';
-      if (extras.length > 0 && ce && tabExtras) {
+      if (visibleExtras.length > 0 && ce && tabExtras) {
         tabExtras.style.display = '';
-        extras.forEach(t => {
+        visibleExtras.forEach(t => {
           const b = document.createElement('button');
           b.className = 'mode-btn' + (t.external ? ' mode-btn-web' : '');
           b.onclick = () => t.api ? openExtraPanel(t) : t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;

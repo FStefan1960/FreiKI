@@ -1,9 +1,9 @@
 #!/bin/bash
 # Prüft, ob die Kern-Dateien dieser Instanz mit origin/main übereinstimmen.
 # Kern = muss auf allen Instanzen (FreiKI, KorKI, FrankKI, ...) identisch sein:
-# server.js, index.html, style.css, sw.js. Alles andere (docker-compose.yml,
-# prompts/, extras/, Branding-Assets, ...) ist laut .gitignore instanzspezifisch
-# und wird hier bewusst nicht geprüft.
+# server.js, index.html, public/js/*.js, style.css, sw.js. Alles andere
+# (docker-compose.yml, prompts/, extras/, Branding-Assets, ...) ist laut
+# .gitignore instanzspezifisch und wird hier bewusst nicht geprüft.
 #
 # Aufruf: ./setup/check-core-sync.sh   (im Root des freiki-package-Checkouts)
 
@@ -16,6 +16,11 @@ CORE_FILES=(
   "freiki-ui/public/style.css"
   "freiki-ui/public/sw.js"
 )
+# Seit der index.html-Modularisierung (2026-08-15) liegt der Großteil der Frontend-Logik
+# unter public/js/ statt inline in index.html - genauso Kern wie die Datei selbst.
+while IFS= read -r f; do
+  CORE_FILES+=("$f")
+done < <(git ls-tree -r --name-only origin/main -- freiki-ui/public/js/)
 
 git fetch origin main --quiet
 
