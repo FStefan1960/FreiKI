@@ -1908,3 +1908,32 @@ body.tool-open #hilfe-bubble-panel { display: none !important; }
   .message-bubble { box-shadow: none; border: 1px solid #ccc; }
   .message { page-break-inside: avoid; }
 }
+
+/* ── Aus index.html <head> verschoben (Admin-Stats-Widget, Willkommens-Chips, Teamchat-Modal) ── */
+.admin-stats-widget {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fk-text-muted);
+  background: var(--fk-tint);
+  border: 1px solid var(--fk-border-strong);
+  border-radius: 6px;
+  padding: 3px 8px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.admin-stats-widget:hover { background: var(--fk-border-strong); }
+.admin-stats-widget.sending { opacity: 0.6; pointer-events: none; }
+.welcome-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-content:center;margin-top:16px;max-width:420px;}
+.welcome-example-chip{background:var(--fk-tint);border:1px solid var(--fk-border-strong);border-radius:20px;padding:6px 14px;font-size:.8rem;color:var(--fk-ink);font-weight:500;cursor:pointer;line-height:1.4;text-align:center;transition:background .15s,color .15s;}
+.welcome-example-chip:hover{background:var(--fk-border-strong);color:var(--fk-text);}
+#tc-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;}
+#tc-modal-overlay.visible{display:flex;}
+#tc-modal{background:#fff;border-radius:14px;padding:1.75rem 2rem;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center;}
+#tc-modal h3{margin:0 0 .6rem;font-size:1.05rem;color:var(--color-primary,#1F54C0);}
+#tc-modal p{margin:0 0 1.25rem;font-size:.875rem;color:#444;line-height:1.5;}
+#tc-modal .tc-btn-row{display:flex;gap:.75rem;justify-content:center;}
+#tc-modal .tc-go{background:var(--color-primary,#1F54C0);color:#fff;border:none;border-radius:8px;padding:.6rem 1.4rem;font-size:.875rem;font-weight:600;cursor:pointer;}
+#tc-modal .tc-go:hover{opacity:.88;}
+#tc-modal .tc-skip{background:#f0f2f5;color:#444;border:none;border-radius:8px;padding:.6rem 1rem;font-size:.875rem;cursor:pointer;}
+#tc-modal .tc-sso-hint{display:inline-flex;align-items:center;gap:.4rem;border:1.5px solid #dde1e7;border-radius:8px;padding:.5rem 1.25rem;margin-bottom:1.25rem;font-size:.9rem;font-weight:600;color:#555;background:#fafafa;}
