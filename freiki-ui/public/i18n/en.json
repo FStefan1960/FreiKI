@@ -58,7 +58,7 @@
   "input.file_default_name": "File",
   "input.upload_title": "Upload file",
   "input.dictate_title": "Dictate",
-  "input.message_placeholder": "Type a message or drag a file here...",
+  "input.message_placeholder": "Type a message or drag a file here... (Shift+Enter for a paragraph, Enter to send)",
   "common.back_to_chat": "← Back to chat",
   "common.tool": "Tool",
   "common.loading": "Loading…",

@@ -58,7 +58,7 @@
   "input.file_default_name": "Fichier",
   "input.upload_title": "Téléverser un fichier",
   "input.dictate_title": "Dicter",
-  "input.message_placeholder": "Saisissez un message ou déposez un fichier ici...",
+  "input.message_placeholder": "Saisissez un message ou déposez un fichier ici... (Maj+Entrée pour un paragraphe, Entrée pour envoyer)",
   "common.back_to_chat": "← Retour au chat",
   "common.tool": "Outil",
   "common.loading": "Chargement…",

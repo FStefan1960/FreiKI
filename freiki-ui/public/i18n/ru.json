@@ -58,7 +58,7 @@
   "input.file_default_name": "Файл",
   "input.upload_title": "Загрузить файл",
   "input.dictate_title": "Диктовать",
-  "input.message_placeholder": "Введите сообщение или перетащите файл сюда...",
+  "input.message_placeholder": "Введите сообщение или перетащите файл сюда... (Shift+Enter — новый абзац, Enter — отправить)",
   "common.back_to_chat": "← Назад к чату",
   "common.tool": "Инструмент",
   "common.loading": "Загрузка…",

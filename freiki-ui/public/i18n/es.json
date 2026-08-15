@@ -58,7 +58,7 @@
   "input.file_default_name": "Archivo",
   "input.upload_title": "Subir archivo",
   "input.dictate_title": "Dictar",
-  "input.message_placeholder": "Escriba un mensaje o arrastre un archivo aquí...",
+  "input.message_placeholder": "Escriba un mensaje o arrastre un archivo aquí... (Mayús+Intro para un párrafo, Intro para enviar)",
   "common.back_to_chat": "← Volver al chat",
   "common.tool": "Herramienta",
   "common.loading": "Cargando…",
