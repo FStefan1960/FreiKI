@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
+  <link rel="stylesheet" href="/style.css?v=23">
+  <link rel="stylesheet" href="/brand.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="{{APP_COLOR}}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="{{APP_NAME}}">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
+  <link rel="icon" type="image/png" href="/favicon-32.png?v=3">
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-card">
+    <img src="{{APP_LOGO}}" alt="{{APP_NAME}}">
+    <div class="login-disclaimer" data-i18n-html="login.disclaimer">
+      ⚠️ <strong>Hinweis:</strong> {{APP_NAME}} ist ein KI-Hilfsinstrument. Alle Ergebnisse müssen geprüft werden. <strong>Die Verantwortung liegt beim Benutzer.</strong>
+    </div>
+    <div class="login-form" id="login-form">
+      <input type="text" id="username" placeholder="Benutzername" data-i18n-placeholder="login.username" autocomplete="username">
+      <input type="password" id="password" placeholder="Passwort" data-i18n-placeholder="login.password" autocomplete="current-password">
+      <select id="fk-lang-switch" onchange="localStorage.setItem('fk_ui_lang', this.value); location.reload();">
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="ru">🇷🇺 Русский</option>
+      </select>
+      <div class="login-error" id="login-error" data-i18n="login.error_invalid">Ungültige Anmeldedaten</div>
+      <button class="login-btn" onclick="login()" data-i18n="login.submit">Anmelden</button>
+    </div>
+    <div class="login-form" id="twofa-form" style="display:none">
+      <p style="font-size:13px;color:var(--fk-text-muted);text-align:center;margin:0" data-i18n="twofa.instructions">Bitte den 6-stelligen Code aus Ihrer Authenticator-App eingeben (oder einen Backup-Code).</p>
+      <input type="text" id="twofa-code" placeholder="Code" data-i18n-placeholder="twofa.code_placeholder" autocomplete="one-time-code" inputmode="numeric">
+      <div class="login-error" id="twofa-error" data-i18n="common.invalid_code">Ungültiger Code</div>
+      <button class="login-btn" onclick="verifyTwoFactor()" data-i18n="common.confirm">Bestätigen</button>
+      <button class="login-btn" id="passkey-login-btn" style="display:none;background:var(--fk-canvas);color:var(--fk-text);border:1px solid var(--fk-border-strong)" onclick="loginWithPasskey()" data-i18n="twofa.passkey_btn">🔓 Mit Face ID / Touch ID anmelden</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pflicht-2FA-Setup (admin/high_risk ohne aktives 2FA) -->
+<div id="setup2fa-modal" class="demo-modal-overlay hide" role="dialog" aria-modal="true" aria-labelledby="setup2fa-title">
+  <div class="demo-modal" style="width:420px">
+    <div class="demo-modal-icon">🔐</div>
+    <h2 id="setup2fa-title" data-i18n="setup2fa.title">Zwei-Faktor-Authentifizierung einrichten</h2>
+    <div id="setup2fa-step-qr">
+      <p data-i18n="setup2fa.qr_instructions">Für Ihre Rolle ist die Einrichtung verpflichtend. Scannen Sie den QR-Code mit einer Authenticator-App (z. B. Google Authenticator, FreeOTP):</p>
+      <div style="text-align:center;margin:14px 0"><img id="setup2fa-qr" alt="QR-Code" data-i18n-alt="common.qr_code" style="width:200px;height:200px"></div>
+      <p style="font-size:12px;word-break:break-all"><span data-i18n="setup2fa.manual_prefix">Manuell:</span> <code id="setup2fa-secret"></code></p>
+      <input type="text" id="setup2fa-code" placeholder="6-stelligen Code eingeben" data-i18n-placeholder="setup2fa.code_placeholder" autocomplete="one-time-code" inputmode="numeric" style="width:100%;padding:11px 14px;border:1px solid var(--fk-border-strong);border-radius:var(--fk-radius);margin-bottom:10px">
+      <div class="login-error" id="setup2fa-error" data-i18n="common.invalid_code">Ungültiger Code</div>
+      <button class="demo-modal-btn" onclick="confirmSetup2FA()" data-i18n="common.confirm">Bestätigen</button>
+    </div>
+    <div id="setup2fa-step-codes" style="display:none">
+      <p data-i18n-html="setup2fa.backup_codes_intro"><strong>2FA ist jetzt aktiv.</strong> Bewahren Sie diese Backup-Codes sicher auf – jeder Code funktioniert einmalig, falls Sie keinen Zugriff auf Ihre Authenticator-App haben:</p>
+      <pre id="setup2fa-backup-codes" style="background:var(--fk-canvas);border-radius:var(--fk-radius);padding:12px;font-size:13px;line-height:1.8;text-align:center"></pre>
+      <button class="demo-modal-btn" onclick="closeSetup2FAModal()" data-i18n="setup2fa.backup_codes_done">Verstanden, weiter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hinweis für BGT-Nutzer (Berufsgeheimnisträger) -->
+<div id="highrisk-modal" class="demo-modal-overlay hide" role="dialog" aria-modal="true" aria-labelledby="highrisk-title">
+  <div class="demo-modal" style="width:420px">
+    <div class="demo-modal-icon">⚠️</div>
+    <h2 id="highrisk-title" data-i18n="highrisk.title">Hinweis für privilegierte Nutzer</h2>
+    <p data-i18n-html="highrisk.p1">Sie sind mit erweiterten Zugriffsrechten (<strong>BGT</strong> – Berufsgeheimnisträger) angemeldet.</p>
+    <p data-i18n-html="highrisk.p2">Einige Ihrer Anfragen im Chat werden auf bestimmte Stichworte geprüft (z. B. Diagnosen, Medikamente, psychische Erkrankungen). Bei einem Treffer wird protokolliert: Zeitpunkt, Ihr Benutzername, das verwendete Werkzeug und die erkannte Kategorie – <strong>niemals der Inhalt Ihrer Anfrage selbst.</strong></p>
+    <p data-i18n="highrisk.p3">Diese Protokollierung dient der Nachvollziehbarkeit im Umgang mit besonders schützenswerten Daten, nicht der Kontrolle Ihrer Arbeit.</p>
+    <button class="demo-modal-btn" onclick="closeHighRiskModal()" data-i18n="common.understood">Verstanden</button>
+  </div>
+</div>
+
+<!-- Demo-Hinweis (blockierend, vor jedem Login) -->
+<div id="demo-modal" class="demo-modal-overlay" style="{{DEMO_MODE}}" role="dialog" aria-modal="true" aria-labelledby="demo-title">
+  <div class="demo-modal">
+    <div class="demo-modal-icon">⚠️</div>
+    <h2 id="demo-title" data-i18n="demo.title">Dies ist ein Demosystem</h2>
+    <p data-i18n-html="demo.p1">
+      {{APP_NAME}} läuft hier zu Vorführzwecken auf einem <strong>externen, nicht lokal betriebenen
+      Server</strong> und nutzt ein <strong>Online-Sprachmodell eines externen Anbieters</strong> –
+      anders als bei einer produktiven, vollständig selbst gehosteten Installation.
+    </p>
+    <p data-i18n-html="demo.p2">
+      Eingaben werden zur Beantwortung an diesen externen KI-Dienst übertragen. Geben Sie hier
+      <strong>keine echten, vertraulichen oder personenbezogenen Daten</strong> ein.
+    </p>
+    <p data-i18n="demo.p3">Wer fortfährt, tut dies in Kenntnis dieser Hinweise.</p>
+    <button class="demo-modal-btn" onclick="closeDemoModal()" data-i18n="demo.continue">Verstanden, weiter zur Anmeldung</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+
+  <div class="app-body">
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="{{APP_LOGO_SIDEBAR}}" alt="{{APP_NAME}}">
+      </div>
+
+      <div class="sidebar-tabs" role="tablist">
+        <button class="sidebar-tab active" id="tab-werkzeuge" role="tab" aria-selected="true" onclick="switchTab('werkzeuge')" data-i18n="sidebar.tab_tools">Werkzeuge</button>
+        <button class="sidebar-tab" id="tab-wissen" role="tab" aria-selected="false" onclick="switchTab('wissen')" data-i18n="sidebar.tab_knowledge">Wissen</button>
+        <button class="sidebar-tab" id="tab-extras" role="tab" aria-selected="false" onclick="switchTab('extras')" style="display:none" data-i18n="sidebar.tab_extras">Extras</button>
+      </div>
+      <div id="mode-buttons-werkzeuge" class="tab-panel"></div>
+      <div id="mode-buttons-wissen" class="tab-panel" style="display:none"></div>
+      <div id="mode-buttons-extras" class="tab-panel" style="display:none"></div>
+
+      <div style="margin-top: auto;"></div>
+
+
+
+      <div class="sidebar-footer">
+        <div class="user-info" onclick="toggleAccountMenu(event)" title="Konto-Menü" data-i18n-title="sidebar.account_menu">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div class="user-name" id="user-name">Benutzer</div>
+        </div>
+        <button class="logout-btn" onclick="logout()" title="Abmelden" data-i18n-title="sidebar.logout" aria-label="Abmelden" type="button">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="account-menu" class="account-menu">
+      <button class="account-menu-item" onclick="closeAccountMenu();openFeedback()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M21 6.5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2V15a2 2 0 0 0 2 2h2v4l5-4h3.5"/>
+          <path d="M16.5 12.5l5-5-2-2-5 5v2h2z"/>
+        </svg>
+        <span data-i18n="account_menu.feedback">Feedback & Wünsche</span>
+      </button>
+      <button class="account-menu-item admin-only" style="display:none" onclick="closeAccountMenu();openToolPanel('/users.html')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span data-i18n="account_menu.user_admin">Benutzerverwaltung</span>
+      </button>
+      <button class="account-menu-item" onclick="closeAccountMenu();openChangePw()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span data-i18n="account_menu.change_password">Passwort ändern</span>
+      </button>
+      <button class="account-menu-item bgt-2fa-only" style="display:none" onclick="closeAccountMenu();openSecurityModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+        </svg>
+        <span data-i18n="account_menu.security">Sicherheit: 2FA / Passkeys</span>
+      </button>
+      <button class="account-menu-item" onclick="closeAccountMenu();openChangeLanguage()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span data-i18n="account_menu.change_response_language">Antwortsprache ändern</span>
+      </button>
+      <button class="account-menu-item" id="enter-to-send-toggle" onclick="closeAccountMenu();toggleEnterToSend()" type="button" aria-pressed="true">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M9 10L4 15l5 5"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/>
+        </svg>
+        <span id="enter-to-send-label">Enter-Verhalten: Senden</span>
+      </button>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+      <div class="chat-header">
+        <button class="menu-btn" onclick="toggleSidebar()" type="button" aria-label="Hauptmenü umschalten" aria-expanded="false">☰</button>
+        <div class="chat-header-icon" id="header-icon"></div>
+        <div style="min-width:0;flex:1;">
+          <div class="chat-header-title" id="header-title">{{APP_NAME}}</div>
+          <div class="chat-header-desc" id="header-desc"></div>
+        </div>
+        <div class="chat-header-actions">
+          <div class="trust-badge">
+            <svg fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span>DSGVO · DSG-EKD · EU · Open Source</span>
+          </div>
+          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute / GPU-Cache (Peak) — Klick: Tagesbericht jetzt senden" data-i18n-title="header.admin_stats_title" onclick="triggerDailyReport(event)">
+            <span id="stats-text">– / – / –%</span>
+          </div>
+          <div class="header-icon-group">
+            <a href="{{PAPERLESS_ADMIN_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled admin-only" title="Dokumentenarchiv (Paperless)" data-i18n-title="header.dms_title" style="display:none;">DMS</a>
+            <button id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" data-i18n-title="header.teamchat_title" aria-label="Team-Chat öffnen" type="button" style="display:none;" data-url="{{MATTERMOST_URL}}" onclick="openTeamchat()">💬 <span class="hilfe-label" data-i18n="header.chat_label">Chat</span></button>
+            <button class="header-icon-btn header-icon-btn-labeled" onclick="toggleHilfeBubble()" title="{{APP_NAME}}-Hilfe" data-i18n-title="header.help_title" aria-label="Hilfe-Assistent öffnen" type="button">? <span class="hilfe-label" data-i18n="header.help_label">Hilfe</span></button>
+          </div>
+          <button class="new-chat-btn" onclick="newChat()" data-i18n="header.new_chat" aria-label="Neuen Chat beginnen" type="button">+ Neu</button>
+        </div>
+      </div>
+
+      <!-- Paperless Dokumenten-Filter (nur im Paperless-Modus sichtbar) -->
+      <div id="paperless-filter-panel" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
+        <div class="pl-filter-grid">
+          <div class="pl-filter-group">
+            <label data-i18n="paperless.freetext_label">Freitext (Wildcard *)</label>
+            <input type="text" id="pl-query" placeholder="Suchbegriff im Dokumententext…" data-i18n-placeholder="paperless.freetext_placeholder" onkeydown="if(event.key==='Enter')plSearch()">
+          </div>
+          <div class="pl-filter-group">
+            <label data-i18n="paperless.correspondent_label">Korrespondent</label>
+            <select id="pl-correspondent">
+              <option value="" data-i18n="common.all">Alle</option>
+            </select>
+          </div>
+          <div class="pl-filter-group">
+            <label data-i18n="paperless.doctype_label">Dokumenttyp</label>
+            <select id="pl-doctype">
+              <option value="" data-i18n="common.all">Alle</option>
+            </select>
+          </div>
+          <div class="pl-filter-group">
+            <label data-i18n="paperless.tags_label">Tags</label>
+            <select id="pl-tags">
+              <option value="" data-i18n="common.any">(egal)</option>
+            </select>
+          </div>
+          <div class="pl-filter-group">
+            <label data-i18n="paperless.date_from_label">Datum von</label>
+            <input type="date" id="pl-from">
+          </div>
+          <div class="pl-filter-group">
+            <label data-i18n="paperless.date_to_label">Datum bis</label>
+            <input type="date" id="pl-to">
+          </div>
+          <button class="pl-search-btn" onclick="plSearch()" id="pl-search-btn" data-i18n="common.search">Suchen</button>
+        </div>
+        <div id="pl-results" style="flex:1;min-height:0;overflow-y:auto;display:block;"></div>
+      </div>
+
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Chatverlauf">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon-tile">💬</div>
+          <h2 data-i18n-html="welcome.title">Willkommen bei {{APP_NAME}}</h2>
+          <p data-i18n="welcome.subtitle">Wählen Sie ein Werkzeug aus der Seitenleiste.</p>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="file-preview" id="file-preview">
+          <span>📎</span>
+          <span id="file-name" data-i18n="input.file_default_name">Datei</span>
+          <span class="file-remove" onclick="removeFile()" role="button" tabindex="0" aria-label="Ausgewählte Datei entfernen" onkeydown="if(event.key==='Enter'||event.key===' ')removeFile()">✕</span>
+        </div>
+        <div class="input-box" id="input-box">
+          <button class="icon-btn" onclick="document.getElementById('file-input').click()" title="Datei hochladen" data-i18n-title="input.upload_title" aria-label="Datei anhängen" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M12 12v7"></path><path d="m9 16 3-3 3 3"></path></svg></button>
+          <button class="icon-btn" id="mic-btn" onclick="toggleDictation()" title="Diktieren" data-i18n-title="input.dictate_title" aria-label="Spracheingabe starten" type="button" style="display:none;"></button>
+          <textarea id="message-input" placeholder="Nachricht eingeben oder Datei hierher ziehen... (Shift+Enter für einen Absatz, Enter zum Senden)" data-i18n-placeholder="input.message_placeholder"
+            rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" onclick="sendMessage()" id="send-btn" aria-label="Nachricht senden" type="button">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <input type="file" id="file-input" accept=".txt,.pdf,.doc,.docx,.md,.csv,.jpg,.jpeg,.png,.webp,image/*" onchange="fileSelected(this)">
+      </div>
+
+      <!-- Eingebettetes Werkzeug-Panel (Transkription / Piktogramme) -->
+      <div id="tool-panel" style="display:none;">
+        <div class="tool-panel-bar">
+          <button class="tool-panel-back" onclick="closeToolPanel()" data-i18n="common.back_to_chat">← Zurück zum Chat</button>
+        </div>
+        <iframe id="tool-frame" title="Werkzeug" data-i18n-title="common.tool" allow="camera"></iframe>
+      </div>
+      <div id="extra-panel" style="display:none;flex-direction:column;flex:1;min-height:0;">
+        <div class="tool-panel-bar">
+          <button class="tool-panel-back" onclick="closeExtraPanel()" data-i18n="common.back_to_chat">← Zurück zum Chat</button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:24px;max-width:860px;width:100%;box-sizing:border-box;">
+          <h1 id="extra-panel-title" style="font-size:20px;margin-bottom:4px;"></h1>
+          <div id="extra-panel-date" style="font-size:12px;color:var(--fk-muted);margin-bottom:16px;"></div>
+          <div id="extra-panel-content"><span style="color:var(--fk-muted);" data-i18n="common.loading">Lade…</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="disclaimer-banner">
+    <span data-i18n-html="disclaimer.text">⚠️ {{APP_NAME}} ist ein Hilfsinstrument – alle Ergebnisse müssen geprüft werden. Die Verantwortung liegt beim Benutzer.</span>
+    <span>v{{APP_VERSION}} · {{FOOTER_NOTE}} · {{AGPL_SOURCE_NOTICE}}</span>
+  </div>
+
+</div>
+
+<!-- Feedback Modal -->
+<div class="modal-overlay" id="feedback-modal" onclick="closeFeedbackOnOverlay(event)" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+  <div class="modal">
+    <h3 id="feedback-title" data-i18n="feedback.title">💡 Feedback & Ideen</h3>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="setFeedbackType('feedback', this)" data-i18n="feedback.tab_feedback">Feedback</button>
+      <button class="modal-tab" onclick="setFeedbackType('idea', this)" data-i18n="feedback.tab_idea">Idee</button>
+      <button class="modal-tab" onclick="setFeedbackType('wish', this)" data-i18n="feedback.tab_wish">Wunsch</button>
+    </div>
+    <textarea id="feedback-text" placeholder="Ihre Nachricht..." data-i18n-placeholder="common.your_message" rows="4"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeFeedback()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-submit" id="feedback-submit" onclick="submitFeedback()" data-i18n="common.send">Senden</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── FreiKI-Hilfe Bubble ─────────────────────────────────── -->
+<div id="hilfe-bubble-panel">
+  <div id="hilfe-bubble-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <img src="/app-icon-192.png" style="width:24px;height:24px;border-radius:6px;">
+      <span class="fab-label" data-i18n-html="hilfe_bubble.header">{{APP_NAME}}-Hilfe</span>
+    </div>
+    <button onclick="toggleHilfeBubble()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:0 4px;">✕</button>
+  </div>
+  <div id="hilfe-bubble-messages">
+    <div class="hilfe-msg hilfe-bot" data-i18n-html="hilfe_bubble.greeting">Hallo! Ich beantworte deine Fragen zu {{APP_NAME}}. Was möchtest du wissen?</div>
+  </div>
+  <div id="hilfe-bubble-input">
+    <input type="text" id="hilfe-input" placeholder="Frage eingeben..." data-i18n-placeholder="hilfe_bubble.input_placeholder" onkeydown="if(event.key==='Enter') sendHilfeFrage()">
+    <button onclick="sendHilfeFrage()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+
+<!-- ── Passwort ändern Modal ── -->
+<div id="tip-modal" class="modal-overlay" onclick="if(event.target===this)closeTipModal()">
+  <div class="modal" style="max-width:380px;">
+    <h3 data-i18n="tip.title">💡 Tipp des Tages</h3>
+    <p id="tip-text" style="font-size:14px;line-height:1.5;color:var(--text);margin-top:4px;"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="tip-next-btn" onclick="showNextTip()" data-i18n="tip.next">Nächster Tipp</button>
+      <button class="modal-submit" onclick="closeTipModal()" data-i18n="common.close">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div id="changepw-modal" class="modal-overlay" onclick="if(event.target===this)closeChangePw()">
+  <div class="modal" style="max-width:360px;">
+    <h3 data-i18n="changepw.title">🔒 Passwort ändern</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input id="pw-current" type="password" placeholder="Aktuelles Passwort" data-i18n-placeholder="common.current_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
+      <input id="pw-new" type="password" placeholder="Neues Passwort (min. 6 Zeichen)" data-i18n-placeholder="changepw.new_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
+      <input id="pw-confirm" type="password" placeholder="Neues Passwort bestätigen" data-i18n-placeholder="changepw.confirm_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
+    </div>
+    <div id="pw-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeChangePw()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-submit" id="pw-submit-btn" onclick="submitChangePw()" data-i18n="common.change">Ändern</button>
+    </div>
+  </div>
+</div>
+
+<div id="change-language-modal" class="modal-overlay" onclick="if(event.target===this)closeChangeLanguage()">
+  <div class="modal" style="max-width:360px;">
+    <h3 data-i18n="account_menu.change_response_language">🌐 Antwortsprache ändern</h3>
+    <p style="font-size:12px;color:var(--text-muted,#6b7280);margin:0 0 10px;"><span data-i18n="lang_modal.current_prefix">Aktuell:</span> <span id="lang-current">…</span></p>
+    <input id="lang-input" type="text" placeholder="z.B. Englisch, italiano, français …" data-i18n-placeholder="lang_modal.placeholder" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;" onkeydown="if(event.key==='Enter')submitChangeLanguage()">
+    <div id="lang-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeChangeLanguage()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-submit" id="lang-submit-btn" onclick="submitChangeLanguage()" data-i18n="common.change">Ändern</button>
+    </div>
+  </div>
+</div>
+
+<div id="word-export-modal" class="modal-overlay" onclick="if(event.target===this)closeWordExportModal()">
+  <div class="modal" style="max-width:360px;">
+    <h3 data-i18n="word_export.title">📄 Als Word herunterladen</h3>
+    <input id="word-export-filename" type="text" placeholder="Dateiname" data-i18n-placeholder="word_export.filename_placeholder" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;" onkeydown="if(event.key==='Enter')submitWordExport()">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeWordExportModal()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-submit" onclick="submitWordExport()" data-i18n="word_export.download">Herunterladen</button>
+    </div>
+  </div>
+</div>
+
+<div id="feature-hint-modal" class="modal-overlay" onclick="if(event.target===this)closeFeatureHint()">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="feature-hint-title"></h3>
+    <p id="feature-hint-body" style="font-size:14px;color:var(--text-muted,#6b7280);margin:4px 0 14px;line-height:1.5;"></p>
+    <div class="modal-actions">
+      <button class="modal-submit" onclick="closeFeatureHint()" data-i18n="common.understood">Verstanden</button>
+    </div>
+  </div>
+</div>
+
+<div id="symbols-wizard-modal" class="modal-overlay" onclick="if(event.target===this)symbolsWizardCancel()">
+  <div class="modal" style="max-width:420px;">
+    <h3 data-i18n="symbols.title">🧩 Symbol auswählen</h3>
+    <div id="symbols-wizard-progress" style="font-size:12px;color:var(--text-muted,#6b7280);margin-bottom:4px;"></div>
+    <div id="symbols-wizard-text" style="font-size:15px;font-weight:600;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input id="symbols-wizard-search" type="text" placeholder="Eigener Suchbegriff …" data-i18n-placeholder="symbols.search_placeholder" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:13px;background:var(--input-bg);outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();symbolsWizardSearch();}">
+      <button type="button" id="symbols-wizard-search-btn" class="modal-cancel" style="white-space:nowrap;" onclick="symbolsWizardSearch()" data-i18n="symbols.search_btn">🔍 Suchen</button>
+    </div>
+    <div id="symbols-wizard-grid" class="symbols-wizard-grid"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="symbolsWizardCancel()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-cancel" id="symbols-wizard-back" onclick="symbolsWizardBack()" data-i18n="symbols.back">← Zurück</button>
+      <button class="modal-submit" id="symbols-wizard-next" onclick="symbolsWizardNext()" data-i18n="symbols.next">Weiter →</button>
+    </div>
+  </div>
+</div>
+
+<div id="security-modal" class="modal-overlay" onclick="if(event.target===this)closeSecurityModal()">
+  <div class="modal" style="max-width:420px;">
+    <h3 data-i18n="security.title">🔐 Sicherheit</h3>
+    <p style="font-size:13px;color:var(--text-muted,#6b7280);margin:4px 0 10px" data-i18n="security.intro">Zwei-Faktor-Authentifizierung: per Code aus einer Authenticator-App (Google Authenticator, Microsoft Authenticator, FreeOTP) oder per Passkey (Face ID/Touch ID).</p>
+
+    <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px">
+      <strong style="font-size:13px" data-i18n="security.authenticator_app_label">Authenticator-App</strong>
+      <div style="margin-top:8px">
+        <button class="modal-cancel" onclick="closeSecurityModal();openReinit2FA()" data-i18n="security.reinit_btn">Neu einrichten (z. B. bei Gerätewechsel)</button>
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px">
+      <strong style="font-size:13px" data-i18n="security.passkey_label">Passkey (Face ID / Touch ID)</strong>
+      <div id="passkey-list" style="margin:8px 0;font-size:13px;color:var(--text-muted,#6b7280)" data-i18n="common.loading">Lade...</div>
+      <div id="security-modal-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px;"></div>
+      <button class="modal-cancel" onclick="addPasskey()" data-i18n="security.add_passkey">Passkey hinzufügen</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-submit" onclick="closeSecurityModal()" data-i18n="common.close">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div id="reinit2fa-modal" class="modal-overlay" onclick="if(event.target===this)closeReinit2FA()">
+  <div class="modal" style="max-width:380px;">
+    <h3 data-i18n="reinit2fa.title">🔐 2FA neu einrichten</h3>
+    <p style="font-size:13px;color:var(--text-muted,#6b7280);margin:4px 0 10px" data-i18n="reinit2fa.intro">Zur Bestätigung bitte Ihr aktuelles Passwort eingeben. Danach können Sie einen neuen QR-Code mit Ihrem neuen Gerät scannen – die alten Backup-Codes werden dabei durch neue ersetzt.</p>
+    <input id="reinit2fa-password" type="password" placeholder="Aktuelles Passwort" data-i18n-placeholder="common.current_password" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
+    <div id="reinit2fa-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeReinit2FA()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-submit" id="reinit2fa-submit-btn" onclick="submitReinit2FA()" data-i18n="common.next">Weiter</button>
+    </div>
+  </div>
+</div>
+
+<div id="tc-modal-overlay" onclick="if(event.target===this)tcClose(true)"><div id="tc-modal"><h3 data-i18n="teamchat.title">💬 Teamchat öffnen</h3><p data-i18n-html="teamchat.body">Bitte melde dich mit diesem Button an –<br>nicht mit E-Mail und Passwort.</p><div class="tc-sso-hint"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="OpenID Symbol"><path d="M7.19995 1.2V15.2L9.59995 14V0L7.19995 1.2Z" fill="#F48018"/><path d="M15.6652 5.3302L16.0001 8.80002L11.313 7.85391" fill="#AEB0B3"/><path d="M10 4.61206V6.19484C11.015 6.37555 12.0439 6.71905 12.768 7.17939L14.4821 6.09046C13.3141 5.34815 11.686 4.82159 10 4.61206ZM2.42378 9.90251C2.42378 8.13669 4.2954 6.64895 6.84567 6.19484V4.61206C2.94414 5.09733 0 7.28065 0 9.90251C0 12.5244 3.08942 14.8262 7.2 15.2V13.6001C4.43386 13.2433 2.42378 11.7657 2.42378 9.90251Z" fill="#AEB0B3"/></svg>{{APP_NAME}}</div><div class="tc-btn-row"><button class="tc-go" onclick="tcClose(true)" data-i18n="common.next">Weiter</button><button class="tc-skip" onclick="tcClose(false)" data-i18n="common.cancel">Abbrechen</button></div></div></div>
+
+<script src="/marked.min.js"></script>
+<script src="/purify.min.js"></script>
+<script src="/simplewebauthn-browser.min.js"></script>
+<script>window.FK_APP_NAME = "{{APP_NAME}}";</script>
+<script src="/js/i18n.js?v=1"></script>
+<script src="/js/render-math-mermaid.js?v=1"></script>
+<script src="/js/state.js?v=1"></script>
+<script src="/js/session-bootstrap.js?v=1"></script>
+<script src="/js/chat-history.js?v=1"></script>
+<script src="/js/modes.js?v=1"></script>
+<script src="/js/auth.js?v=1"></script>
+<script src="/js/ui-chrome.js?v=1"></script>
+<script src="/js/chat-session.js?v=1"></script>
+<script src="/js/chat-input.js?v=1"></script>
+<script src="/js/paperless.js?v=1"></script>
+<script src="/js/dictation.js?v=1"></script>
+<script src="/js/feedback.js?v=1"></script>
+<script src="/js/message-render.js?v=1"></script>
+<script src="/js/message-actions.js?v=1"></script>
+<script src="/js/symbols-wizard.js?v=1"></script>
+<script src="/js/chat-send.js?v=1"></script>
+<script src="/js/hilfe-bubble.js?v=1"></script>
+<script src="/js/account-self-service.js?v=1"></script>
+<script src="/js/admin-stats.js?v=1"></script>
+</body>
+</html>

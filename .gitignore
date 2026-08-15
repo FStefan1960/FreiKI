@@ -23,8 +23,11 @@ caddy-config/
 
 # Instanz-spezifische Dateien (bleiben auf dem Server, werden nicht überschrieben)
 # Kern (muss auf allen Instanzen identisch sein): freiki-ui/server.js,
-# freiki-ui/public/style.css, freiki-ui/public/sw.js
+# freiki-ui/public/index.html, freiki-ui/public/style.css, freiki-ui/public/sw.js
 # Siehe setup/check-core-sync.sh, um eine Instanz gegen origin/main zu prüfen.
+# index.html ist seit der Modularisierung (public/js/*.js + generisches Extras-Panel,
+# 2026-08-15) tatsächlich instanzunabhängig und daher - anders als vorher - nicht
+# mehr hier gelistet, sondern regulär versioniert.
 #
 # Extras (kundenspezifische "Plugins"): Manifest + Seite gehören komplett unter
 # freiki-ui/public/extras/ (z.B. extras/medienspiegel.json + extras/medienspiegel.html),
@@ -33,7 +36,6 @@ docker-compose.yml
 setup/backup.sh
 setup/restore.sh
 caddy/Caddyfile
-freiki-ui/public/index.html
 freiki-ui/public/header.png
 freiki-ui/public/app-header.png
 freiki-ui/public/app-icon-192.png
