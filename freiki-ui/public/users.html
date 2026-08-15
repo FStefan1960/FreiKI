@@ -145,7 +145,7 @@
     <input type="text" id="u-filter" class="u-filter" placeholder="Suchen (Name, Benutzer, Funktion) …">
     <div id="table-wrap"><p style="color:#9ca3af">Lade …</p></div>
   </div>
-  <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+  <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}" aria-label="Zurück" type="button">← Zurück</button>
 </div>
 
 <!-- Edit-Modal -->
@@ -153,7 +153,7 @@
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="edit-title">Nutzer bearbeiten</h3>
-      <button class="modal-close" id="edit-close" title="Schließen">×</button>
+      <button class="modal-close" id="edit-close" title="Schließen" aria-label="Schließen" type="button">×</button>
     </div>
     <div id="edit-body"></div>
   </div>
