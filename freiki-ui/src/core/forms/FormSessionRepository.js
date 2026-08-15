@@ -114,7 +114,7 @@ async function purgeOld() {
 
 function startFormSessionPurgeSchedule() {
   purgeOld();
-  setInterval(purgeOld, 24 * 60 * 60 * 1000);
+  setInterval(purgeOld, 24 * 60 * 60 * 1000).unref();
 }
 
 module.exports = {

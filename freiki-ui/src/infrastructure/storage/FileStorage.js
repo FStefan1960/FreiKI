@@ -79,7 +79,7 @@ function cleanupUploads() {
 
 function startUploadCleanupSchedule() {
   cleanupUploads();
-  setInterval(cleanupUploads, 6 * 60 * 60 * 1000);
+  setInterval(cleanupUploads, 6 * 60 * 60 * 1000).unref();
 }
 
 module.exports = { upload, uploadAudio, uploadDictation, uploadKB, uploadFormScan, cleanupUploads, startUploadCleanupSchedule };

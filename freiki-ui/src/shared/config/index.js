@@ -8,7 +8,7 @@ const APP_ROOT = path.join(__dirname, '..', '..', '..');
 const config = {
   APP_ROOT,
   PUBLIC_DIR: path.join(APP_ROOT, 'public'),
-  PROMPT_DIR: path.join(APP_ROOT, 'prompts'),
+  PROMPT_DIR: process.env.PROMPT_DIR || path.join(APP_ROOT, 'prompts'),
   FORM_TEMPLATES_DIR: path.join(APP_ROOT, 'form-templates'),
   PORT: 3000,
 

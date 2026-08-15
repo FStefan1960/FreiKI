@@ -417,7 +417,7 @@ async function pollGpuCache() {
     }
   } catch (_) {}
 }
-setInterval(pollGpuCache, 60_000);
+setInterval(pollGpuCache, 60_000).unref();
 pollGpuCache();
 
 router.get('/api/admin/stats', asyncHandler(async (req, res) => {

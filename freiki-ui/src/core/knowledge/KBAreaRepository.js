@@ -2,7 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { config } = require('../../shared/config');
 
-const areasConfig = JSON.parse(fs.readFileSync(path.join(config.APP_ROOT, 'areas.json'), 'utf-8'));
+const areasConfigFile = path.join(config.APP_ROOT, 'areas.json');
+const areasConfig = fs.existsSync(areasConfigFile)
+  ? JSON.parse(fs.readFileSync(areasConfigFile, 'utf-8'))
+  : {};
 
 const KB_TABLES = {};
 const KB_LABELS = {};

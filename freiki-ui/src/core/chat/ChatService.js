@@ -280,7 +280,7 @@ function cleanupGeneratedImages() {
     }
   } catch (_) { /* Verzeichnis ggf. noch leer/nicht vorhanden */ }
 }
-setInterval(cleanupGeneratedImages, 6 * 60 * 60 * 1000);
+setInterval(cleanupGeneratedImages, 6 * 60 * 60 * 1000).unref();
 
 // FLUX ist überwiegend auf englischen Bildbeschreibungen trainiert; kurze deutsche
 // Eingaben ("ein Mann auf einer Wiese") führen gerade beim kleinen 4B-Modell zu

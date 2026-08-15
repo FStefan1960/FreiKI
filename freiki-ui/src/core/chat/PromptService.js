@@ -21,7 +21,7 @@ const basePromptText = fs.existsSync(basePromptFile)
   ? fs.readFileSync(basePromptFile, 'utf-8').trim() + '\n\n'
   : '';
 
-fs.readdirSync(config.PROMPT_DIR)
+(fs.existsSync(config.PROMPT_DIR) ? fs.readdirSync(config.PROMPT_DIR) : [])
   .filter(f => f.endsWith('.md') && !f.startsWith('_'))
   .sort()
   .forEach((file, fileIndex) => {

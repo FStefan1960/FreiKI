@@ -63,7 +63,7 @@ async function purgeOld() {
 
 function startRetentionPurgeSchedule() {
   purgeOld();
-  setInterval(purgeOld, 24 * 60 * 60 * 1000);
+  setInterval(purgeOld, 24 * 60 * 60 * 1000).unref();
 }
 
 const REPORT_HOUR_BERLIN = 7; // Uhrzeit (Europe/Berlin), zu der der Tagesbericht verschickt wird
@@ -91,7 +91,7 @@ async function checkAndSendDailyReport() {
 }
 
 function startDailyReportSchedule() {
-  setInterval(checkAndSendDailyReport, 60 * 60 * 1000);
+  setInterval(checkAndSendDailyReport, 60 * 60 * 1000).unref();
 }
 
 module.exports = { ensureSchema, checkAndLog, list, listDefaultRoleLast24h, startDailyReportSchedule, purgeOld, startRetentionPurgeSchedule };
