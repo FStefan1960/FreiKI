@@ -150,6 +150,11 @@ async function changeLanguage(uid, rawInput) {
   return { ok: true, language: normalized };
 }
 
+async function changeEnterToSend(uid, enterToSend) {
+  await users.updateEnterToSend(uid, enterToSend);
+  return { ok: true, enterToSend: !!enterToSend };
+}
+
 // Legt einen Nutzer an; generiert bei Bedarf ein Passwort und verschickt die Willkommensmail.
 async function createUser(fields) {
   let password = fields.password;
@@ -236,7 +241,7 @@ async function resetPasskeys(uid) {
 
 module.exports = {
   login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA, requestReinit2FA,
-  changePassword, changeLanguage, createUser, resetPassword, resendWelcome,
+  changePassword, changeLanguage, changeEnterToSend, createUser, resetPassword, resendWelcome,
   getPasskeyLoginOptions, verifyPasskeyLogin, getPasskeyRegistrationOptions,
   confirmPasskeyRegistration, listPasskeys, removePasskey, resetPasskeys,
 };

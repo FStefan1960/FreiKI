@@ -67,6 +67,15 @@ describe('API Routes & Authorization (Native Fetch / No External Dependencies)',
     assert.ok([401, 403].includes(res.status), `Erwartet 401/403, erhalten: ${res.status}`);
   });
 
+  it('POST /api/change-enter-to-send sollte nicht authentifizierte Anfragen mit 401 abweisen', async () => {
+    const res = await fetch(`${baseUrl}/api/change-enter-to-send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enterToSend: false })
+    });
+    assert.strictEqual(res.status, 401);
+  });
+
   it('GET /api/admin/audit sollte für unauthentifizierte Anfragen gesperrt sein', async () => {
     const res = await fetch(`${baseUrl}/api/admin/audit`);
     assert.ok([401, 403].includes(res.status), `Erwartet 401/403, erhalten: ${res.status}`);

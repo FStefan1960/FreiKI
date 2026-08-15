@@ -196,5 +196,8 @@
   "admin.sent_check": "✓ envoyé",
   "admin.error_x": "✗ Erreur",
   "admin.report_send_failed": "Erreur lors de l'envoi du rapport quotidien",
-  "tts.read": "Lire"
+  "tts.read": "Lire",
+  "input.message_placeholder_ctrl": "Saisissez un message ou déposez un fichier ici... (Entrée pour un paragraphe, Ctrl+Entrée pour envoyer)",
+  "account_menu.enter_to_send_on": "Touche Entrée : Envoyer",
+  "account_menu.enter_to_send_off": "Touche Entrée : Nouveau paragraphe"
 }

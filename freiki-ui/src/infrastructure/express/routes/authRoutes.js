@@ -208,6 +208,19 @@ router.delete('/api/webauthn/credentials/:id', asyncHandler(async (req, res) => 
   } catch (e) { console.error('webauthn/credentials delete:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
 
+router.post('/api/change-enter-to-send', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const { enterToSend } = req.body || {};
+  try {
+    const result = await AuthService.changeEnterToSend(s.uid, !!enterToSend);
+    res.json(result);
+  } catch (e) {
+    console.error('change-enter-to-send error:', e.message);
+    res.status(500).json({ error: 'Verbindungsfehler' });
+  }
+}));
+
 router.get('/api/me', asyncHandler(async (req, res) => {
   const s = getSession(req);
   if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });

@@ -196,5 +196,8 @@
   "admin.sent_check": "✓ sent",
   "admin.error_x": "✗ Error",
   "admin.report_send_failed": "Error sending the daily report",
-  "tts.read": "Read aloud"
+  "tts.read": "Read aloud",
+  "input.message_placeholder_ctrl": "Type a message or drag a file here... (Enter for a paragraph, Ctrl+Enter to send)",
+  "account_menu.enter_to_send_on": "Enter behavior: Send",
+  "account_menu.enter_to_send_off": "Enter behavior: New paragraph"
 }

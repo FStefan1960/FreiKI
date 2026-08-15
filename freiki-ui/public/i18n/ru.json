@@ -196,5 +196,8 @@
   "admin.sent_check": "✓ отправлено",
   "admin.error_x": "✗ Ошибка",
   "admin.report_send_failed": "Ошибка при отправке дневного отчёта",
-  "tts.read": "Прослушать"
+  "tts.read": "Прослушать",
+  "input.message_placeholder_ctrl": "Введите сообщение или перетащите файл сюда... (Enter — новый абзац, Ctrl+Enter — отправить)",
+  "account_menu.enter_to_send_on": "Клавиша Enter: отправка",
+  "account_menu.enter_to_send_off": "Клавиша Enter: новый абзац"
 }

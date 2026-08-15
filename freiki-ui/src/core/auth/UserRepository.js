@@ -13,7 +13,8 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS totp_backup_codes JSONB NOT NULL DEFAULT '[]',
       ADD COLUMN IF NOT EXISTS telefon TEXT NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'de'
+      ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'de',
+      ADD COLUMN IF NOT EXISTS enter_to_send BOOLEAN NOT NULL DEFAULT true
   `);
 }
 
@@ -27,7 +28,7 @@ function findById(id) {
 }
 
 function findProfileById(id) {
-  return pool.query('SELECT username, email, role, first_name, last_name, funktion, telefon, language FROM freiki_users WHERE id=$1', [id])
+  return pool.query('SELECT username, email, role, first_name, last_name, funktion, telefon, language, enter_to_send FROM freiki_users WHERE id=$1', [id])
     .then(r => r.rows[0] || null);
 }
 
@@ -87,6 +88,12 @@ async function updateLanguage(id, language) {
   return rowCount > 0;
 }
 
+// Gezielte Selbst-Service-Änderung nur des Enter-Verhaltens, analog zu updateLanguage().
+async function updateEnterToSend(id, enterToSend) {
+  const { rowCount } = await pool.query('UPDATE freiki_users SET enter_to_send=$1, updated_at=now() WHERE id=$2', [!!enterToSend, id]);
+  return rowCount > 0;
+}
+
 async function remove(id) {
   const { rowCount } = await pool.query('DELETE FROM freiki_users WHERE id=$1', [id]);
   return rowCount > 0;
@@ -129,7 +136,7 @@ const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@
 
 module.exports = {
   VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById,
-  listAll, create, update, updatePasswordHash, updateLanguage, remove, listAdminEmails,
+  listAll, create, update, updatePasswordHash, updateLanguage, updateEnterToSend, remove, listAdminEmails,
   setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes,
   isValidUsername, isValidEmail, cleanAreas,
 };
