@@ -131,7 +131,7 @@
       <div><label>Funktion</label><input type="text" id="n-funktion" autocomplete="off"></div>
       <div><label>Telefon</label><input type="text" id="n-telefon" autocomplete="off"></div>
       <div><label>E-Mail</label><input type="text" id="n-email" autocomplete="off"></div>
-      <div><label>Sprache <span style="font-weight:400;color:#9ca3af">(leer = Deutsch)</span></label><input type="text" id="n-sprache" placeholder="de" autocomplete="off"></div>
+      <div><label>Antwortsprache <span style="font-weight:400;color:#9ca3af">(leer = Deutsch)</span></label><input type="text" id="n-sprache" placeholder="de" autocomplete="off"></div>
       <div><label>Rolle</label><select id="n-role"><option value="default">User</option><option value="high_risk">Berufsgeheimnisträger (BGT)</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
       <div><label>Nutzen</label><div id="n-use"></div></div>
       <div><label>Paperless-Zugriff</label><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="n-paperless"> Archiv durchsuchen</label></div>
@@ -259,7 +259,7 @@ function renderRows(){
   }
   if(!list.length){ wrap.innerHTML='<p style="color:#9ca3af">Keine Treffer.</p>'; return; }
   const table=document.createElement('table'); table.className='utable';
-  const cols=[['Benutzer','username'],['Name','name'],['Funktion','funktion'],['Sprache','language'],['Rolle','role'],['Status','status']];
+  const cols=[['Benutzer','username'],['Name','name'],['Funktion','funktion'],['Antwortsprache','language'],['Rolle','role'],['Status','status']];
   table.innerHTML='<thead><tr>'+cols.map(([label,key])=>{
     const arrow=sortKey===key?(sortDir===1?' ▲':' ▼'):'';
     return '<th data-sort="'+key+'" style="cursor:pointer;user-select:none;">'+label+arrow+'</th>';
@@ -310,7 +310,7 @@ function buildEditCard(u){
     field('Funktion', textInput('funktion'));
     field('Telefon', textInput('telefon'));
     field('E-Mail', textInput('email'));
-    field('Sprache', textInput('language'));
+    field('Antwortsprache', textInput('language'));
 
     const selR=document.createElement('select');
     [['default','User'],['high_risk','Berufsgeheimnisträger (BGT)'],['manager','Manager'],['admin','Admin']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;if(v===u.role)o.selected=true;selR.appendChild(o);});
