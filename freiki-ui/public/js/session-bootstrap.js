@@ -80,13 +80,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 function updateEnterToSendUI() {
   const btn = document.getElementById('enter-to-send-toggle');
-  const label = document.getElementById('enter-to-send-label');
+  const labelOn = document.getElementById('enter-to-send-label-on');
+  const labelOff = document.getElementById('enter-to-send-label-off');
   if (btn) btn.setAttribute('aria-pressed', String(enterToSend));
-  if (label) {
-    label.textContent = enterToSend
-      ? window.t('account_menu.enter_to_send_on', 'Enter-Verhalten: Senden')
-      : window.t('account_menu.enter_to_send_off', 'Enter-Verhalten: Absatz');
-  }
+  // Text kommt jetzt ausschliesslich ueber das data-i18n-Attribut der beiden Spans
+  // (wie bei allen anderen Menuepunkten) - hier wird nur noch umgeschaltet, welcher
+  // sichtbar ist. Kein window.t()-Aufruf mehr, also auch kein Race gegen den
+  // i18n-Dict-Fetch mehr moeglich.
+  if (labelOn) labelOn.style.display = enterToSend ? '' : 'none';
+  if (labelOff) labelOff.style.display = enterToSend ? 'none' : '';
   const input = document.getElementById('message-input');
   if (input) {
     input.placeholder = enterToSend
