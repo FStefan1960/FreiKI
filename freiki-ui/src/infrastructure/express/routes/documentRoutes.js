@@ -8,6 +8,7 @@ const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
 const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
+const { markdownToPptxBuffer } = require('../../../core/documents/PptxExportService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { safeEqual } = require('../../../shared/utils/security');
 
@@ -25,6 +26,21 @@ router.post('/api/export-docx', asyncHandler(async (req, res) => {
   const safeName = (filename || 'antwort').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'antwort';
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.docx`);
+  res.send(buffer);
+}));
+
+// Wandelt eine Chat-Antwort (Markdown mit #/##-Ueberschriften als Folien) in eine
+// .pptx-Gliederung um - analog zu /api/export-docx.
+router.post('/api/export-pptx', asyncHandler(async (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+  const { text, filename } = req.body || {};
+  if (!text || !String(text).trim()) return res.status(400).json({ error: 'Kein Text übergeben' });
+
+  const buffer = await markdownToPptxBuffer(text);
+  const safeName = (filename || 'gliederung').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'gliederung';
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.pptx`);
   res.send(buffer);
 }));
 

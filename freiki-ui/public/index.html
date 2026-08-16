@@ -398,6 +398,17 @@
   </div>
 </div>
 
+<div id="pptx-export-modal" class="modal-overlay" onclick="if(event.target===this)closePptxExportModal()">
+  <div class="modal" style="max-width:360px;">
+    <h3 data-i18n="pptx_export.title">📊 Als PowerPoint-Gliederung herunterladen</h3>
+    <input id="pptx-export-filename" type="text" placeholder="Dateiname" data-i18n-placeholder="word_export.filename_placeholder" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;" onkeydown="if(event.key==='Enter')submitPptxExport()">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closePptxExportModal()" data-i18n="common.cancel">Abbrechen</button>
+      <button class="modal-submit" onclick="submitPptxExport()" data-i18n="word_export.download">Herunterladen</button>
+    </div>
+  </div>
+</div>
+
 <div id="feature-hint-modal" class="modal-overlay" onclick="if(event.target===this)closeFeatureHint()">
   <div class="modal" style="max-width:380px;">
     <h3 id="feature-hint-title"></h3>

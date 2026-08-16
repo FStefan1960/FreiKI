@@ -86,6 +86,7 @@
   "lang_modal.current_prefix": "Actual:",
   "lang_modal.placeholder": "p. ej. English, italiano, français …",
   "word_export.title": "📄 Descargar como Word",
+  "pptx_export.title": "📊 Descargar como esquema de PowerPoint",
   "word_export.filename_placeholder": "Nombre de archivo",
   "word_export.download": "Descargar",
   "symbols.title": "🧩 Elegir símbolo",
