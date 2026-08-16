@@ -1,6 +1,6 @@
     // UI-Sprache: Deutsch bleibt unverändert im Markup (Fallback), en/fr/es sind ein
     // Overlay per data-i18n-Attribut + Wörterbuch aus /i18n/<lang>.json.
-    const FK_SUPPORTED_LANGS = ['de', 'en', 'fr', 'es', 'ru'];
+    const FK_SUPPORTED_LANGS = ['de', 'en', 'fr', 'es', 'ru', 'id', 'mg'];
     function fkGetUiLang() {
       const stored = localStorage.getItem('fk_ui_lang');
       if (stored && FK_SUPPORTED_LANGS.includes(stored)) return stored;

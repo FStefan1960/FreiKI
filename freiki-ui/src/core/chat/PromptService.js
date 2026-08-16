@@ -8,7 +8,7 @@ const modesConfig = [];
 
 // UI-Sprachen, für die title_<lang>/desc_<lang>/hint_<lang> im Frontmatter gelesen werden.
 // Fehlt ein Feld für eine Sprache, greift der deutsche Standardwert (siehe localizeMode()).
-const UI_LANGS = ['en', 'fr', 'es', 'ru'];
+const UI_LANGS = ['en', 'fr', 'es', 'ru', 'id', 'mg'];
 
 const DEFAULT_HINT_DE = '💡 Datei hochladen mit <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="vertical-align:-2px"><path d="M14 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M12 12v7"></path><path d="m9 16 3-3 3 3"></path></svg>, dann senden.';
 
