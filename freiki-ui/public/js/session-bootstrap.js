@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tcBtn = document.getElementById('teamchat-btn');
     if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';
     enterToSend = me.enter_to_send !== false;
+    if (window.FK_I18N_READY) await window.FK_I18N_READY;
     updateEnterToSendUI();
     loadModes();
     loadTips();

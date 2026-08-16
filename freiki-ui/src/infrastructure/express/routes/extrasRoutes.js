@@ -8,6 +8,7 @@ const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
 const { PDFDocument } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
+const { symbolsToDocxBuffer } = require('../../../core/documents/DocxExportService');
 
 // Siehe FormFillService.js für die ausführliche Begründung (echte Unicode-Schrift statt
 // pdf-lib-Standardfonts, wegen Zeichenumrissen/Mehrsprachigkeit).
@@ -278,6 +279,18 @@ router.post('/api/leichte-sprache/symbols/pdf', express.json({ limit: '15mb' }),
   const buffer = Buffer.from(await pdfDoc.save());
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename="leichte-sprache-symbole.pdf"');
+  res.send(buffer);
+}));
+
+// Wie /symbols/pdf oben, nur als .docx statt .pdf (siehe DocxExportService.symbolsToDocxBuffer).
+router.post('/api/leichte-sprache/symbols/word', express.json({ limit: '15mb' }), asyncHandler(async (req, res) => {
+  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const lines = Array.isArray(req.body?.lines) ? req.body.lines : [];
+  if (!lines.length) return res.status(400).json({ error: 'Keine Zeilen' });
+
+  const buffer = await symbolsToDocxBuffer(lines);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', 'attachment; filename="leichte-sprache-symbole.docx"');
   res.send(buffer);
 }));
 

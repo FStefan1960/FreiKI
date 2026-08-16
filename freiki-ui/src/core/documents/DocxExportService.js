@@ -1,4 +1,4 @@
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = require('docx');
+const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = require('docx');
 
 // Zerlegt eine Zeile in TextRuns und wertet dabei **fett** und `code` aus.
 function parseInline(line) {
@@ -119,4 +119,34 @@ async function textToDocxBuffer(text) {
   return Packer.toBuffer(doc);
 }
 
-module.exports = { textToDocxBuffer };
+const SYMBOLS_ICON_SIZE = 40; // px, entspricht in etwa der ICON_SIZE aus dem PDF-Export
+
+// Baut aus den im Symbole-Wizard bestätigten Zeilen (Text + optionales Piktogramm als
+// data:image/png;base64,-URL, siehe extrasRoutes.js) ein Word-Dokument - ein Piktogramm
+// und der zugehörige Text pro Zeile, analog zum bestehenden PDF-Export.
+function symbolsToDocx(lines) {
+  const paragraphs = lines.map(line => {
+    const children = [];
+    if (line.imageDataUrl && /^data:image\/png;base64,/.test(line.imageDataUrl)) {
+      try {
+        const base64 = line.imageDataUrl.split(',')[1];
+        children.push(new ImageRun({
+          type: 'png',
+          data: Buffer.from(base64, 'base64'),
+          transformation: { width: SYMBOLS_ICON_SIZE, height: SYMBOLS_ICON_SIZE },
+        }));
+        children.push(new TextRun({ text: '  ' }));
+      } catch (_) { /* Bild überspringen, Text bleibt lesbar */ }
+    }
+    children.push(new TextRun(String(line.text || '')));
+    return new Paragraph({ children, spacing: { after: 200 } });
+  });
+  return new Document({ sections: [{ properties: {}, children: paragraphs }] });
+}
+
+async function symbolsToDocxBuffer(lines) {
+  const doc = symbolsToDocx(lines);
+  return Packer.toBuffer(doc);
+}
+
+module.exports = { textToDocxBuffer, symbolsToDocxBuffer };

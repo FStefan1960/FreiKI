@@ -28,6 +28,73 @@ function removeFile() {
   document.getElementById('file-preview').classList.remove('show');
 }
 
+function attachFile(file) {
+  if (modes[currentMode]?.multifile) {
+    selectedFiles = [...selectedFiles, file];
+    document.getElementById('file-name').textContent =
+      selectedFiles.length === 1 ? file.name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', selectedFiles.length);
+  } else {
+    selectedFile = file;
+    document.getElementById('file-name').textContent = file.name;
+  }
+  document.getElementById('file-preview').classList.add('show');
+}
+
+function insertTextAtCursor(text) {
+  const input = document.getElementById('message-input');
+  const start = input.selectionStart, end = input.selectionEnd;
+  input.value = input.value.slice(0, start) + text + input.value.slice(end);
+  input.selectionStart = input.selectionEnd = start + text.length;
+  autoResize(input);
+  input.focus();
+}
+
+// ── Einfügen (Button) ──
+// navigator.clipboard.read() braucht eine Nutzeraktion und wird nicht überall unterstützt
+// (Firefox/Safari lehnen Bild-Zugriff oft ab) - dann bleibt Strg+V als Fallback.
+async function pasteFromClipboard() {
+  if (!navigator.clipboard?.read) {
+    document.getElementById('message-input').focus();
+    alert(t('js.paste_use_shortcut', 'Bitte Strg+V (oder Cmd+V) im Eingabefeld verwenden.'));
+    return;
+  }
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      const imageType = item.types.find(ty => ty.startsWith('image/'));
+      if (imageType) {
+        const blob = await item.getType(imageType);
+        attachFile(new File([blob], `Einfuegung.${imageType.split('/')[1] || 'png'}`, { type: imageType }));
+        return;
+      }
+    }
+    const textItem = items.find(item => item.types.includes('text/plain'));
+    if (textItem) {
+      const blob = await textItem.getType('text/plain');
+      insertTextAtCursor(await blob.text());
+      return;
+    }
+    alert(t('js.paste_empty', 'Die Zwischenablage enthält keinen unterstützten Inhalt.'));
+  } catch (e) {
+    document.getElementById('message-input').focus();
+    alert(t('js.paste_use_shortcut', 'Bitte Strg+V (oder Cmd+V) im Eingabefeld verwenden.'));
+  }
+}
+
+// ── Einfügen (Strg+V im Textfeld) ──
+// Bilder (z.B. Screenshot) werden als Anhang übernommen, reiner Text läuft normal weiter
+// über das native Paste-Verhalten des Textarea.
+document.getElementById('message-input').addEventListener('paste', e => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  const imageItem = Array.from(items).find(item => item.type.startsWith('image/'));
+  if (!imageItem) return;
+  const blob = imageItem.getAsFile();
+  if (!blob) return;
+  e.preventDefault();
+  attachFile(new File([blob], `Einfuegung.${imageItem.type.split('/')[1] || 'png'}`, { type: imageItem.type }));
+});
+
 
 // ── Drag & Drop ──
 const inputBox = document.getElementById('input-box');

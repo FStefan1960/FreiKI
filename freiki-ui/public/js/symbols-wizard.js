@@ -169,6 +169,12 @@ function finishSymbolsWizard() {
     pdfBtn.onclick = function() { exportSymbolsAsPdf(w.chosen, this); };
     wrap.appendChild(pdfBtn);
 
+    const wordBtn = document.createElement('button');
+    wordBtn.className = 'copy-btn symbols-btn';
+    wordBtn.innerHTML = SYMBOLS_ICON + ' <span>' + t('symbols.as_word', 'Als Word') + '</span>';
+    wordBtn.onclick = function() { exportSymbolsAsWord(w.chosen, this); };
+    wrap.appendChild(wordBtn);
+
     bubble.appendChild(wrap);
   }
 
@@ -205,5 +211,36 @@ async function exportSymbolsAsPdf(chosenLines, btn) {
     return;
   }
   btn.innerHTML = SYMBOLS_ICON + ' <span>' + t('symbols.as_pdf', 'Als PDF') + '</span>';
+  btn.disabled = false;
+}
+
+async function exportSymbolsAsWord(chosenLines, btn) {
+  btn.innerHTML = '<span class="tts-spinner"></span> <span>…</span>';
+  btn.disabled = true;
+  try {
+    const lines = chosenLines.map(l => ({ text: l.text, imageDataUrl: l.pictogram ? l.pictogram.url : null }));
+    const res = await fetch('/api/leichte-sprache/symbols/word', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lines }),
+    });
+    if (res.status === 401) { forceLogout(); return; }
+    if (!res.ok) throw new Error('Word ' + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leichte-sprache-symbole.docx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Word-Export fehlgeschlagen:', e.message);
+    btn.innerHTML = SYMBOLS_ICON + ' <span>' + t('common.error_word', 'Fehler') + '</span>';
+    setTimeout(() => { btn.innerHTML = SYMBOLS_ICON + ' <span>' + t('symbols.as_word', 'Als Word') + '</span>'; btn.disabled = false; }, 2000);
+    return;
+  }
+  btn.innerHTML = SYMBOLS_ICON + ' <span>' + t('symbols.as_word', 'Als Word') + '</span>';
   btn.disabled = false;
 }

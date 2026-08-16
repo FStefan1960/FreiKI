@@ -45,4 +45,6 @@
     window.t = function(key, germanDefault) {
       return (window.FK_I18N_DICT && window.FK_I18N_DICT[key]) || germanDefault;
     };
-    document.addEventListener('DOMContentLoaded', () => fkApplyUiLang(fkGetUiLang()));
+    document.addEventListener('DOMContentLoaded', () => {
+      window.FK_I18N_READY = fkApplyUiLang(fkGetUiLang());
+    });
