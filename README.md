@@ -3,6 +3,16 @@ FreiKi - Die souveräne Datenschutz-KI
 
 FreiKI ist eine selbst gehostete KI-Assistenz-Plattform auf Basis von Open-Source-Komponenten. Sie dient als Referenzimplementierung und Demo-Instanz — alle Weiterentwicklungen entstehen hier zuerst und werden anschließend in abgeleitete Instanzen (KorKI, FrankKI/BeB-KI) portiert.
 
+## 💬 Feedback & Mitwirken (Issues)
+
+FreiKI ist ein fortlaufendes Projekt und lebt vom Austausch! Wenn du das System testest oder auf deinem eigenen Server betreibst, freue ich mich über dein Feedback.
+
+### Wie du helfen kannst:
+* **🐛 Fehler gefunden?** Falls ein Docker-Container nicht startet, das Web-Interface hakt oder ein RAG-Fehler auftritt, erstelle bitte einen **Bug Report**.
+* **💡 Idee für ein Feature?** Wenn du einen Vorschlag für neue Wissens-Modi, zusätzliche Tools oder Verbesserungen an der PWA hast, erstelle einen **Feature Request**.
+
+Klicke dazu einfach oben auf den Reiter **[Issues](https://github.com)** und wähle die passende Vorlage aus. Bitte fülle die technischen Details (wie z. B. deine FreiKI-Version oder Docker-Logs) so gut wie möglich aus, damit wir das Problem schnell gemeinsam lösen können!
+
 ## Architektur
 
 ```
