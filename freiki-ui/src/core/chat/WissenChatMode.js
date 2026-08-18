@@ -171,7 +171,7 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
   const vllmRes = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
-    body: JSON.stringify({ model: config.VLLM_MODEL, messages, stream: true, max_tokens: 4096, ...THINKING_KWARGS })
+    body: JSON.stringify({ model: config.VLLM_MODEL, messages, stream: true, max_tokens: 4096, temperature: 0, ...THINKING_KWARGS })
   });
   if (!vllmRes.ok) throw new Error(`vLLM Fehler ${vllmRes.status}`);
 

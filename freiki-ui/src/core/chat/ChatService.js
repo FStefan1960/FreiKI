@@ -63,16 +63,21 @@ async function handleChat(req, res) {
     const isQrGen      = modeConf?.qrgen || false;
     const wissenKey    = mode.startsWith('w_') ? mode.slice(2) : mode;
     const isWissen     = modeConf?.workspace === 'wissen';
-    const username = req.body.username || 'unknown';
+    // Session-Username ist die Quelle der Wahrheit (JWT). req.body.username ist nur Fallback
+    // für alte Clients: der 15-Minuten-Health-Check sendet JSON ohne username-Feld und
+    // landete sonst als "unknown" – genau die Werte, die der Nutzungsbericht herausfiltert.
+    const username = req.session?.username || req.body.username || 'unknown';
 
     // Bereiche, auf die der Nutzer laut use_areas Zugriff hat (null = uneingeschränkt/admin).
     // Live aus der DB gelesen (nicht aus dem JWT), da use_areas sich seit dem Login geändert
     // haben kann; gleiche Logik wie /api/modes und answerBotChat.
     let allowedAreaKeys = null;
-    if (isWissen && req.session?.uid && req.session.role !== 'admin') {
+    let liveRow = null;
+    const needsLiveAreas = isWissen && req.session?.uid && req.session.role !== 'admin';
+    if (needsLiveAreas) {
       try {
-        const row = await users.findLiveAreasById(req.session.uid);
-        const liveUse = row?.use_areas || [];
+        liveRow = await users.findLiveAreasById(req.session.uid);
+        const liveUse = liveRow?.use_areas || [];
         if ((req.session.role === 'default' || req.session.role === 'high_risk' || req.session.role === 'manager') && liveUse.length) {
           allowedAreaKeys = liveUse.map(normArea);
         }
@@ -88,8 +93,12 @@ async function handleChat(req, res) {
     // oben (ein Admin kann die Sprache ändern, ohne dass sich der Nutzer neu einloggen muss).
     // Nicht bei Übersetzen/Bildgenerierung/QR-Code angewendet - diese Modi haben entweder
     // schon eine eigene Sprachlogik (Übersetzen) oder erzeugen keinen Fließtext.
+    // liveRow (falls oben schon geladen) bringt language gleich mit - spart im Wissen-Modus
+    // einen zweiten Roundtrip zu findLiveLanguageById().
     let userLanguage = 'de';
-    if (req.session?.uid) {
+    if (liveRow) {
+      userLanguage = liveRow.language || 'de';
+    } else if (req.session?.uid) {
       try { userLanguage = await users.findLiveLanguageById(req.session.uid); }
       catch (e) { console.warn('Sprache konnte nicht geladen werden:', e.message); }
     }
