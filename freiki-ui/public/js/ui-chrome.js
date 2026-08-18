@@ -63,7 +63,10 @@ function openToolPanel(src) {
   // zu zeigen - laufende Sitzungen sind serverseitig gespeichert und per PIN wieder erreichbar.
   // Scanner ebenfalls: sonst bleibt eine einmal geladene scanner.html
   // (ohne neuen APPDOC-Button, mit veralteter Antwortsprache) für die ganze Tab-Sitzung liegen.
-  const forceReload = src === '/formular-chat.html' || src === '/scanner.html';
+  // Admin-Dashboard/Prompt-Editor ebenfalls: zeigen Live-Serverdaten (Nutzungsstatistik,
+  // Prompt-Inhalte), die sich zwischen zwei Öffnungen in derselben Tab-Sitzung geändert haben
+  // können - ohne Reload bliebe der Stand vom letzten Öffnen stehen.
+  const forceReload = ['/formular-chat.html', '/scanner.html', '/admin-dashboard.html', '/admin-prompts.html'].includes(src);
   if (forceReload) {
     frame.setAttribute('src', src + '?_r=' + Date.now());
   } else if (frame.getAttribute('src') !== src) {
