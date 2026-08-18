@@ -32,10 +32,22 @@ async function sendWelcomeMail(to, username, password, firstName = '', lastName 
   if (!to || !config.SMTP_HOST) return;
   const brand = getBrandConfig();
   const transporter = createTransporter();
-  const handbuchPath = path.join(config.APP_ROOT, `${brand.name}_Benutzerhandbuch.pdf`);
-  const attachments = fs.existsSync(handbuchPath)
-    ? [{ filename: `${brand.name}_Benutzerhandbuch.pdf`, path: handbuchPath }]
+  // Gesucht in der App-Wurzel (Docker-Image = freiki-ui/) und – falls das Repo
+  // daneben gemountet ist – unter ../docs/. Bindestrich und Unterstrich, weil die
+  // Quellen in docs/ mit Bindestrich liegen (KorKI-Benutzerhandbuch.pdf).
+  const name = brand.name;
+  const handbuchPath = [
+    path.join(config.APP_ROOT, `${name}_Benutzerhandbuch.pdf`),
+    path.join(config.APP_ROOT, `${name}-Benutzerhandbuch.pdf`),
+    path.join(config.APP_ROOT, '..', 'docs', `${name}-Benutzerhandbuch.pdf`),
+    path.join(config.APP_ROOT, '..', 'docs', `${name}_Benutzerhandbuch.pdf`),
+  ].find((p) => fs.existsSync(p));
+  const attachments = handbuchPath
+    ? [{ filename: `${name}_Benutzerhandbuch.pdf`, path: handbuchPath }]
     : [];
+  if (!attachments.length) {
+    console.warn(`Willkommensmail ohne Handbuch-Anhang: ${name}_Benutzerhandbuch.pdf fehlt unter freiki-ui/ (und docs/)`);
+  }
   await transporter.sendMail({
     from: `${brand.name} <${config.SMTP_FROM}>`,
     to,

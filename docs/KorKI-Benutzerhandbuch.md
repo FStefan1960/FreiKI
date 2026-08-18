@@ -1,264 +1,324 @@
 # KorKI – Benutzerhandbuch
 
-> **Hinweis:** Das Erscheinungsbild (Logo, Farben, Name) kann je nach Einsatzort an das Corporate Design Ihrer Organisation angepasst sein. Die Funktionen sind identisch.
+> **Hinweis:** Das Erscheinungsbild (Logo, Farben, Name) kann je nach Einsatzort an das Corporate Design Ihrer Organisation angepasst sein. Welche Menüpunkte, Werkzeuge, Wissensbereiche, Extras und Konto-Einträge Sie sehen, hängt von der **Freigabe Ihres Kontos** und der **Einrichtung der jeweiligen Instanz** ab. Was in diesem Handbuch beschrieben ist, muss in Ihrer App nicht alle sichtbar sein – das ist kein Fehler.
+>
+> **Stand:** Version 0.7.8 (August 2026)
 
 ---
 
 ## 1. Was ist KorKI?
 
-KorKI ist Ihr interner KI-Assistent. Er läuft vollständig auf einem dedizierten Server Ihrer Organisation – Ihre Eingaben verlassen nie Ihre Organisation und werden nicht zum Training der KI verwendet. Kein externer Anbieter hat Zugriff auf Ihre Daten.
+KorKI ist Ihr interner KI-Assistent. Er läuft vollständig auf einem dedizierten Server Ihrer Organisation (lokales Sprachmodell auf eigener GPU). Ihre Eingaben werden nicht zum Training der KI verwendet. Kein externer Anbieter erhält Zugriff auf Chat, Wissen, Archiv oder Sprache – außer bei den bewusst gekennzeichneten Ausnahmen (Web-Recherche, Piktogramme, optionales Weiterbearbeiten von Diagrammen in draw.io, ggf. Bildgenerierung).
 
-KorKI besteht aus mehreren Werkzeugen, die Sie je nach Aufgabe einzeln auswählen. Die Auswahl erfolgt über die Seitenleiste links.
+KorKI ist ein Hilfsinstrument. Alle Ergebnisse müssen geprüft werden. Die Verantwortung liegt bei Ihnen.
 
 ---
 
-## 2. Zugang und Installation
+## 2. Zugang und Oberfläche
 
 KorKI läuft im Browser – keine Installation notwendig. Unterstützte Browser: Chrome, Edge, Firefox, Safari (aktuell).
 
-**Als App installieren (empfohlen):** KorKI kann auf Smartphones, Tablets und Desktop-PCs als App installiert werden (PWA). Öffnen Sie KorKI im Browser und wählen Sie im Browser-Menü „Zum Startbildschirm hinzufügen" (iOS/Android) bzw. das Installations-Symbol in der Adressleiste (Chrome/Edge am PC).
+**Als App installieren (empfohlen):** KorKI ist eine PWA. Öffnen Sie die Adresse im Browser und wählen Sie „Zum Startbildschirm hinzufügen“ (iOS/Android) bzw. das Installations-Symbol in der Adressleiste (Chrome/Edge am PC).
 
-**Anmeldung:** Benutzername und Passwort erhalten Sie von Ihrer IT-Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Schloss-Symbol unten links in der Seitenleiste).
+**Anmeldung:** Benutzername und Passwort erhalten Sie in der Regel von Ihrer Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Konto-Menü → Passwort ändern).
 
----
+**Zugang selbst beantragen:** Manche Instanzen bieten ein öffentliches Formular „Zugang beantragen“ (`/register.html`). Dort tragen Sie Name, Dienststelle, Funktion, Telefon und E-Mail ein. Eine Administratorin oder ein Administrator prüft die Anfrage und schaltet Sie frei – erst danach kommen die Zugangsdaten per E-Mail. Ohne Freischaltung gibt es keinen Login. Ist das Formular bei Ihnen nicht erreichbar, ist die Selbstregistrierung für diese Instanz ausgeschaltet.
 
-## 3. Werkzeuge im Überblick
+- Die Sitzung gilt bis **Mitternacht (Europe/Berlin)**. Danach melden Sie sich erneut an.
+- Auf der Anmeldeseite können Sie die **Oberflächensprache** wählen: Deutsch, Englisch, Französisch, Spanisch, Russisch, Indonesisch, Malagasy.
+- Administratoren und Berufsgeheimnisträger (Rolle BGT) müssen **Zwei-Faktor-Authentifizierung** einrichten (Authenticator-App, Backup-Codes, optional Passkey / Face ID / Touch ID).
+- Wo aktiviert, erscheint beim ersten Login eine **Datenschutz-Schulung**. Alle Folien müssen durchgeklickt werden; die Teilnahme wird dokumentiert.
 
-### 3.1 Chat
+**Aufbau der App:**
 
-Freies Gespräch mit dem lokalen Sprachmodell. Geeignet für:
-- Allgemeine Fragen und Recherchen (ohne Internet – Kenntnisstand des Modells)
-- Texte formulieren, überarbeiten oder kürzen
-- Einfache Berechnungen und Strukturierungsaufgaben
-- Erste Orientierung bei unbekannten Themen
-
-**Datei hochladen:** Klicken Sie auf das 📎-Symbol, um ein Dokument (PDF, DOCX, TXT, Bild) hochzuladen. KorKI liest den Inhalt und bezieht ihn in die Antwort ein.
-
-**Wichtig:** Der Chat hat keinen Internetzugang. Für aktuelle Informationen nutzen Sie den Modus „Web-Recherche".
-
----
-
-### 3.2 Zusammenfassen / OCR
-
-Lädt eine Datei oder ein Foto und fasst den Inhalt strukturiert zusammen.
-
-- **Unterstützte Formate:** PDF, DOCX, TXT, Bilder (JPG, PNG), Scans
-- **Texterkennung (OCR):** Bei Bildern und Scans erkennt KorKI zunächst den Text und gibt ihn aus – danach folgt die Zusammenfassung
-- **Automatische Schwerpunkte:** Bei Bewilligungsbescheiden: Betrag, Zeitraum, Bedingungen, Fristen. Bei E-Mails: Kernanliegen und Handlungsbedarf. Bei Fachartikeln: Kernaussagen und Schlussfolgerungen
-
-**So verwenden Sie es:** Wählen Sie den Modus, klicken Sie auf 📎, laden Sie die Datei hoch und drücken Sie Senden. Eine weitere Eingabe ist nicht notwendig – KorKI beginnt sofort mit der Zusammenfassung.
+| Bereich | Inhalt |
+|---|---|
+| **Seitenleiste links** | Tabs *Werkzeuge*, *Wissen* und (falls vorhanden) *Extras* |
+| **Kopfzeile** | aktuelles Werkzeug, Button **+ Neu**, Hilfe **?**, ggf. Team-Chat |
+| **Chatfenster** | Verlauf, Eingabezeile, Datei-Upload |
+| **Konto unten links** | Avatar/Name öffnet das Konto-Menü; daneben der Abmelden-Button |
 
 ---
 
-### 3.3 Übersetzen ins Deutsche
+## 3. Den Chat bedienen
 
-Übersetzt Texte aus beliebigen Sprachen ins Deutsche.
+### 3.1 Eingabe
 
-- Erkennt die Ausgangssprache automatisch
-- Funktioniert mit eingetipptem Text und mit hochgeladenen Dateien oder Fotos (inkl. OCR)
-- Behält Stil und Struktur des Originals bei
-- Bei Fachtexten werden korrekte deutsche Fachbegriffe verwendet
+- Text eingeben und **Enter** zum Senden (im Konto-Menü umstellbar auf „Enter = neuer Absatz“).
+- **Shift+Enter** erzeugt immer einen Absatz.
+- **Büroklammer:** Datei anhängen (PDF, DOCX, TXT, Bilder; je nach Werkzeug auch mehrere Dateien). Auf dem Smartphone kann der Upload die Kamera öffnen.
+- **Einfügen:** Inhalt aus der Zwischenablage.
+- **Mikrofon** (falls sichtbar): kurze Spracheingabe direkt in die Eingabezeile (Diktat). Lange Aufnahmen gehören ins Werkzeug *Transkription*.
+- Dateien können per **Drag & Drop** ins Eingabefeld gezogen werden.
 
-**Anwendungsbeispiel:** Foto eines fremdsprachigen Beipackzettels hochladen → KorKI erkennt den Text und liefert die deutsche Übersetzung.
+### 3.2 Verlauf
 
----
+Der Chatverlauf bleibt **in Ihrem Browser** gespeichert (pro Benutzer und Werkzeug, bis zu 200 Nachrichten). Er wird nicht auf den Server synchronisiert. Nach dem Abmelden bleibt er auf diesem Gerät erhalten; auf einem anderen Gerät oder nach dem Löschen der Browserdaten ist er weg. **+ Neu** startet einen leeren Chat für das aktuelle Werkzeug.
 
-### 3.4 Übersetzen in andere Sprachen
+### 3.3 Aktionen unter einer Antwort
 
-Übersetzt Texte vom Deutschen (oder einer anderen Sprache) in eine Zielsprache nach Wahl.
+Unter jeder Antwort finden Sie – je nach Inhalt – Schaltflächen:
 
-- Über 100 Sprachen verfügbar
-- Text direkt eingeben oder Datei hochladen
-- Wenn die Zielsprache nicht klar ist, fragt KorKI nach
+- **Vorlesen (m) / Vorlesen (w)** – deutsche Stimmen Thorsten und Kerstin. Bei anderer Oberflächensprache eine passende Stimme. Erneuter Klick stoppt. Gekennzeichnet als KI-Ausgabe.
+- **Kopieren** – Text in die Zwischenablage
+- **Word** – Antwort als `.docx` herunterladen
+- **PowerPoint** – erscheint bei gegliederten Texten (Überschriften) und erzeugt eine `.pptx`
+- **Erneut senden** – dieselbe Frage noch einmal stellen
+- **+ Symbole** – bei Leichter Sprache: Text experimentell mit Piktogrammen illustrieren, danach auch als Word exportierbar
 
-**Anwendungsbeispiel:** Einen Informationsbrief auf Arabisch oder Tagalog übersetzen, um ihn an Mitarbeitende oder Klienten mit anderen Muttersprachen weiterzugeben.
+**Diagramme und Formeln:** Flowcharts und Mindmaps aus dem Chat werden als Diagramm dargestellt. Klick öffnet eine Großansicht (PNG speichern oder – nach Bestätigung – in draw.io weiterbearbeiten; dabei geht der Diagramminhalt an einen externen Dienst). Mathematische Formeln werden lesbar gesetzt.
 
----
-
-### 3.5 Wissenssuche
-
-Suche in den für Sie freigegebenen internen Wissensbereichen. KorKI durchsucht die hinterlegten Dokumente (Richtlinien, Handbücher, Gesetze, interne Prozesse) und antwortet mit konkreter Quellenangabe.
-
-- Nur Wissensbereiche, die Ihre Administration für Sie freigegeben hat, sind sichtbar
-- KorKI antwortet ausschließlich auf Basis der hinterlegten Dokumente
-- Quellenangabe zeigt, aus welchem Dokument/Abschnitt die Antwort stammt
-
-**Anwendungsbeispiel:** „Was muss ich tun, wenn ein Bewohner stürzt?" → KorKI durchsucht die internen Dienstanweisungen und zeigt die genauen Handlungsschritte mit Quellenangabe.
+**Generierte Bilder** und Vorlesen tragen ein **KI-Kennzeichen** (EU-AI-Act-Transparenz).
 
 ---
 
-### 3.6 Berichte & Dokumente
+## 4. Werkzeuge
 
-Erstellt professionelle Dokumente auf Basis Ihrer Angaben. Geeignet für:
+Die Auswahl erfolgt über den Tab **Werkzeuge** in der Seitenleiste. Welche Einträge Sie sehen, richtet sich nach Ihrem Konto.
 
-- Entwicklungsberichte und Förderberichte
-- Arztbriefe und medizinische Zusammenfassungen
-- Gutachten und Stellungnahmen
-- Mitarbeiter- und Praktikantenbeurteilungen
-- Verlaufsberichte und Pflegedokumentationen
+### 4.1 Chat
 
-**Ablauf:** KorKI fragt zunächst nach dem Dokumenttyp (falls nicht angegeben) und dann gezielt nach den benötigten Informationen. Sie können auch eine Vorlage oder Rohnotizen als Datei hochladen.
+Freies Gespräch mit dem lokalen Sprachmodell. Geeignet für Formulieren, Kürzen, Rechnen, Checklisten, Flowcharts, erste Orientierung.
 
----
+**Datei hochladen:** KorKI liest PDF, Word, Text und Bilder (inkl. OCR) und bezieht den Inhalt in die Antwort ein.
 
-### 3.7 MultiDoc – Mehrere Dokumente gleichzeitig
+**Wichtig:** Der Chat hat keinen Internetzugang. Kenntnisstand des Modells, kein Live-Web. Für Aktuelles nutzen Sie *Web-Recherche*.
+
+### 4.2 Zusammenfassen / OCR
+
+Lädt eine Datei, ein Foto oder eingefügten Text und fasst den Inhalt strukturiert zusammen.
+
+- Formate: PDF, DOCX, TXT, Bilder (JPG, PNG, WebP), Scans
+- Bei Bildern und gescannten PDFs erkennt KorKI zuerst den Text, danach folgt die Zusammenfassung
+- Schwerpunkte je nach Texttyp (z. B. Fristen und Beträge bei Bescheiden, Kernanliegen bei E-Mails)
+
+Wählen Sie den Modus, hängen Sie die Datei an und senden Sie. Eine weitere Eingabe ist nicht nötig.
+
+### 4.3 Übersetzen
+
+Ein Werkzeug für alle Richtungen: Standard ist **ins Deutsche**. Eine andere Zielsprache einfach dazuschreiben oder per Beispiel-Button wählen (über 100 Sprachen). Funktioniert mit Tipptext, Datei und Foto (inkl. OCR). Stil und Struktur bleiben möglichst erhalten.
+
+### 4.4 Wissenssuche
+
+Eigene Einträge im Tab **Wissen** (siehe Kapitel 5). Im Werkzeuge-Tab erscheint zusätzlich oft eine übergreifende Suche über alle für Sie freigegebenen Bereiche.
+
+### 4.5 Berichte & Dokumente
+
+Erstellt professionelle Texte auf Basis Ihrer Angaben, z. B. Berichte, Stellungnahmen, Protokolle, Anschreiben. KorKI fragt nach, wenn Angaben fehlen. Eine Vorlage oder Rohnotizen können Sie als Datei hochladen. Die fertige Antwort lässt sich als Word oder PowerPoint speichern.
+
+### 4.6 MultiDoc
 
 Analysiert und vergleicht mehrere Dokumente in einem Schritt.
 
-- **Unterstützte Formate:** PDF, DOCX, TXT
-- Lädt mehrere Dateien gleichzeitig (per 📎 oder Drag & Drop)
-- Erstellt zunächst eine Kurzzusammenfassung jedes Dokuments, dann eine übergreifende Zusammenfassung mit Gemeinsamkeiten und Unterschieden
-- Sie können auch konkrete Fragen zu den hochgeladenen Dokumenten stellen
+- Formate: PDF, DOCX, TXT (mehrere Dateien gleichzeitig, Büroklammer oder Drag & Drop)
+- Zuerst Kurzzusammenfassung je Datei, dann Gemeinsamkeiten und Unterschiede
+- Anschließend konkrete Fragen zu den hochgeladenen Dateien möglich
 
-**Anwendungsbeispiel:** Drei Gutachten zu einem Klienten hochladen → KorKI liefert einen Gesamtüberblick und beantwortet Fragen wie „Welches Gutachten empfiehlt stationäre Betreuung?"
+### 4.7 Web-Recherche
 
----
+Sucht aktuelle Informationen im Internet und fasst sie mit Quellen und URLs zusammen.
 
-### 3.8 Web-Recherche
+⚠️ **Datenschutz:** Ihre Suchanfrage wird ins Internet übertragen. **Keine personenbezogenen oder vertraulichen Daten eingeben.**
 
-Sucht aktuelle Informationen im Internet und fasst die Ergebnisse zusammen.
+### 4.8 Leichte Sprache
 
-⚠️ **Wichtiger Datenschutzhinweis:** Beim Einsatz dieses Werkzeugs wird Ihre Suchanfrage über die interne Metasuchmaschine ins Internet übertragen. **Geben Sie keine personenbezogenen Daten ein.**
+Übersetzt in Leichte Sprache nach dem Regelwerk des Netzwerks Leichte Sprache (**Niveau A2**): kurze Sätze, einfache Wörter, erklärte Fachbegriffe, aktive Sprache. Ausgabe auf Deutsch, unabhängig von der Eingabesprache. Danach optional **+ Symbole** (experimentell).
 
-- Ergebnisse werden mit Quellenangaben und URLs geliefert
-- Geeignet für aktuelle Themen, Gesetzesänderungen, Nachrichten
+### 4.9 Archiv durchsuchen
 
----
+Durchsucht das interne Dokumentenarchiv (Paperless), sofern Ihre Administration den Zugriff freigeschaltet hat.
 
-### 3.9 Leichte Sprache
+- Filter: Freitext, Korrespondent, Dokumenttyp, Tags, Datumsbereich
+- Klick auf ein Ergebnis zeigt den erkannten Text – ohne extra Login ins Archiv
+- Bearbeiten, Löschen oder Umschlagworten erfolgt im Archiv-System selbst, nicht in KorKI
 
-Übersetzt beliebige Texte in Leichte Sprache auf Niveau B1/A2.
+### 4.10 Bilder generieren
 
-- Kurze Sätze, einfache Wörter, keine Abkürzungen oder Fachbegriffe ohne Erklärung
-- Aktive Sprache, positive Formulierungen, Zahlen als Ziffern
-- Ausgabe immer auf Deutsch, unabhängig von der Eingabesprache
-- Funktioniert mit eingetipptem Text und mit hochgeladenen Dateien
+Erzeugt ein Bild aus einer Textbeschreibung (z. B. Clipart, Illustration). Je genauer die Beschreibung, desto besser das Ergebnis. Die Ausgabe ist als KI-generiert gekennzeichnet.
 
-**Anwendungsbeispiel:** Amtsbrief zur Betreuungsplanänderung eingeben → KorKI erstellt eine Version, die Klienten mit kognitiven Einschränkungen selbst lesen können.
+Je nach Instanz kann dafür ein **externer Bilddienst** genutzt werden. Keine Fotos von Personen und keine vertraulichen Inhalte als Prompt verwenden.
 
----
+### 4.11 QR-Code erstellen
 
-### 3.10 Archiv durchsuchen
-
-Durchsucht das interne Dokumentenarchiv nach archivierten Dokumenten.
-
-- **Zugriff:** Nur für Benutzer, denen diese Funktion von der Administration freigeschaltet wurde
-- Suche nach Freitext, Korrespondent, Dokumenttyp, Tags, Datumsbereich
-- Suchergebnisse zeigen Titel, Datum, Typ und Korrespondent
-- Durch Klick auf ein Ergebnis wird der erkannte Text direkt angezeigt – kein separater Login ins Archiv notwendig
+Macht aus Text oder einer URL einen herunterladbaren QR-Code. Geeignet für Links, WLAN-Zugangsdaten, Kontaktdaten (vCard) oder interne `APPDOC:`-Verweise auf Archivdokumente.
 
 ---
 
-### 3.11 Transkription und Sprachausgabe
+## 5. Wissensbereiche
 
-**Transkription (Audio → Text):** Nehmen Sie eine Audiodatei mit einer geeigneten App auf Ihrem Gerät auf und laden Sie sie anschließend über das 📎-Symbol hoch. KorKI transkribiert die Aufnahme und gibt den Text aus.
+Im Tab **Wissen** erscheinen nur Bereiche, die Ihre Administration für Sie freigegeben hat (z. B. interne Richtlinien, Fachrecht, Hilfetexte). KorKI antwortet auf Basis der hinterlegten Dokumente und nennt die Quelle.
 
-Geeignete Aufnahme-Apps:
-- **iOS/iPadOS:** Sprachmemos (vorinstalliert)
-- **macOS:** Sprachmemos (vorinstalliert) oder QuickTime Player → Neue Audioaufnahme
-- **Windows:** Sprachrekorder / Diktiergerät (vorinstalliert)
+Beispiel: „Was muss ich tun, wenn ein Bewohner stürzt?“ → Handlungsschritte aus den hinterlegten Unterlagen mit Angabe des Dokuments.
 
-**Sprachausgabe (Text → Audio):** Klicken Sie auf das 🔊-Symbol neben einer Antwort, um sie vorlesen zu lassen.
-
-Alle Audiodaten werden lokal verarbeitet – nichts wird an externe Dienste übertragen.
+Manager können in freigegebene Bereiche Dokumente hochladen (über die von der Administration vorgesehene Upload-Seite). Sichtbarkeit und Reihenfolge der Bereiche legt die Administration fest.
 
 ---
 
-## 4. Extras
+## 6. Scanner, Formular-Chat und Transkription
 
-Im Tab **„Extras"** in der Seitenleiste finden Sie ergänzende Werkzeuge:
+Diese drei Einträge sitzen fest unter **Werkzeuge** (eigene Bildschirmseiten, nicht der normale Chat).
 
-### 4.1 Piktogramme
+### 6.1 QR-/Barcode-Scanner
 
-Durchsucht die ARASAAC-Bibliothek mit über 12.000 freien Piktogrammen. Geeignet für die Erstellung von Bildkommunikationsmaterial, Tages- und Wochenplänen oder unterstützter Kommunikation.
+Öffnet die Kamera und liest Codes. KorKI schlägt passende Aktionen vor, zum Beispiel:
 
-- Suchbegriff eingeben → Piktogramm auswählen → herunterladen oder kopieren
-- Lizenz: ARASAAC (Creative Commons BY-NC-SA)
+- Link öffnen
+- WLAN-Daten anzeigen
+- Kontakt speichern oder E-Mail starten
+- **EAN/UPC:** Produktsuche inkl. Allergenen und Spuren, sofern bekannt
+- **APPDOC:** öffnet das zugehörige Dokument im internen Archiv (nur mit Archivzugriff); optional den erkannten Text zum Übersetzen übernehmen
 
-### 4.2 Tagesplan
+Die Kamera-Berechtigung muss der Browser erlauben.
 
-Erstellt druckbare Tagespläne mit Piktogrammen.
+### 6.2 Formular-Chat
 
-- Stichwort eingeben → passendes Symbol suchen und auswählen
-- Beliebig viele Einträge hinzufügen
-- Fertigen Plan ausdrucken
+Wählen Sie eine aktive Vorlage (z. B. einen Antrag) und beantworten Sie die Fragen im Dialog. Am Ende erhalten Sie das ausgefüllte Formular als **PDF** zum Drucken.
 
----
+**Zwischenspeichern:** Button *Speichern* erzeugt eine achtstellige PIN. Damit setzen Sie innerhalb von **7 Tagen** unter „Bereits begonnenes Formular fortsetzen“ fort. Danach wird die Sitzung gelöscht.
 
-## 5. Team-Chat (Mattermost)
+Neue Vorlagen legen **Admins und Manager** unter *Formular-Vorlagen* an: Scan hochladen (PDF/JPG/PNG), Felder auf dem Scan markieren, Fragen formulieren, Haken „Formular ist aktiv“.
 
-Unter der von Ihrer Administration bekannt gegebenen Adresse steht ein interner Team-Chat bereit.
+### 6.3 Transkription (Audio → Text per E-Mail)
 
-> ⚠️ **Wichtig:** Melden Sie sich im Team-Chat **nicht** mit E-Mail und Passwort an. Verwenden Sie ausschließlich den **GitLab-Button** auf der Anmeldeseite. Nur so funktioniert die Single-Sign-On-Verbindung zu KorKI korrekt.
+Lange Aufnahmen hier hochladen. KorKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows).
 
-- **KorKI direkt im Chat nutzen:** Sie können KorKI auf zwei Arten in einem Kanal ansprechen:
-  - **`@korki Ihre Frage`** — KorKI antwortet im Kanal, für alle Teilnehmenden sichtbar. Ideal für Fragen, von deren Antwort das ganze Team profitiert.
-  - **`/korki Ihre Frage`** — KorKI antwortet nur für Sie sichtbar (private Antwort). Geeignet für persönliche Anfragen.
-- **Wissensbereiche:** KorKI durchsucht dabei dieselben freigegebenen Wissensbereiche wie in der App.
-- **Datenschutz:** Alle Nachrichten verbleiben auf dem eigenen Server – keine Cloud-Abhängigkeit.
+Kurzes Diktieren in den Chat geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug.
 
 ---
 
-## 6. Datenschutz und Nutzungshinweise
+## 7. Extras
 
-### Kein Gedächtnis zwischen Sitzungen
-KorKI speichert Eingaben und Antworten nicht dauerhaft. Der Chatverlauf bleibt ausschließlich in Ihrem Browser und nur für die aktuelle Sitzung erhalten. Nach dem Schließen des Tabs oder dem Abmelden ist er unwiederbringlich gelöscht.
+Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt hat. Typisch auf KorKI:
+
+| Extra | Inhalt |
+|---|---|
+| **Tageslosung** | Losung, Lehrtext und Gedanke des Tages |
+| **IT-Sicherheitslage** | aktuelle Bedrohungshinweise |
+| **Medienspiegel** | tägliche Presseschau |
+| **Gesellschaftstrends** | Trends und Sozialpolitik |
+| **Piktogramme** | Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über KorKI ausgeliefert. |
+| **Tagesplan** | druckbarer Tagesplan mit Symbolen |
+
+Manche Extras sind auf bestimmte Rollen beschränkt.
+
+---
+
+## 8. Team-Chat (Mattermost)
+
+Falls eingerichtet, öffnet der **Chat**-Button in der Kopfzeile den internen Team-Chat.
+
+> ⚠️ Melden Sie sich dort **nicht** mit E-Mail und Passwort an. Nutzen Sie den **GitLab-Button**. Dahinter steckt die Verbindung zu Ihrem KorKI-Konto (kein separates GitLab). Nur so stimmen die Zugänge überein.
+
+KorKI im Kanal ansprechen:
+
+- **`@korki Ihre Frage`** — Antwort im Kanal, für alle sichtbar
+- **`/korki Ihre Frage`** — Antwort nur für Sie sichtbar
+
+Durchsucht werden dieselben Wissensbereiche wie in der App. Nachrichten bleiben auf dem eigenen Server.
+
+---
+
+## 9. Konto-Menü
+
+Klick auf Avatar/Name unten links. Einträge, die nur für bestimmte Rollen gelten, erscheinen bei anderen Konten nicht.
+
+| Eintrag | Funktion |
+|---|---|
+| **Feedback & Wünsche** | Fehler, Idee oder Wunsch direkt aus der App senden |
+| **Benutzerverwaltung** | nur Administratoren |
+| **Prompts verwalten** | nur Administratoren (Werkzeugtexte und Übersetzungen) |
+| **Passwort ändern** | mindestens 6 Zeichen |
+| **Sicherheit: 2FA / Passkeys** | Authenticator, Backup-Codes, Face ID / Touch ID; Pflicht für Admin und BGT |
+| **Antwortsprache ändern** | feste Chat-Antwortsprache (Freitext, z. B. „Englisch“, „italiano“) – unabhängig von der Oberflächensprache |
+| **Enter-Verhalten** | Senden oder neuer Absatz |
+| **Dunkelmodus** | An / Aus |
+
+Abmelden: Ausgang-Button neben dem Avatar.
+
+Die **Hilfe** (Fragezeichen oben rechts) öffnet einen kleinen Assistenten zu Bedienung und Funktionen.
+
+Administratoren sehen zusätzlich Kennzahlen und ein Dashboard (Nutzung, Prompt-Editor). Das ist kein Endnutzer-Werkzeug.
+
+---
+
+## 10. Rollen und Rechte
+
+| Rolle | Typische Rechte |
+|---|---|
+| **Standard** | Chat und freigegebene Werkzeuge / Wissensbereiche / Archiv |
+| **Manager** | wie Standard, plus Dokumente in freigegebene Wissensbereiche laden und Formular-Vorlagen pflegen |
+| **BGT** (Berufsgeheimnisträger) | wie Standard, plus Pflicht-2FA; sensible Stichworte werden kategorisiert protokolliert (ohne Inhalt, siehe Kapitel 11) |
+| **Admin** | Vollzugriff: Benutzer, Bereiche, Branding, Prompts, alle Werkzeuge |
+
+Welche Wissensbereiche und das Archiv Sie sehen, legt Ihr Konto fest. Die Sitzung endet um Mitternacht.
+
+---
+
+## 11. Datenschutz und Nutzungshinweise
+
+### Kein Training, begrenztes Gedächtnis
+Das Modell lernt nicht aus Ihren Eingaben. Der sichtbare Chatverlauf liegt nur im Browser dieses Geräts, nicht als vollständige Kopie auf dem Server.
 
 ### Antworten prüfen
-Wie jedes KI-System kann KorKI Fehler machen oder Informationen erfinden (sogenannte „Halluzinationen"). Prüfen Sie wichtige Aussagen immer – insbesondere bei Zahlen, Rechtsfragen, Medikamentendosierungen oder medizinischen Fakten. KorKI ist ein Hilfsinstrument, kein Ersatz für menschliches Urteilsvermögen.
+KorKI kann Fehler machen oder Angaben erfinden. Prüfen Sie Zahlen, Rechtsfragen, Medikation und medizinische Fakten immer selbst.
 
 ### Personenbezogene Daten
-Beachten Sie die internen Richtlinien Ihrer Organisation. Auch wenn KorKI die Daten nicht weitergibt, sollten Sie nicht mehr personenbezogene Informationen eingeben als für die jeweilige Aufgabe notwendig ist.
+Nur so viel eingeben, wie die Aufgabe verlangt. Interne Richtlinien Ihrer Organisation gelten weiter. Web-Recherche, Bildgenerierung und draw.io sind extra zu beachten (Datenabfluss nach außen).
 
 ### Automatisierte Prüfung auf sensible Inhalte
-Eingaben im Chat und im Excel-Chat werden automatisiert auf bestimmte Stichworte geprüft (u. a. zu Diagnosen, Medikamenten, psychischen Erkrankungen, Sucht, Behinderung/Pflege). Bei einem Treffer wird ausschließlich protokolliert, **wer wann welches Werkzeug genutzt hat** – niemals der Inhalt der Eingabe selbst. Diese Protokollierung dient der Rechenschaftspflicht nach Art. 5 Abs. 2 und Art. 32 DSGVO sowie der Umsetzung der internen Dienstanweisung, wonach besonders schützenswerte Daten (Art. 9 DSGVO) grundsätzlich nicht in KorKI eingegeben werden dürfen.
-
-Ein Log-Eintrag enthält ausschließlich diese vier Felder – niemals den Inhalt der Anfrage:
+Eingaben in Chat und Excel-Chat werden auf Stichworte geprüft (u. a. Diagnosen, Medikamente, psychische Erkrankungen, Sucht, Behinderung/Pflege). Bei einem Treffer wird **nicht** der Inhalt gespeichert, sondern nur:
 
 | Zeitpunkt | Benutzername | Werkzeug | Kategorie |
 |---|---|---|---|
-| 11.07.2026, 14:32 Uhr | m.mustermann | Chat | Diagnose/Befund |
+| 18.08.2026, 14:32 Uhr | m.mustermann | Chat | Diagnose/Befund |
 
-Diese Protokollierung dient **nicht der Kontrolle oder Leistungsbewertung** einzelner Mitarbeitender, sondern ausschließlich dem Nachweis der Rechenschaftspflicht gegenüber Aufsichtsbehörden. Für Nutzer:innen mit der Rolle **BGT (Berufsgeheimnisträger)** ist ein solcher Treffer ausdrücklich **kein Problem**: Für sie gilt im Rahmen ihrer fachlichen Aufgabe eine dokumentierte Ausnahme von Regel 2 der Dienstanweisung, sodass die Eingabe besonders schützenswerter Daten dort ausdrücklich zulässig ist.
+Zweck ist die Rechenschaft nach DSGVO und interner Dienstanweisung, **nicht** Leistungsbewertung. Für **BGT** ist ein Treffer im Rahmen der fachlichen Aufgabe zulässig (dokumentierte Ausnahme).
 
-### Web-Recherche
-Nur dieser Modus überträgt Anfragen ins Internet. Alle anderen Werkzeuge laufen vollständig intern.
+### Was lokal bleibt, was nach außen geht
 
----
-
-## 7. Rollen und Rechte
-
-| Rolle | Rechte |
+| Vorgang | Wohin |
 |---|---|
-| **User** | Chat, Transkription, Übersetzen, Leichte Sprache, Zusammenfassen, freigegebene Wissensbereiche, ggf. Archivsuche |
-| **Manager** | Wie User + Hochladen von Dokumenten in freigegebene Wissensbereiche |
-| **Admin** | Vollzugriff: Benutzerverwaltung, Wissensbereiche anlegen, Systemkonfiguration, alle Werkzeuge |
-
-Welche Wissensbereiche und Werkzeuge Ihnen zur Verfügung stehen, richtet sich nach den Einstellungen Ihres Benutzerkontos.
-
----
-
-## 8. Häufige Fragen
-
-**Kann KorKI meine Eingaben für Modell-Training verwenden?**
-Nein. Das Modell ist statisch und lernt nicht aus Ihren Eingaben. Es gibt keine Rückkopplung an den Modellhersteller.
-
-**Warum sehe ich bestimmte Wissensbereiche nicht?**
-Wissensbereiche werden individuell für jeden Benutzer freigeschaltet. Wenden Sie sich an Ihre Administration, wenn Sie Zugriff benötigen.
-
-**Kann ich KorKI in meiner Muttersprache nutzen?**
-Ja. KorKI versteht und antwortet in über 100 Sprachen. Sie müssen nicht auf Deutsch schreiben.
-
-**Was passiert, wenn ich eine Audiodatei hochlade?**
-Die Datei wird lokal auf dem Server transkribiert. Sie verlässt die Infrastruktur Ihrer Organisation nicht.
-
-**Ist die Archivsuche identisch mit dem Archiv-System?**
-Nein. Die Archivsuche zeigt Suchergebnisse und erkannte Texte an, erlaubt aber kein Bearbeiten, Löschen oder Umtaggen von Dokumenten. Dafür ist das Archiv-System direkt zuständig.
+| Chat, Wissen, Archiv, OCR, TTS, Transkription, Formulare | eigene Infrastruktur (dieser Server) |
+| Web-Recherche | Internetsuche (Anfragetext verlässt das Haus) |
+| Piktogramme | Abfrage der ARASAAC-Bibliothek, Anzeige über KorKI |
+| Bilder generieren | je nach Instanz eigener oder externer Bilddienst |
+| Diagramm in draw.io | nur nach Ihrer Bestätigung an diagrams.net |
 
 ---
 
-## 9. Support und Feedback
+## 12. Häufige Fragen
 
-- **Feedback-Button** (Sprechblasen-Symbol unten links in der Seitenleiste): Wünsche, Fehler oder Verbesserungsvorschläge direkt aus der App melden.
-- **Passwort ändern:** Schloss-Symbol unten links in der Seitenleiste.
-- **IT-Administration:** Bei Login-Problemen, Zugriffsfragen oder technischen Störungen wenden Sie sich an Ihre interne IT-Administration.
+**Kann KorKI meine Eingaben für Modell-Training verwenden?**  
+Nein. Es gibt keine Rückkopplung an den Modellhersteller.
+
+**Warum sehe ich bestimmte Menüpunkte, Wissensbereiche oder das Archiv nicht?**  
+Freigabe und Einrichtung der Instanz. Was hier beschrieben ist, kann bei Ihnen fehlen, ohne dass etwas kaputt ist. Bei Bedarf die Administration fragen.
+
+**Kann ich mir selbst einen Zugang einrichten?**  
+Nur wenn Ihre Instanz die Selbstregistrierung anbietet. Dann ist das ein Antrag mit anschließender Freischaltung, kein sofortiger Login. Sonst vergibt die Administration die Zugangsdaten.
+
+**Kann ich KorKI in meiner Muttersprache nutzen?**  
+Ja. Der Chat versteht und antwortet in vielen Sprachen. Zusätzlich: Oberflächensprache auf der Anmeldeseite, feste Antwortsprache im Konto-Menü.
+
+**Was passiert mit einer Audiodatei?**  
+Lange Dateien: lokale Transkription, Versand per E-Mail. Kurzes Diktat: direkt in die Eingabezeile. Beides verlässt Ihre Infrastruktur nicht.
+
+**Ist die Archivsuche dasselbe wie das Archiv-System?**  
+Nein. KorKI zeigt Treffer und Text. Verwalten der Dokumente bleibt im Archiv (Paperless).
+
+**Warum muss ich um Mitternacht neu anmelden?**  
+Die Anmeldung ist bewusst auf den Kalendertag begrenzt.
+
+**Ich habe den Authenticator verloren.**  
+Backup-Codes aus dem 2FA-Setup verwenden oder die Administration um ein Zurücksetzen bitten (erneute Einrichtung nach Passwortbestätigung).
+
+**Formular-PIN vergessen?**  
+Ohne PIN kein Fortsetzen. Nach 7 Tagen ist die Sitzung ohnehin gelöscht – Formular neu beginnen.
+
+---
+
+## 13. Support
+
+- **In der App:** Hilfe-Button **?** und *Feedback & Wünsche*
+- **IT-Administration:** Login, Rechte, technische Störungen
+- **Team-Chat:** falls eingerichtet, für den Austausch im Team

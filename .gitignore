@@ -60,6 +60,8 @@ freiki-ui/losung.json
 freiki-ui/sicherheitslage.json
 freiki-ui/prompts/
 freiki-ui/*.pdf
+# Willkommensmail: EmailService liest freiki-ui/<APP_NAME>_Benutzerhandbuch.pdf
+!freiki-ui/*_Benutzerhandbuch.pdf
 
 # macOS
 .DS_Store

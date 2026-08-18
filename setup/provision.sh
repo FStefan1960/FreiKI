@@ -135,9 +135,18 @@ fi
 echo ""
 
 # ── Schritt 5: Textdateien ───────────────────────────────────────────────
-echo "── Schritt 5: welcome.md / tips.md ──"
+echo "── Schritt 5: welcome.md / tips.md / Benutzerhandbuch ──"
 [[ -f "freiki-ui/welcome.md" ]] || { cp instance-template/welcome.md freiki-ui/welcome.md; echo "-> welcome.md angelegt - Inhalt manuell anpassen."; }
 [[ -f "freiki-ui/tips.md" ]] || { cp instance-template/tips.md freiki-ui/tips.md; echo "-> tips.md angelegt - Inhalt manuell anpassen."; }
+if [[ -z "${APP_NAME:-}" && -f .env ]]; then
+  APP_NAME=$(grep -E '^APP_NAME=' .env | head -1 | cut -d= -f2- | tr -d '"' || true)
+fi
+if [[ -n "${APP_NAME:-}" && -f "docs/${APP_NAME}-Benutzerhandbuch.pdf" ]]; then
+  cp "docs/${APP_NAME}-Benutzerhandbuch.pdf" "freiki-ui/${APP_NAME}_Benutzerhandbuch.pdf"
+  echo "-> Mail-Anhang: freiki-ui/${APP_NAME}_Benutzerhandbuch.pdf (Willkommensmail)."
+else
+  echo "-> Kein passendes Handbuch kopiert (erwartet docs/<APP_NAME>-Benutzerhandbuch.pdf → freiki-ui/<APP_NAME>_Benutzerhandbuch.pdf)."
+fi
 echo ""
 
 # ── Schritt 6: Wissensbereiche ──────────────────────────────────────────

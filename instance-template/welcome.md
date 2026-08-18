@@ -6,11 +6,11 @@ Anmeldelink: {{APP_URL}}
 Benutzername: {{USERNAME}}
 Passwort: {{PASSWORD}}
 
-Bitte ändern Sie Ihr Passwort nach der ersten Anmeldung (Schloss-Symbol unten links).
+Bitte ändern Sie Ihr Passwort nach der ersten Anmeldung (Konto-Menü unten links: Avatar anklicken → Passwort ändern).
 
 {{APP_NAME}} läuft vollständig auf den Servern des Betreibers – Ihre Eingaben verlassen die Einrichtung nicht. {{APP_NAME}} ist ein Hilfsinstrument; bitte prüfen Sie die Ergebnisse, die Verantwortung liegt bei Ihnen.
 
-In der Hilfe (Fragezeichen-Symbol in {{APP_NAME}}) finden Sie weitere Erläuterungen zu den einzelnen Funktionen.
+Im Anhang finden Sie das Benutzerhandbuch als PDF. Weitere Kurzerläuterungen stehen in der Hilfe (Fragezeichen-Symbol in {{APP_NAME}}).
 
 Viele Grüße
 {{APP_NAME}}

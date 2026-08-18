@@ -132,6 +132,10 @@ Empfohlene Größen:
 cp instance-template/welcome.md freiki-ui/welcome.md
 # → Inhalt anpassen (App-Name, Domain, Ansprechpartner)
 
+# Benutzerhandbuch als PDF-Anhang der Willkommensmail
+# Liegt versioniert unter freiki-ui/<APP_NAME>_Benutzerhandbuch.pdf (und docs/).
+# Neu erzeugen:  /opt/anaconda3/bin/python docs/create_benutzerhandbuch_pdf.py
+
 # Tipp des Tages
 cp instance-template/tips.md freiki-ui/tips.md
 ```
@@ -247,6 +251,7 @@ N8N_API_KEY=<key>
 - [ ] `docker-compose.yml` instanzspezifisch angepasst
 - [ ] Logos eingespielt (`app-header.png`, `app-icon-192.png`)
 - [ ] `welcome.md`, `tips.md` angepasst
+- [ ] Benutzerhandbuch-PDF nach `freiki-ui/<APP_NAME>_Benutzerhandbuch.pdf` kopiert (Willkommensmail-Anhang)
 - [ ] `Caddyfile` mit Domain konfiguriert
 - [ ] Stack gestartet: `docker compose up -d` + `bash setup/deploy.sh <git-sha>`
 - [ ] Ersten Admin-User angelegt: `bash setup/create-admin.sh <user> <passwort>`
