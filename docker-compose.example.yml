@@ -15,7 +15,6 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
-  flowise_data:
   whisper_cache:
   paperless_redis:
   paperless_data:
@@ -159,9 +158,7 @@ services:
       - VLLM_EMBED_URL=${VLLM_EMBED_URL}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       - N8N_DAILY_REPORT_WEBHOOK_URL=${N8N_DAILY_REPORT_WEBHOOK_URL}
-      - FLOWISE_CHATFLOW_ID=${FLOWISE_CHATFLOW_ID}
       - HILFE_KB_TABLE=${HILFE_KB_TABLE}
-      - FLOWISE_URL=http://Flowise:3000
       - PG_HOST=PostgreSQL
       - PG_DB=${POSTGRES_DB}
       - PG_USER_KB=${POSTGRES_USER}
@@ -213,31 +210,6 @@ services:
       - SMTP_FROM=${SMTP_FROM}
     networks:
       - ai_network
-
-  # ── FLOWISE (deaktiviert – nicht mehr in Betrieb) ────────────────
-  # flowise:
-  #   image: flowiseai/flowise:3.1.2
-  #   container_name: Flowise
-  #   restart: always
-  #   volumes:
-  #     - flowise_data:/root/.flowise
-  #   ports:
-  #     - "3004:3000"
-  #   environment:
-  #     - PORT=3000
-  #     - DATABASE_TYPE=postgres
-  #     - DATABASE_HOST=postgres
-  #     - DATABASE_PORT=5432
-  #     - DATABASE_NAME=${POSTGRES_DB}
-  #     - DATABASE_USER=${POSTGRES_USER}
-  #     - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
-  #     - FLOWISE_USERNAME=${FLOWISE_USERNAME}
-  #     - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
-  #   networks:
-  #     - ai_network
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
 
   # ── TRANSKRIPTION (CPU – kleineres Modell als auf GPU-Servern) ─
   whisper:
@@ -352,7 +324,7 @@ services:
       - public_network
 
   # ── MONITORING (Uptime Kuma) ──────────────────────────────────
-  # Bewusst NICHT öffentlich über Caddy – nur über Tailscale erreichbar (wie Flowise),
+  # Bewusst NICHT öffentlich über Caddy – nur über Tailscale erreichbar,
   # da das Dashboard interne Infrastruktur-Details zeigt.
   kuma:
     image: louislam/uptime-kuma:2.4.0

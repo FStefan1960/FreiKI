@@ -76,7 +76,7 @@ const config = {
   JWT_SECRET: process.env.JWT_SECRET || '',
 
   PG_HOST: process.env.PG_HOST || 'PostgreSQL',
-  PG_DB: process.env.PG_DB || 'flowise',
+  PG_DB: process.env.PG_DB || 'freiki',
   PG_USER_KB: process.env.PG_USER_KB || 'n8n_user',
   PG_PASS_KB: process.env.PG_PASS_KB || '',
 
