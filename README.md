@@ -137,6 +137,42 @@ bash ~/freiki-package/setup/backup.sh
 bash ~/freiki-package/setup/restore.sh
 ```
 
+## Versionshistorie
+
+Vollständige Historie in den Commit-Messages (`git log`). Auszug der Release-Meilensteine (Version aus `freiki-ui/package.json`):
+
+**0.7.8** (2026-08-18)
+- ChatService.js in 6 fokussierte Module aufgeteilt (764 → ~165 Zeilen)
+- In-App Admin-Dashboard: Nutzungsstatistik-Verlauf, Prompt-Editor mit automatischer LLM-Übersetzung in alle 6 UI-Sprachen
+- 3 KorKI-Verbesserungen nachgezogen (RAG-Temperatur, DB-Read-Optimierung, Username-Fix bei Health-Checks)
+
+**0.7.7** (2026-08-18)
+- index.html-Modularisierung abgeschlossen (Monolith in `public/js/` aufgeteilt)
+- n8n-Ablösung: Paperless-Sync, Mattermost-Bots, Medienspiegel/Gesellschaftstrends, Berichts-Jobs nativ statt per n8n-Workflow
+- Öffentliche Selbstregistrierung, Frontend-State-Kapselung, Indonesisch + Malagasy als Menüsprachen
+- "Als PowerPoint"-Export, Testsuite umstrukturiert
+
+**0.7.5** (2026-08-14)
+- UI-Übersetzung (EN/FR/ES/RU) + eigene TTS-Stimmen je Sprache
+- Scanner: APPDOC-Codes, EAN-Produktsuche, deterministische Aktionserkennung
+- Selbstservice-Antwortsprache, Sicherheitshärtung (timing-safe API-Key-Vergleich, HNSW-Index)
+
+**0.7.4** (2026-08-11)
+- QR/Barcode-Scanner mit KI-Aktionsvorschlägen
+- Passkey/WebAuthn, Formular-Chat (Scan → Felder markieren → ausfüllen → als PDF drucken)
+- KI-Kennzeichnung nach EU AI Act für generierte Bilder, Vorlesen und Diagramme
+
+**0.6.0** (2026-08-03)
+- Bildgenerierung (FLUX-2-klein-4B), Mermaid-Diagramm-Rendering, IT-Sicherheitslage-Feature
+- Wissen-Suche über alle zugänglichen Bereiche, konfigurierbare Menüreihenfolge
+
+**0.5.0** (2026-07-17)
+- Einheitliches SemVer-Schema über FreiKI/KorKI/FrankKI hinweg eingeführt
+- Security-Härtung: HttpOnly-Session-Cookie statt JWT in localStorage, Liveness/Readiness-Split
+- Zweite Vorlesen-Stimme (Kerstin), TTS auf speaches.ai umgestellt
+
+Ältere Versionen (0.4.x und früher) liefen vor Einführung des einheitlichen Versionsschemas.
+
 ## Lokale Entwicklung
 
 ```bash
