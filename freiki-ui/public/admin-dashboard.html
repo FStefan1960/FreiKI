@@ -39,6 +39,7 @@
     .btn-ghost:hover{background:#e0e7ff}
     .btn:disabled{opacity:.5;cursor:default}
     .range-picker{display:flex;gap:6px}
+    .report-buttons{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
     .range-btn{padding:6px 12px;border:1px solid #d1d5db;border-radius:999px;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
     .range-btn:hover{border-color:#2B9CD8}
     .range-btn.active{background:#1E3A8A;border-color:#1E3A8A;color:#fff}
@@ -85,11 +86,13 @@
           <p>Wer nutzt welches Werkzeug wie oft · nur für Administratoren</p>
         </div>
       </div>
-      <div>
-        <button class="btn btn-ghost" id="send-report-btn">📧 Tagesbericht jetzt per Mail senden</button>
-        <span class="status-msg" id="report-status"></span>
+      <div class="report-buttons" id="report-buttons">
+        <button class="btn btn-ghost" id="send-report-btn" data-url="/api/admin/trigger-daily-report" data-label="Tagesbericht">📧 Tagesbericht jetzt per Mail senden</button>
+        <button class="btn btn-ghost" id="send-gpu-btn" data-url="/api/admin/jobs/gpuMetricsReport/run" data-label="GPU/LLM-Statistik">📊 GPU/LLM-Statistik senden</button>
+        <button class="btn btn-ghost" id="send-egress-btn" data-url="/api/admin/trigger-egress-report" data-label="Datenabfluss-Bericht" style="display:none">🔒 Datenabfluss-Bericht senden</button>
       </div>
     </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px"><span class="status-msg" id="report-status"></span></div>
   </div>
 
   <div class="card">
@@ -157,6 +160,9 @@ function renderCards(data, live) {
   if (live) {
     cards.push({ val: live.requests, lbl: 'Anfragen heute' });
     cards.push({ val: `${live.gpuCacheLive.toFixed(1)}%`, lbl: `GPU-Cache (Peak ${live.gpuCachePeak.toFixed(1)}%)` });
+    if (live.powerLive != null) {
+      cards.push({ val: `${live.powerLive} W`, lbl: `GPU-Leistung (Peak ${live.powerPeak} W)` });
+    }
   }
   document.getElementById('cards').innerHTML = cards.map(c =>
     `<div class="stat-card"><div class="val">${c.val}</div><div class="lbl">${c.lbl}</div></div>`
@@ -219,6 +225,9 @@ async function loadDashboard(days) {
   const live = liveRes.ok ? await liveRes.json() : null;
   currentByUser = data.byUser;
   currentByTool = data.byTool;
+  // Datenabfluss-Bericht existiert nur auf Instanzen mit eigenem Egress-Watch (aktuell nur
+  // KorKI) - Button nur zeigen, wenn der Server das über /api/admin/stats bestätigt.
+  document.getElementById('send-egress-btn').style.display = live?.hasEgress ? '' : 'none';
   renderCards(data, live);
   renderChart(data.daily);
   renderToolList(data.byTool);
@@ -232,24 +241,28 @@ document.getElementById('range-picker').addEventListener('click', (e) => {
 });
 document.getElementById('u-filter').addEventListener('input', (e) => renderTable(currentByUser, e.target.value));
 
-document.getElementById('send-report-btn').addEventListener('click', async (ev) => {
-  const btn = ev.currentTarget;
+// Ein Handler für alle Berichts-Trigger-Buttons (Tagesbericht/GPU/Datenabfluss) statt
+// dreifacher Kopie derselben Fetch-/Status-Logik - Unterschied ist nur URL+Label (data-Attribute).
+document.getElementById('report-buttons').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button[data-url]');
+  if (!btn) return;
   const status = document.getElementById('report-status');
-  if (!confirm('Tagesbericht jetzt per Mail versenden?')) return;
+  const label = btn.dataset.label;
+  if (!confirm(`${label} jetzt auslösen?`)) return;
   btn.disabled = true;
   status.className = 'status-msg';
   status.textContent = 'Sende …';
   try {
-    const r = await fetch('/api/admin/trigger-daily-report', { method: 'POST' });
+    const r = await fetch(btn.dataset.url, { method: 'POST' });
     const d = await r.json().catch(() => ({}));
     status.className = 'status-msg ' + (r.ok ? 'ok' : 'err');
-    status.textContent = r.ok ? '✓ gesendet' : ('✗ ' + (d.error || 'Fehler'));
+    status.textContent = r.ok ? `✓ ${label} gesendet` : `✗ ${label}: ${d.error || 'Fehler'}`;
   } catch (e) {
     status.className = 'status-msg err';
-    status.textContent = '✗ Verbindungsfehler';
+    status.textContent = `✗ ${label}: Verbindungsfehler`;
   }
   btn.disabled = false;
-  setTimeout(() => { status.textContent = ''; status.className = 'status-msg'; }, 4000);
+  setTimeout(() => { status.textContent = ''; status.className = 'status-msg'; }, 5000);
 });
 
 (async () => {
