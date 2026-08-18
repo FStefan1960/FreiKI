@@ -3,9 +3,6 @@ const path = require('path');
 const { config } = require('../../shared/config');
 const { parseFrontmatter, toTitle } = require('../../shared/utils/text');
 
-const systemPrompts = {};
-const modesConfig = [];
-
 // UI-Sprachen, für die title_<lang>/desc_<lang>/hint_<lang> im Frontmatter gelesen werden.
 // Fehlt ein Feld für eine Sprache, greift der deutsche Standardwert (siehe localizeMode()).
 const UI_LANGS = ['en', 'fr', 'es', 'ru', 'id', 'mg'];
@@ -16,58 +13,78 @@ function splitExamples(str) {
   return str ? str.split('|').map(s => s.trim()).filter(Boolean) : null;
 }
 
-const basePromptFile = path.join(config.PROMPT_DIR, '_base.md');
-const basePromptText = fs.existsSync(basePromptFile)
-  ? fs.readFileSync(basePromptFile, 'utf-8').trim() + '\n\n'
-  : '';
+// systemPrompts/modesConfig/basePromptText werden über Getter exportiert statt einmalig
+// destrukturiert (siehe module.exports unten) - so sehen Verbraucher (ChatService & Co, die
+// per prompts.systemPrompts[...] statt const {systemPrompts} = require(...) zugreifen) nach
+// reloadPrompts() sofort den neuen Stand, ohne dass der Prozess neu starten muss. Admin-
+// Prompt-Editor ruft reloadPrompts() nach jedem Speichern auf.
+let systemPrompts = {};
+let modesConfig = [];
+let basePromptText = '';
 
-(fs.existsSync(config.PROMPT_DIR) ? fs.readdirSync(config.PROMPT_DIR) : [])
-  .filter(f => f.endsWith('.md') && !f.startsWith('_'))
-  .sort()
-  .forEach((file, fileIndex) => {
-    const key = path.basename(file, '.md');
-    const raw = fs.readFileSync(path.join(config.PROMPT_DIR, file), 'utf-8');
-    const { meta, body } = parseFrontmatter(raw);
+function loadPrompts() {
+  const newSystemPrompts = {};
+  const newModesConfig = [];
 
-    systemPrompts[key] = body;
+  const basePromptFile = path.join(config.PROMPT_DIR, '_base.md');
+  const newBasePromptText = fs.existsSync(basePromptFile)
+    ? fs.readFileSync(basePromptFile, 'utf-8').trim() + '\n\n'
+    : '';
 
-    modesConfig.push({
-      key,
-      icon:       meta.icon       || '💬',
-      title:      meta.title      || toTitle(key),
-      desc:       meta.desc       || '',
-      welcome:    meta.welcome    || 'Text eingeben oder Datei hochladen.',
-      hint:       meta.hint       || DEFAULT_HINT_DE,
-      // Übersetzungen aus title_en/desc_en/hint_en (usw.) fürs sprachabhängige /api/modes.
-      // Fehlende Felder bleiben null - localizeMode() fällt dann automatisch auf Deutsch zurück.
-      i18n: UI_LANGS.reduce((acc, lang) => {
-        acc[lang] = {
-          title:    meta[`title_${lang}`]    || null,
-          desc:     meta[`desc_${lang}`]     || null,
-          hint:     meta[`hint_${lang}`]     || null,
-          welcome:  meta[`welcome_${lang}`]  || null,
-          examples: splitExamples(meta[`examples_${lang}`]),
-        };
-        return acc;
-      }, {}),
-      workspace:  meta.workspace  || null,
-      websearch:  meta.websearch === 'true',
-      multifile:  meta.multifile  === 'true',
-      hidden:     meta.hidden     === 'true',
-      paperless:  meta.paperless  === 'true',
-      imagegen:   meta.imagegen   === 'true',
-      qrgen:      meta.qrgen      === 'true',
-      examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
-      // Menüreihenfolge: standardmäßig alphabetisch (Dateiname), per "order:" im Frontmatter
-      // gezielt dazwischenschiebbar, ohne key/Bereichs-Zuordnung oder die Dateireihenfolge der
-      // übrigen Prompts anzufassen.
-      order:      meta.order !== undefined ? parseFloat(meta.order) : fileIndex,
+  (fs.existsSync(config.PROMPT_DIR) ? fs.readdirSync(config.PROMPT_DIR) : [])
+    .filter(f => f.endsWith('.md') && !f.startsWith('_'))
+    .sort()
+    .forEach((file, fileIndex) => {
+      const key = path.basename(file, '.md');
+      const raw = fs.readFileSync(path.join(config.PROMPT_DIR, file), 'utf-8');
+      const { meta, body } = parseFrontmatter(raw);
+
+      newSystemPrompts[key] = body;
+
+      newModesConfig.push({
+        key,
+        icon:       meta.icon       || '💬',
+        title:      meta.title      || toTitle(key),
+        desc:       meta.desc       || '',
+        welcome:    meta.welcome    || 'Text eingeben oder Datei hochladen.',
+        hint:       meta.hint       || DEFAULT_HINT_DE,
+        // Übersetzungen aus title_en/desc_en/hint_en (usw.) fürs sprachabhängige /api/modes.
+        // Fehlende Felder bleiben null - localizeMode() fällt dann automatisch auf Deutsch zurück.
+        i18n: UI_LANGS.reduce((acc, lang) => {
+          acc[lang] = {
+            title:    meta[`title_${lang}`]    || null,
+            desc:     meta[`desc_${lang}`]     || null,
+            hint:     meta[`hint_${lang}`]     || null,
+            welcome:  meta[`welcome_${lang}`]  || null,
+            examples: splitExamples(meta[`examples_${lang}`]),
+          };
+          return acc;
+        }, {}),
+        workspace:  meta.workspace  || null,
+        websearch:  meta.websearch === 'true',
+        multifile:  meta.multifile  === 'true',
+        hidden:     meta.hidden     === 'true',
+        paperless:  meta.paperless  === 'true',
+        imagegen:   meta.imagegen   === 'true',
+        qrgen:      meta.qrgen      === 'true',
+        examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
+        // Menüreihenfolge: standardmäßig alphabetisch (Dateiname), per "order:" im Frontmatter
+        // gezielt dazwischenschiebbar, ohne key/Bereichs-Zuordnung oder die Dateireihenfolge der
+        // übrigen Prompts anzufassen.
+        order:      meta.order !== undefined ? parseFloat(meta.order) : fileIndex,
+      });
+
+      console.log(`Prompt geladen: ${key} – ${meta.title || key}`);
     });
 
-    console.log(`Prompt geladen: ${key} – ${meta.title || key}`);
-  });
+  newModesConfig.sort((a, b) => a.order - b.order);
 
-modesConfig.sort((a, b) => a.order - b.order);
+  systemPrompts = newSystemPrompts;
+  modesConfig = newModesConfig;
+  basePromptText = newBasePromptText;
+}
+
+loadPrompts();
 
 function isWissenMode(m) {
   return !!m.workspace || m.key.startsWith('w_');
@@ -94,4 +111,10 @@ function localizeMode(mode, lang) {
   };
 }
 
-module.exports = { systemPrompts, modesConfig, basePromptText, isWissenMode, findMode, localizeMode, UI_LANGS };
+module.exports = {
+  get systemPrompts() { return systemPrompts; },
+  get modesConfig() { return modesConfig; },
+  get basePromptText() { return basePromptText; },
+  isWissenMode, findMode, localizeMode, UI_LANGS,
+  reloadPrompts: loadPrompts,
+};

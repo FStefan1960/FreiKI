@@ -70,6 +70,55 @@ function buildUserWorkspace(chats) {
   return uw;
 }
 
+// Für das In-App-Admin-Dashboard: liefert die gleichen Rohdaten wie run()/buildMatrixHtml,
+// aber als JSON statt HTML-Mail, gefiltert auf einen wählbaren Zeitraum. chatsGesamt ist die
+// einzige Quelle mit Tool-Zuordnung (chat_log in Postgres hat nur ts+user_id, siehe
+// ChatRepository.getTodayStats) - für Dutzende/wenige Tausend Einträge ist ein synchrones
+// JSON-Parsing pro Request unkritisch.
+function getHistoricalStats(days = 30) {
+  const state = loadState();
+  const allTime = state.chatsGesamt.filter(c => !SYSTEM_USERS.includes((c.user || '').toLowerCase()));
+  const cutoff = Date.now() - days * 86400000;
+  const inRange = allTime.filter(c => c.timestamp && new Date(c.timestamp).getTime() >= cutoff);
+
+  // Auch Tage ohne Aktivität mit 0 auffüllen, damit der Balken-Verlauf lückenlos bleibt.
+  const dailyMap = {};
+  for (let i = days - 1; i >= 0; i--) {
+    dailyMap[new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)] = 0;
+  }
+  inRange.forEach(c => {
+    const day = c.timestamp.slice(0, 10);
+    if (day in dailyMap) dailyMap[day] += 1;
+  });
+  const daily = Object.keys(dailyMap).sort().map(date => ({ date, count: dailyMap[date] }));
+
+  const toolCounts = {};
+  inRange.forEach(c => { const label = c.title || c.mode || '?'; toolCounts[label] = (toolCounts[label] || 0) + 1; });
+  const byTool = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]).map(([title, count]) => ({ title, count }));
+
+  const uw = buildUserWorkspace(inRange);
+  const byUser = Object.keys(uw)
+    .map(user => ({ user, total: Object.values(uw[user]).reduce((s, v) => s + v, 0), byTool: uw[user] }))
+    .sort((a, b) => b.total - a.total);
+
+  return {
+    days,
+    totals: {
+      requests: inRange.length,
+      users: byUser.length,
+      withFile: inRange.filter(c => c.hasFile).length,
+    },
+    daily,
+    byTool,
+    byUser,
+    allTime: {
+      requests: allTime.length,
+      users: new Set(allTime.map(c => c.user)).size,
+      since: allTime[0]?.timestamp || null,
+    },
+  };
+}
+
 async function run() {
   const state = loadState();
   const heute = new Date().toISOString().slice(0, 10);
@@ -114,4 +163,4 @@ async function run() {
   await sendReportMail(recipients, `${appName} Nutzungs-Statistik – ${datum}`, { html });
 }
 
-module.exports = { recordChatEvent, run };
+module.exports = { recordChatEvent, run, getHistoricalStats };

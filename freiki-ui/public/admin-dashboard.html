@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nutzungsstatistik</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Hanken Grotesk',sans-serif;background:#f1f5f9;min-height:100vh;padding:24px;color:#1f2937}
+    .page{max-width:1100px;margin:0 auto}
+    .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(30,58,138,.10);padding:28px 32px;margin-bottom:22px}
+    .header{display:flex;align-items:center;gap:14px;margin-bottom:8px;justify-content:space-between;flex-wrap:wrap}
+    .header-left{display:flex;align-items:center;gap:14px}
+    .header img{width:44px;height:44px;border-radius:10px}
+    .header h1{font-size:20px;font-weight:700;color:#1E3A8A}
+    .header p{font-size:13px;color:#6b7280}
+    h2{font-size:15px;font-weight:700;color:#1E3A8A;margin-bottom:14px}
+    .btn{padding:8px 16px;border:none;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,background .15s}
+    .btn-primary{background:linear-gradient(135deg,#1E3A8A,#2B9CD8);color:#fff}
+    .btn-primary:hover{opacity:.9}
+    .btn-ghost{background:#eef2ff;color:#1E3A8A}
+    .btn-ghost:hover{background:#e0e7ff}
+    .btn:disabled{opacity:.5;cursor:default}
+    .range-picker{display:flex;gap:6px}
+    .range-btn{padding:6px 12px;border:1px solid #d1d5db;border-radius:999px;background:#fff;font:inherit;font-size:12px;font-weight:600;color:#374151;cursor:pointer}
+    .range-btn:hover{border-color:#2B9CD8}
+    .range-btn.active{background:#1E3A8A;border-color:#1E3A8A;color:#fff}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+    .stat-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px}
+    .stat-card .val{font-size:24px;font-weight:800;color:#1E3A8A;line-height:1.2}
+    .stat-card .lbl{font-size:12px;color:#6b7280;margin-top:2px}
+    .chart{display:flex;align-items:flex-end;gap:3px;height:140px;margin-top:6px;overflow-x:auto;padding-bottom:2px}
+    .bar-wrap{flex:1 0 6px;min-width:6px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;cursor:default}
+    .bar{background:linear-gradient(180deg,#2B9CD8,#1E3A8A);border-radius:3px 3px 0 0;min-height:2px;transition:opacity .1s}
+    .bar-wrap:hover .bar{opacity:.75}
+    .chart-labels{display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-top:6px}
+    .tool-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+    .tool-row{display:flex;align-items:center;gap:10px;font-size:13px}
+    .tool-row .name{width:170px;flex-shrink:0;color:#374151;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tool-row .track{flex:1;background:#f1f5f9;border-radius:99px;height:10px;overflow:hidden}
+    .tool-row .fill{height:100%;background:linear-gradient(90deg,#2B9CD8,#1E3A8A);border-radius:99px}
+    .tool-row .count{width:36px;text-align:right;color:#6b7280;font-size:12px}
+    .u-filter{width:100%;max-width:340px;margin-bottom:14px;padding:9px 11px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;outline:none}
+    .u-filter:focus{border-color:#2B9CD8}
+    table{width:100%;border-collapse:collapse}
+    th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:middle}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#9ca3af;font-weight:700;white-space:nowrap}
+    td.num{text-align:right;font-variant-numeric:tabular-nums}
+    tr.total-row td{font-weight:700;background:#eef2ff;color:#1E3A8A}
+    #table-wrap{overflow-x:auto}
+    .empty{color:#9ca3af;font-size:13px;padding:8px 0}
+    .status-msg{font-size:13px;margin-left:10px}
+    .status-msg.ok{color:#047857}
+    .status-msg.err{color:#b91c1c}
+    .back-link{display:inline-block;margin-top:4px;color:#6b7280;font-size:13px;text-decoration:none;cursor:pointer}
+    .back-link:hover{color:#1E3A8A}
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+<div class="page">
+  <div class="card">
+    <div class="header">
+      <div class="header-left">
+        <img src="/app-icon-192.png" alt="">
+        <div>
+          <h1>Nutzungsstatistik</h1>
+          <p>Wer nutzt welches Werkzeug wie oft · nur für Administratoren</p>
+        </div>
+      </div>
+      <div>
+        <button class="btn btn-ghost" id="send-report-btn">📧 Tagesbericht jetzt per Mail senden</button>
+        <span class="status-msg" id="report-status"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="header">
+      <h2 style="margin:0">Übersicht</h2>
+      <div class="range-picker" id="range-picker">
+        <button class="range-btn" data-days="7">7 Tage</button>
+        <button class="range-btn" data-days="30">30 Tage</button>
+        <button class="range-btn" data-days="90">90 Tage</button>
+        <button class="range-btn" data-days="365">365 Tage</button>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <div class="card">
+    <h2>Verlauf</h2>
+    <div class="chart" id="chart"></div>
+    <div class="chart-labels" id="chart-labels"></div>
+  </div>
+
+  <div class="card">
+    <h2>Meistgenutzte Werkzeuge</h2>
+    <div class="tool-list" id="tool-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Benutzer &amp; Werkzeug</h2>
+    <input type="text" id="u-filter" class="u-filter" placeholder="Nutzer suchen …">
+    <div id="table-wrap"><p class="empty">Lade …</p></div>
+  </div>
+
+  <a class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück zum Chat</a>
+</div>
+
+<script>
+function bail(){ (window.top||window).location.href='/'; }
+// Session-Cookie ist HttpOnly, daher /api/me als Server-Rundruf statt lokalem Token/Rolle.
+async function ensureAdmin() {
+  try {
+    const r = await fetch('/api/me', { cache: 'no-store' });
+    if (!r.ok) throw 0;
+    const me = await r.json();
+    if (me.role !== 'admin') throw 0;
+    return true;
+  } catch { bail(); return false; }
+}
+
+let currentDays = 30;
+let currentByUser = [];
+let currentByTool = [];
+
+function fmtDate(iso) {
+  if (!iso) return '–';
+  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function renderCards(data, live) {
+  const cards = [
+    { val: data.totals.requests, lbl: `Anfragen (${data.days} Tage)` },
+    { val: data.totals.users, lbl: `Aktive Nutzer (${data.days} Tage)` },
+    { val: data.totals.withFile, lbl: 'Davon mit Datei-Upload' },
+    { val: data.allTime.requests, lbl: `Anfragen gesamt (seit ${fmtDate(data.allTime.since)})` },
+  ];
+  if (live) {
+    cards.push({ val: live.requests, lbl: 'Anfragen heute' });
+    cards.push({ val: `${live.gpuCacheLive.toFixed(1)}%`, lbl: `GPU-Cache (Peak ${live.gpuCachePeak.toFixed(1)}%)` });
+  }
+  document.getElementById('cards').innerHTML = cards.map(c =>
+    `<div class="stat-card"><div class="val">${c.val}</div><div class="lbl">${c.lbl}</div></div>`
+  ).join('');
+}
+
+function renderChart(daily) {
+  const max = Math.max(1, ...daily.map(d => d.count));
+  document.getElementById('chart').innerHTML = daily.map(d =>
+    `<div class="bar-wrap" title="${d.date}: ${d.count} Anfrage${d.count === 1 ? '' : 'n'}">
+      <div class="bar" style="height:${Math.round((d.count / max) * 100)}%"></div>
+    </div>`
+  ).join('');
+  const labels = document.getElementById('chart-labels');
+  if (!daily.length) { labels.innerHTML = ''; return; }
+  const first = daily[0].date.slice(5).split('-').reverse().join('.');
+  const last = daily[daily.length - 1].date.slice(5).split('-').reverse().join('.');
+  labels.innerHTML = `<span>${first}</span><span>${last}</span>`;
+}
+
+function renderToolList(byTool) {
+  if (!byTool.length) { document.getElementById('tool-list').innerHTML = '<p class="empty">Keine Nutzungsdaten im gewählten Zeitraum.</p>'; return; }
+  const max = byTool[0].count;
+  document.getElementById('tool-list').innerHTML = byTool.slice(0, 12).map(t =>
+    `<div class="tool-row">
+      <span class="name" title="${t.title}">${t.title}</span>
+      <span class="track"><span class="fill" style="width:${Math.round((t.count / max) * 100)}%"></span></span>
+      <span class="count">${t.count}</span>
+    </div>`
+  ).join('');
+}
+
+function renderTable(byUser, filter) {
+  const wrap = document.getElementById('table-wrap');
+  const f = (filter || '').trim().toLowerCase();
+  const rows = byUser.filter(u => !f || u.user.toLowerCase().includes(f));
+  if (!rows.length) { wrap.innerHTML = '<p class="empty">Keine Treffer.</p>'; return; }
+  const tools = [...new Set(byUser.flatMap(u => Object.keys(u.byTool)))].sort();
+  const th = tools.map(t => `<th>${t}</th>`).join('');
+  const trs = rows.map(u => {
+    const cells = tools.map(t => `<td class="num">${u.byTool[t] ? u.byTool[t] : '–'}</td>`).join('');
+    return `<tr><td>${u.user}</td>${cells}<td class="num"><strong>${u.total}</strong></td></tr>`;
+  }).join('');
+  const sumCells = tools.map(t => rows.reduce((s, u) => s + (u.byTool[t] || 0), 0)).map(v => `<td class="num">${v}</td>`).join('');
+  const sumTotal = rows.reduce((s, u) => s + u.total, 0);
+  wrap.innerHTML = `<table><thead><tr><th>Benutzer</th>${th}<th>Gesamt</th></tr></thead><tbody>${trs}
+    <tr class="total-row"><td>Gesamt</td>${sumCells}<td class="num">${sumTotal}</td></tr>
+  </tbody></table>`;
+}
+
+async function loadDashboard(days) {
+  currentDays = days;
+  document.querySelectorAll('.range-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.days, 10) === days));
+  const [histRes, liveRes] = await Promise.all([
+    fetch(`/api/admin/usage-history?days=${days}`),
+    fetch('/api/admin/stats'),
+  ]);
+  if (!histRes.ok) { document.getElementById('table-wrap').innerHTML = '<p class="empty">Statistik konnte nicht geladen werden.</p>'; return; }
+  const data = await histRes.json();
+  const live = liveRes.ok ? await liveRes.json() : null;
+  currentByUser = data.byUser;
+  currentByTool = data.byTool;
+  renderCards(data, live);
+  renderChart(data.daily);
+  renderToolList(data.byTool);
+  renderTable(currentByUser, document.getElementById('u-filter').value);
+}
+
+document.getElementById('range-picker').addEventListener('click', (e) => {
+  const btn = e.target.closest('.range-btn');
+  if (!btn) return;
+  loadDashboard(parseInt(btn.dataset.days, 10));
+});
+document.getElementById('u-filter').addEventListener('input', (e) => renderTable(currentByUser, e.target.value));
+
+document.getElementById('send-report-btn').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  const status = document.getElementById('report-status');
+  if (!confirm('Tagesbericht jetzt per Mail versenden?')) return;
+  btn.disabled = true;
+  status.className = 'status-msg';
+  status.textContent = 'Sende …';
+  try {
+    const r = await fetch('/api/admin/trigger-daily-report', { method: 'POST' });
+    const d = await r.json().catch(() => ({}));
+    status.className = 'status-msg ' + (r.ok ? 'ok' : 'err');
+    status.textContent = r.ok ? '✓ gesendet' : ('✗ ' + (d.error || 'Fehler'));
+  } catch (e) {
+    status.className = 'status-msg err';
+    status.textContent = '✗ Verbindungsfehler';
+  }
+  btn.disabled = false;
+  setTimeout(() => { status.textContent = ''; status.className = 'status-msg'; }, 4000);
+});
+
+(async () => {
+  if (!(await ensureAdmin())) return;
+  loadDashboard(currentDays);
+})();
+</script>
+</body>
+</html>

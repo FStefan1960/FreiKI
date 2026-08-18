@@ -1977,7 +1977,6 @@ body.tool-open #hilfe-bubble-panel { display: none !important; }
   cursor: pointer;
 }
 .admin-stats-widget:hover { background: var(--fk-border-strong); }
-.admin-stats-widget.sending { opacity: 0.6; pointer-events: none; }
 .welcome-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-content:center;margin-top:16px;max-width:420px;}
 .welcome-example-chip{background:var(--fk-tint);border:1px solid var(--fk-border-strong);border-radius:20px;padding:6px 14px;font-size:.8rem;color:var(--fk-ink);font-weight:500;cursor:pointer;line-height:1.4;text-align:center;transition:background .15s,color .15s;}
 .welcome-example-chip:hover{background:var(--fk-border-strong);color:var(--fk-text);}
