@@ -1,16 +1,20 @@
     (function() {
       async function loadAdminStats() {
-        if (!authToken) return;
+        if (!State.authToken) return;
         try {
           const r = await fetch('/api/admin/stats');
           if (!r.ok) return;
           const d = await r.json();
           const el = document.getElementById('stats-text');
-          if (el) el.textContent = d.requests + ' / ' + d.users + ' / ' + d.gpuCacheLive.toFixed(1) + '% (↑' + d.gpuCachePeak.toFixed(1) + '%)';
+          if (el) {
+            let text = d.requests + ' / ' + d.users + ' / ' + d.gpuCacheLive.toFixed(1) + '% (↑' + d.gpuCachePeak.toFixed(1) + '%)';
+            if (d.powerLive != null) text += ' · ' + d.powerLive + ' W';
+            el.textContent = text;
+          }
         } catch(_) {}
       }
       async function triggerDailyReport(ev) {
-        if (!authToken) return;
+        if (!State.authToken) return;
         if (!confirm(t('admin.send_daily_report_confirm', 'Tagesbericht jetzt per Mail versenden?'))) return;
         const pill = document.getElementById('admin-stats');
         const el = document.getElementById('stats-text');

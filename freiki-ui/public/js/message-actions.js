@@ -1,6 +1,19 @@
 const COPY_ICON  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 const DOC_ICON   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
 const PPTX_ICON  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="20" height="14" rx="2"></rect><path d="M8 21h8"></path><path d="M12 18v3"></path></svg>';
+const RETRY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"></path><path d="M3 21v-5h5"></path></svg>';
+
+// Stellt dieselbe Nutzerfrage nochmal ins Eingabefeld und sendet sie erneut - bewusst als
+// frische neue Anfrage (nicht als Ersetzen der alten Antwort), damit nichts verloren geht
+// und derselbe Sende-Pfad (Historie, Streaming, Dateianhänge) wiederverwendet wird.
+function retryMessage(msgId) {
+  const bubble = document.getElementById(msgId);
+  const promptText = bubble?.dataset.promptText;
+  if (!promptText) return;
+  const input = document.getElementById('message-input');
+  input.value = promptText;
+  sendMessage();
+}
 
 function copyMessage(msgId, btn) {
   const bubble = document.getElementById(msgId);
@@ -26,7 +39,7 @@ function exportMessageAsWord(msgId, btn) {
   _wordExportMsgId = msgId;
   _wordExportBtn = btn;
   const nameInput = document.getElementById('word-export-filename');
-  const modeFallback = slugifyForFilename(modes[currentMode]?.title, 'antwort');
+  const modeFallback = slugifyForFilename(State.modes[State.currentMode]?.title, 'antwort');
   nameInput.value = slugifyForFilename(bubble.dataset.promptText, modeFallback) + '-antwort';
   document.getElementById('word-export-modal').classList.add('show');
   setTimeout(() => { nameInput.focus(); nameInput.select(); }, 50);
@@ -79,6 +92,23 @@ async function submitWordExport() {
   btn.disabled = false;
 }
 
+// Spiegelt die Folien-Zaehllogik von markdownToSlideData() im Backend
+// (PptxExportService.js), um vorab zu wissen, ob der Export ueberhaupt mehrere
+// Folien ergeben wuerde - sonst macht der Button in der Antwort keinen Sinn.
+function countPptxSlides(text) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  let count = 0;
+  let current = false;
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    if (!line.trim()) continue;
+    if (/^ {0,3}(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { current = false; continue; }
+    if (/^#{1,2}\s+/.test(line)) { count++; current = true; continue; }
+    if (!current) { count++; current = true; }
+  }
+  return count;
+}
+
 let _pptxExportMsgId = null;
 let _pptxExportBtn = null;
 
@@ -91,7 +121,7 @@ function exportMessageAsPptx(msgId, btn) {
   _pptxExportMsgId = msgId;
   _pptxExportBtn = btn;
   const nameInput = document.getElementById('pptx-export-filename');
-  const modeFallback = slugifyForFilename(modes[currentMode]?.title, 'gliederung');
+  const modeFallback = slugifyForFilename(State.modes[State.currentMode]?.title, 'gliederung');
   nameInput.value = slugifyForFilename(bubble.dataset.promptText, modeFallback) + '-gliederung';
   document.getElementById('pptx-export-modal').classList.add('show');
   setTimeout(() => { nameInput.focus(); nameInput.select(); }, 50);
@@ -308,19 +338,29 @@ function addMessageActions(bubble, msgId, skipTtsAndCopy) {
   word.innerHTML = DOC_ICON + ' <span>Word</span>';
   word.onclick = function() { exportMessageAsWord(msgId, this); };
 
-  const pptx = document.createElement('button');
-  pptx.className = 'copy-btn';
-  pptx.innerHTML = PPTX_ICON + ' <span>PowerPoint</span>';
-  pptx.onclick = function() { exportMessageAsPptx(msgId, this); };
+  const retry = document.createElement('button');
+  retry.className = 'copy-btn';
+  retry.innerHTML = RETRY_ICON + ' <span>' + t('common.retry', 'Nochmal versuchen') + '</span>';
+  retry.onclick = function() { retryMessage(msgId); };
 
+  row.appendChild(retry);
   ttsButtons.forEach(b => row.appendChild(b));
   row.appendChild(copy);
   row.appendChild(word);
-  row.appendChild(pptx);
+
+  // Nur zeigen, wenn die Antwort tatsaechlich mehrere Folien ergeben wuerde -
+  // sonst landet ohnehin alles auf einer Folie und der Button waere irrefuehrend.
+  if (countPptxSlides(bubble.dataset.copyText || '') >= 2) {
+    const pptx = document.createElement('button');
+    pptx.className = 'copy-btn';
+    pptx.innerHTML = PPTX_ICON + ' <span>PowerPoint</span>';
+    pptx.onclick = function() { exportMessageAsPptx(msgId, this); };
+    row.appendChild(pptx);
+  }
 
   // Nur im Leichte-Sprache-Modus: ARASAAC-Piktogramme pro Zeile ergänzen (externer
   // Dienst - daher wie Web-Recherche/Mermaid-Export orange markiert).
-  if (currentMode === 'leichte_sprache') {
+  if (State.currentMode === 'leichte_sprache') {
     const symbols = document.createElement('button');
     symbols.className = 'copy-btn symbols-btn';
     symbols.innerHTML = SYMBOLS_ICON + ' <span>' + t('symbols.add_symbols', '+ Symbole') + '</span>';

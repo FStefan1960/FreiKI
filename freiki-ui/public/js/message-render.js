@@ -30,7 +30,7 @@ function addMessage(role, content, fileName) {
   div.className = `message ${role}`;
 
   const avatarHtml = role === 'user'
-    ? `<div class="message-avatar">${currentUsername[0]?.toUpperCase() || 'U'}</div>`
+    ? `<div class="message-avatar">${State.currentUsername[0]?.toUpperCase() || 'U'}</div>`
     : `<div class="message-avatar">K</div>`;
   const fileBadge = fileName ? `<div class="file-badge">📎 ${fileName}</div>\n` : '';
   const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`;

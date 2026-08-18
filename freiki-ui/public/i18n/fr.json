@@ -148,8 +148,8 @@
   "panel.lehrtext_label": "Texte d'enseignement",
   "panel.gedanke_label": "Pensée du jour",
   "chat.my_vcard_example": "📇 Ma carte de visite (modifiable)",
-  "chat.history_hint_truncated": "↑ Seuls les {n} derniers messages d'aujourd'hui sont affichés – « + Nouveau » pour une nouvelle conversation",
-  "chat.history_hint_full": "↑ Historique d'aujourd'hui – « + Nouveau » pour une nouvelle conversation",
+  "chat.history_hint_truncated": "↑ Seuls les {n} derniers messages sont affichés – « + Nouveau » pour une nouvelle conversation",
+  "chat.history_hint_full": "↑ Historique précédent – « + Nouveau » pour une nouvelle conversation",
   "files.n_selected": "{n} fichiers sélectionnés",
   "paperless.no_text_content": "Aucun contenu textuel disponible.",
   "paperless.searching": "Recherche en cours…",
@@ -169,6 +169,7 @@
   "js.document_load_error": "Erreur lors du chargement du document.",
   "common.copied": "Copié",
   "common.copy": "Copier",
+  "common.retry": "Réessayer",
   "common.error_word": "Erreur",
   "common.loading_ellipsis": "Chargement…",
   "tts.stop": "Arrêter",
@@ -204,5 +205,7 @@
   "tts.read": "Lire",
   "input.message_placeholder_ctrl": "Saisissez un message ou déposez un fichier ici... (Entrée pour un paragraphe, Ctrl+Entrée pour envoyer)",
   "account_menu.enter_to_send_on": "Touche Entrée : Envoyer",
-  "account_menu.enter_to_send_off": "Touche Entrée : Nouveau paragraphe"
+  "account_menu.enter_to_send_off": "Touche Entrée : Nouveau paragraphe",
+  "account_menu.dark_mode_on": "Mode sombre : Activé",
+  "account_menu.dark_mode_off": "Mode sombre : Désactivé"
 }

@@ -1,11 +1,11 @@
 // ── Mode ──
 function setMode(key) {
   showChat();
-  currentMode = key;
+  State.currentMode = key;
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('btn-' + key);
   if (btn) btn.classList.add('active');
-  const m = modes[key];
+  const m = State.modes[key];
   if (!m) return;
   setHeaderIcon(m.icon, m.key);
   document.getElementById('header-title').textContent = m.title;
@@ -36,27 +36,37 @@ function setMode(key) {
 
 
 function newChat() {
-  chatHistory = [];
-  if (currentMode) resetThreadId(currentMode);
-  if (currentMode) saveHistory(currentMode); // leert den gespeicherten Verlauf
-  selectedFile = null;
-  multidocTaskChoice = 'zusammenfassen';
+  State.chatHistory = [];
+  if (State.currentMode) State.resetThreadId(State.currentMode);
+  if (State.currentMode) saveHistory(State.currentMode); // leert den gespeicherten Verlauf
+  State.selectedFile = null;
+  State.multidocTaskChoice = 'zusammenfassen';
   document.getElementById('file-preview').classList.remove('show');
   document.getElementById('message-input').value = '';
-  const m = modes[currentMode] || {};
+  const m = State.modes[State.currentMode] || {};
   document.getElementById('messages').innerHTML = `
     <div class="welcome" id="welcome">
-      <div class="welcome-icon-tile">${modeIconHTML(m.icon || '💬', currentMode)}</div>
+      <div class="welcome-icon-tile">${modeIconHTML(m.icon || '💬', State.currentMode)}</div>
       <h2>${m.title || window.FK_APP_NAME}</h2>
       <p>${m.welcome || ''}</p>
       ${m.hint ? `<div class="welcome-hint">${m.hint}</div>` : ''}
       ${m.examples && m.examples.length ? `<div class="welcome-examples">${m.examples.map((e, i) => `<span class="welcome-example-chip" onclick="useExample(${i})">${e.startsWith('BEGIN:VCARD') ? t('chat.my_vcard_example', '📇 Meine Visitenkarte (editierbar)') : e}</span>`).join('')}</div>` : ''}
     </div>`;
+
+  // "Übersetzen" (3translate): Eingabefeld mit Standard-Zielsprache Deutsch vorbelegen,
+  // die Sprach-Buttons überschreiben das beim Klick (siehe useExample()).
+  if (State.currentMode === '3translate') {
+    const input = document.getElementById('message-input');
+    input.value = 'Übersetze ins Deutsche: ';
+    autoResize(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
 }
 
 // Beispiel-Chip angeklickt: Text (ohne trägendes "…") ins Eingabefeld übernehmen und Cursor ans Ende setzen
 async function useExample(i) {
-  const m = modes[currentMode] || {};
+  const m = State.modes[State.currentMode] || {};
   const text = (m.examples || [])[i];
   if (!text) return;
   const input = document.getElementById('message-input');
@@ -72,9 +82,9 @@ async function useExample(i) {
   autoResize(input);
   const len = input.value.length;
   input.setSelectionRange(len, len);
-  // MultiDoc: erster Beispiel-Button = Vergleichen, zweiter = Zusammenfassen (siehe multidocTaskChoice)
-  if (currentMode === '7multidoc') {
-    multidocTaskChoice = i === 0 ? 'vergleichen' : 'zusammenfassen';
+  // MultiDoc: erster Beispiel-Button = Vergleichen, zweiter = Zusammenfassen (siehe State.multidocTaskChoice)
+  if (State.currentMode === '7multidoc') {
+    State.multidocTaskChoice = i === 0 ? 'vergleichen' : 'zusammenfassen';
   }
 }
 
@@ -113,17 +123,17 @@ async function buildVCardForCurrentUser() {
 }
 
 function restoreChat(mode, history) {
-  chatHistory = history;
-  selectedFile = null;
+  State.chatHistory = history;
+  State.selectedFile = null;
   document.getElementById('file-preview').classList.remove('show');
   document.getElementById('message-input').value = '';
-  const m = modes[mode] || {};
+  const m = State.modes[mode] || {};
   const container = document.getElementById('messages');
   container.innerHTML = '';
 
-  // Nachrichten wiederherstellen - nur die letzten 20 rendern (Performance bei langen
-  // Tagesverläufen). chatHistory selbst bleibt vollständig, für den LLM-Kontext wird ohnehin
-  // nur chatHistory.slice(-4) verschickt (siehe sendMessage()).
+  // Nachrichten wiederherstellen - nur die letzten 20 rendern (Performance bei langem
+  // Verlauf). State.chatHistory selbst bleibt vollständig, für den LLM-Kontext wird ohnehin
+  // nur State.chatHistory.slice(-4) verschickt (siehe sendMessage()).
   const MAX_DISPLAYED_HISTORY = 20;
   const truncated = history.length > MAX_DISPLAYED_HISTORY;
   const displayHistory = history.slice(-MAX_DISPLAYED_HISTORY);
@@ -147,7 +157,7 @@ function restoreChat(mode, history) {
   const hint = document.createElement('div');
   hint.style.cssText = 'text-align:center;font-size:11px;color:#9ca3af;margin:8px 0;';
   hint.textContent = truncated
-    ? t('chat.history_hint_truncated', '↑ Nur die letzten {n} Nachrichten von heute angezeigt – "+ Neu" für neues Gespräch').replace('{n}', MAX_DISPLAYED_HISTORY)
-    : t('chat.history_hint_full', '↑ Verlauf von heute – "+ Neu" für neues Gespräch');
+    ? t('chat.history_hint_truncated', '↑ Nur die letzten {n} Nachrichten angezeigt – "+ Neu" für neues Gespräch').replace('{n}', MAX_DISPLAYED_HISTORY)
+    : t('chat.history_hint_full', '↑ Bisheriger Verlauf – "+ Neu" für neues Gespräch');
   document.getElementById('messages').appendChild(hint);
 }

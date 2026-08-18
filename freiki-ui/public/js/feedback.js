@@ -41,8 +41,8 @@ async function sendFeedback(data) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...data,
-        user: currentUsername,
-        mode: currentMode,
+        user: State.currentUsername,
+        mode: State.currentMode,
         timestamp: new Date().toISOString()
       })
     });

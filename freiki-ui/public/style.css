@@ -33,6 +33,13 @@
   --fk-primary-hover:  #1A4AAD;
   --fk-primary-active: #173F95;
   --fk-navy:           #14306B;
+  /* Fliesstext/Icons in Markenfarbe auf getintem Untergrund (Chips, Icon-Kacheln,
+     Buttons wie "Vorlesen"/"Kopieren"). Im Light Mode identisch zu --fk-primary;
+     im Dark Mode aufgehellt, da die Markenfarbe sonst auf dunklem --fk-tint kaum noch
+     lesbar ist (siehe html[data-theme="dark"] unten). color-mix() statt fixem Hex,
+     damit abweichende Markenfarben pro Instanz (ueber /brand.css) automatisch
+     mitgehen. */
+  --fk-primary-text:  var(--fk-primary);
 
   /* Text */
   --fk-ink:         #15294A;
@@ -97,6 +104,46 @@
   --danger: #dc2626;
 }
 
+html[data-theme="dark"] {
+  color-scheme: dark;
+  /* --fk-primary/-hover/-active/--fk-navy bewusst NICHT hier ueberschrieben: die sind
+     Marken-Tokens, die /brand.css pro Instanz (FreiKI/KorKI/FrankKI) auf :root setzt.
+     Ein Override hier haette wegen hoeherer Selektor-Spezifitaet Vorrang vor brand.css
+     und wuerde die Markenfarbe im Dark Mode durch eine feste Farbe ersetzen.
+     --fk-primary-text dagegen wird hier bewusst ueberschrieben: color-mix() hellt
+     die jeweilige Markenfarbe nur auf, statt sie zu ersetzen (bleibt markentreu). */
+  --fk-primary-text: color-mix(in srgb, var(--fk-primary) 55%, white);
+  --fk-ink:         #E7ECF5;
+  --fk-text-muted:  #A9B4C8;
+  --fk-text-subtle: #93A0B8;
+
+  --fk-surface:      #1B2230;
+  --fk-canvas:       #12161F;
+  --fk-tint:         #232C40;
+  --fk-tint-strong:  #2A3348;
+
+  --fk-border:        #2A3242;
+  --fk-border-strong: #3A4457;
+  --fk-border-dashed: #45516A;
+
+  --fk-success-bg:     #123422;
+  --fk-success-border: #1F5B39;
+  --fk-success-text:   #4ADE80;
+
+  --fk-shadow-sm:      0 1px 2px rgba(0,0,0,.4);
+  --fk-shadow-card:    0 6px 18px rgba(0,0,0,.35);
+  --fk-shadow-primary: 0 4px 10px rgba(76,141,255,.35);
+  --fk-shadow-pop:     0 12px 30px rgba(0,0,0,.5);
+
+  --danger: #F87171;
+}
+/* --fk-navy dient an 2 Stellen als Fliesstext-Farbe auf --fk-tint-Hintergrund (statt als
+   Button-/Verlaufs-Hintergrund) - dort waere dunkles Navy auf dunklem Tint unlesbar. */
+html[data-theme="dark"] .file-selected-tp,
+html[data-theme="dark"] .tp-status.info {
+  color: var(--fk-primary-text);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow-x: hidden; }
 
@@ -146,7 +193,7 @@ body {
   order: 99;
 }
 #disclaimer-banner a {
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -333,6 +380,7 @@ body {
   border-radius: var(--fk-radius);
   padding: 3px;
   display: flex;
+  gap: 4px;
 }
 
 .sidebar-tab {
@@ -342,7 +390,7 @@ body {
   font-size: var(--fk-fs-sub);
   font-weight: 600;
   color: var(--fk-text-subtle);
-  padding: 7px 0;
+  padding: 7px 4px;
   border-radius: var(--fk-radius-sm);
   cursor: pointer;
   background: transparent;
@@ -410,7 +458,7 @@ body {
   height: 36px;
   border-radius: 9px;
   background: var(--fk-tint);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -476,7 +524,10 @@ body {
   justify-content: space-between;
 }
 
-.user-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; overflow: hidden; }
+.user-info {
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; overflow: hidden;
+  background: none; border: none; font: inherit; text-align: left; color: inherit;
+}
 
 .user-avatar {
   width: 30px;
@@ -559,7 +610,7 @@ body {
 }
 .tool-panel-back {
   background: var(--fk-tint);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   border: none;
   border-radius: var(--fk-radius-sm);
   padding: 6px 12px;
@@ -596,11 +647,11 @@ body {
   font-size: var(--fk-fs-body, 16px);
   line-height: 1.6;
 }
-#gt-body h2 { font-size: calc(var(--fk-fs-body, 16px) + 4px); font-weight: 600; margin: 20px 0 6px; color: var(--fk-primary); }
+#gt-body h2 { font-size: calc(var(--fk-fs-body, 16px) + 4px); font-weight: 600; margin: 20px 0 6px; color: var(--fk-primary-text); }
 #gt-body h3 { font-size: 16px; font-weight: 600; margin: 14px 0 4px; }
 #gt-body ul { padding-left: 18px; margin: 4px 0 10px; }
 #gt-body li { margin-bottom: 6px; }
-#gt-body a { color: var(--fk-primary); }
+#gt-body a { color: var(--fk-primary-text); }
 
 #medienspiegel-panel {
   flex: 1;
@@ -621,11 +672,11 @@ body {
   font-size: var(--fk-fs-body, 16px);
   line-height: 1.6;
 }
-#medienspiegel-body h2 { font-size: calc(var(--fk-fs-body, 16px) + 4px); font-weight: 600; margin: 20px 0 6px; color: var(--fk-primary); }
+#medienspiegel-body h2 { font-size: calc(var(--fk-fs-body, 16px) + 4px); font-weight: 600; margin: 20px 0 6px; color: var(--fk-primary-text); }
 #medienspiegel-body h3 { font-size: 14px; font-weight: 600; margin: 14px 0 4px; }
 #medienspiegel-body ul { padding-left: 18px; margin: 4px 0 10px; }
 #medienspiegel-body li { margin-bottom: 6px; }
-#medienspiegel-body a { color: var(--fk-primary); }
+#medienspiegel-body a { color: var(--fk-primary-text); }
 
 /* ── Main Column ── */
 .main {
@@ -665,7 +716,7 @@ body {
   height: 38px;
   border-radius: var(--fk-radius);
   background: var(--fk-tint);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -810,6 +861,9 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 }
+html[data-theme="dark"] .messages {
+  background-image: linear-gradient(rgba(18, 22, 31, 0.88), rgba(18, 22, 31, 0.88)), url('/chat-bg.jpg');
+}
 
 .welcome {
   display: flex;
@@ -828,7 +882,7 @@ body {
   height: 64px;
   border-radius: var(--fk-radius-lg);
   background: var(--fk-tint);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -845,7 +899,7 @@ body {
 
 .welcome-hint {
   background: var(--fk-tint);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   padding: 10px 18px;
   border-radius: var(--fk-radius-md);
   font-size: var(--fk-fs-caption);
@@ -1040,7 +1094,7 @@ body {
   min-height: 24px;
   padding: 3px 10px;
   background: var(--fk-tint);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   border: none;
   border-radius: var(--fk-radius-sm);
   font-family: inherit;
@@ -1112,7 +1166,7 @@ body {
   padding: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
 }
 .symbols-wizard-hint { grid-column: 1 / -1; font-size: 13px; color: var(--text-muted, #6b7280); padding: 8px 0; }
 
@@ -1145,7 +1199,7 @@ body {
 /* ── Input Area ── */
 .input-area {
   padding: 12px 26px 20px;
-  background: #EAF0FC;
+  background: var(--fk-tint);
   border-top: 1px solid var(--fk-border);
 }
 
@@ -1158,7 +1212,7 @@ body {
   border-radius: var(--fk-radius-sm);
   margin-bottom: 8px;
   font-size: var(--fk-fs-caption);
-  color: var(--fk-primary);
+  color: var(--fk-primary-text);
   font-weight: 500;
 }
 .file-preview.show { display: flex; }
@@ -1198,7 +1252,7 @@ body {
   font-size: 17px;
   flex-shrink: 0;
 }
-.icon-btn:hover { background: var(--fk-tint); color: var(--fk-primary); }
+.icon-btn:hover { background: var(--fk-tint); color: var(--fk-primary-text); }
 .icon-btn.mic-recording {
   background: var(--danger);
   color: #fff;
@@ -1690,7 +1744,7 @@ body.tool-open #hilfe-bubble-panel { display: none !important; }
 }
 .pl-result-row:last-child { border-bottom: none; }
 .pl-result-row:hover { background: var(--fk-tint); }
-.pl-result-title { font-weight: 600; color: var(--fk-primary); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-result-title { font-weight: 600; color: var(--fk-primary-text); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-result-meta { font-size: 11px; color: var(--fk-muted); white-space: nowrap; }
 .pl-empty { padding: 24px; text-align: center; color: var(--fk-muted); font-size: 14px; }
 .pl-result-row { cursor: pointer; }

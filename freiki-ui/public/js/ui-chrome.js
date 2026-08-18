@@ -16,14 +16,17 @@ function closeSidebar() {
 function toggleAccountMenu(e) {
   e.stopPropagation();
   const menu = document.getElementById('account-menu');
-  if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
+  if (menu.classList.contains('open')) { closeAccountMenu(); return; }
   const r = e.currentTarget.getBoundingClientRect();
   menu.style.left = r.left + 'px';
   menu.style.bottom = (window.innerHeight - r.top + 8) + 'px';
   menu.classList.add('open');
+  e.currentTarget.setAttribute('aria-expanded', 'true');
 }
 function closeAccountMenu() {
   document.getElementById('account-menu').classList.remove('open');
+  const trigger = document.querySelector('.user-info[aria-haspopup]');
+  if (trigger) trigger.setAttribute('aria-expanded', 'false');
 }
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('account-menu');

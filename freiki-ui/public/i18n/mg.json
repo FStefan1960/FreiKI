@@ -148,8 +148,8 @@
   "panel.lehrtext_label": "Lahatsoratra fampianarana",
   "panel.gedanke_label": "Eritreritry ny andro",
   "chat.my_vcard_example": "📇 Ny karatra fanaovan-draharahako (azo ovaina)",
-  "chat.history_hint_truncated": "↑ Ny hafatra {n} farany androany ihany no aseho – \"+ Vaovao\" ho an'ny resadresaka vaovao",
-  "chat.history_hint_full": "↑ Tantaran'androany – \"+ Vaovao\" ho an'ny resadresaka vaovao",
+  "chat.history_hint_truncated": "↑ Ny hafatra {n} farany ihany no aseho – \"+ Vaovao\" ho an'ny resadresaka vaovao",
+  "chat.history_hint_full": "↑ Ny tantara teo aloha – \"+ Vaovao\" ho an'ny resadresaka vaovao",
   "files.n_selected": "Rakitra {n} voafidy",
   "paperless.no_text_content": "Tsy misy votoatin-dahatsoratra azo jerena.",
   "paperless.searching": "Mikaroka…",
@@ -169,6 +169,7 @@
   "js.document_load_error": "Diso teo am-pampidirana ny antontan-taratasy.",
   "common.copied": "Voadika",
   "common.copy": "Adikao",
+  "common.retry": "Andramo indray",
   "common.error_word": "Diso",
   "common.loading_ellipsis": "Mampiditra…",
   "tts.stop": "Ajanony",
@@ -204,5 +205,7 @@
   "tts.read": "Vakio",
   "input.message_placeholder_ctrl": "Soraty hafatra na tariho rakitra eto... (Enter ho an'ny andalana vaovao, Ctrl+Enter handefasana)",
   "account_menu.enter_to_send_on": "Fitondran'ny Enter: Handefa",
-  "account_menu.enter_to_send_off": "Fitondran'ny Enter: Andalana vaovao"
+  "account_menu.enter_to_send_off": "Fitondran'ny Enter: Andalana vaovao",
+  "account_menu.dark_mode_on": "Endrika maizina: Miasa",
+  "account_menu.dark_mode_off": "Endrika maizina: Tsy miasa"
 }

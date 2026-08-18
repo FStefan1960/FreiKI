@@ -1,16 +1,18 @@
-// ── Chat-Verlauf localStorage (tagesaktuell) ──
-const TODAY = new Date().toISOString().slice(0, 10);
+// ── Chat-Verlauf localStorage (persistent pro User+Modus, bleibt rein clientseitig — kein Server-Sync) ──
+const MAX_HISTORY_MESSAGES = 200; // Obergrenze in Nachrichten statt Bytes, damit die Größe unabhängig von Nachrichtenlänge vorhersagbar bleibt
 
 function historyKey(mode) {
-  return `freiki_history_${currentUsername}_${mode}_${TODAY}`;
+  return `freiki_history_${State.currentUsername}_${mode}`;
 }
 
 function saveHistory(mode) {
   try {
+    // Auf die letzten MAX_HISTORY_MESSAGES begrenzen, älteste zuerst raus.
     // Nur Rolle + Inhalt speichern, keine langen Datei-Inhalte (> 500 Zeichen kürzen) —
     // die letzte Nachricht bleibt aber immer vollständig erhalten
-    const lastIndex = chatHistory.length - 1;
-    const slim = chatHistory.map((m, i) => ({
+    const capped = State.chatHistory.slice(-MAX_HISTORY_MESSAGES);
+    const lastIndex = capped.length - 1;
+    const slim = capped.map((m, i) => ({
       role: m.role,
       content: i < lastIndex && m.content.length > 500 ? m.content.slice(0, 500) + ' [...]' : m.content
     }));
@@ -25,12 +27,21 @@ function loadHistory(mode) {
   } catch(e) { return []; }
 }
 
-function clearOldHistory() {
-  // Alle freiki_history-Einträge löschen die nicht von heute sind
+function migrateOldHistory() {
+  // Einmalige Migration von der alten tagesgebundenen Key-Form
+  // (freiki_history_<user>_<mode>_YYYY-MM-DD) auf den neuen persistenten Key.
+  // Danach räumt sich diese Funktion selbst weg (keine datierten Keys mehr übrig).
   try {
-    Object.keys(localStorage)
-      .filter(k => k.startsWith('freiki_history_') && !k.endsWith(`_${TODAY}`))
-      .forEach(k => localStorage.removeItem(k));
+    const datedKeyPattern = /^freiki_history_.+_\d{4}-\d{2}-\d{2}$/;
+    Object.keys(localStorage).forEach(k => {
+      if (!datedKeyPattern.test(k)) return;
+      const newKey = k.replace(/_\d{4}-\d{2}-\d{2}$/, '');
+      if (!localStorage.getItem(newKey)) {
+        const val = localStorage.getItem(k);
+        if (val) localStorage.setItem(newKey, val);
+      }
+      localStorage.removeItem(k);
+    });
   } catch(e) {}
 }
-clearOldHistory();
+migrateOldHistory();

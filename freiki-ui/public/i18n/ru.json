@@ -148,8 +148,8 @@
   "panel.lehrtext_label": "Поучительный текст",
   "panel.gedanke_label": "Мысль дня",
   "chat.my_vcard_example": "📇 Моя визитка (редактируемая)",
-  "chat.history_hint_truncated": "↑ Показаны только последние {n} сообщений за сегодня – «+ Новый» для нового разговора",
-  "chat.history_hint_full": "↑ История за сегодня – «+ Новый» для нового разговора",
+  "chat.history_hint_truncated": "↑ Показаны только последние {n} сообщений – «+ Новый» для нового разговора",
+  "chat.history_hint_full": "↑ Предыдущая история – «+ Новый» для нового разговора",
   "files.n_selected": "Выбрано файлов: {n}",
   "paperless.no_text_content": "Текстовое содержимое недоступно.",
   "paperless.searching": "Идёт поиск…",
@@ -169,6 +169,7 @@
   "js.document_load_error": "Ошибка при загрузке документа.",
   "common.copied": "Скопировано",
   "common.copy": "Копировать",
+  "common.retry": "Повторить попытку",
   "common.error_word": "Ошибка",
   "common.loading_ellipsis": "Загрузка…",
   "tts.stop": "Стоп",
@@ -204,5 +205,7 @@
   "tts.read": "Прослушать",
   "input.message_placeholder_ctrl": "Введите сообщение или перетащите файл сюда... (Enter — новый абзац, Ctrl+Enter — отправить)",
   "account_menu.enter_to_send_on": "Клавиша Enter: отправка",
-  "account_menu.enter_to_send_off": "Клавиша Enter: новый абзац"
+  "account_menu.enter_to_send_off": "Клавиша Enter: новый абзац",
+  "account_menu.dark_mode_on": "Тёмная тема: вкл.",
+  "account_menu.dark_mode_off": "Тёмная тема: выкл."
 }

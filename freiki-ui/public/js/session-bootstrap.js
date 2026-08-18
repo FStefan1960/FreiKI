@@ -3,8 +3,8 @@ if ('serviceWorker' in navigator) {
 }
 
 function forceLogout() {
-  authToken = null;
-  currentRole = '';
+  State.authToken = null;
+  State.currentRole = '';
   fetch('/api/logout', { method: 'POST' }).catch(() => {});
   sessionStorage.removeItem('freiki_user');
   sessionStorage.removeItem('freiki_role');
@@ -21,12 +21,13 @@ function forceLogout() {
   if (twofaCode) twofaCode.value = '';
   document.getElementById('twofa-form').style.display = 'none';
   document.getElementById('login-form').style.display = 'flex';
-  pending2faToken = null; pendingUsername = null;
+  State.pending2faToken = null; State.pendingUsername = null;
 }
 
 // Session beim Laden prüfen: das Session-Cookie ist HttpOnly (für JS nicht lesbar), daher
 // entscheidet ein Server-Rundruf über /api/me statt eines lokal gespeicherten Tokens.
 document.addEventListener('DOMContentLoaded', async () => {
+  updateDarkModeUI();
   const storedRole = sessionStorage.getItem('freiki_role') || 'default';
   if (['admin', 'manager'].includes(storedRole)) {
     document.querySelectorAll('.kb-admin-link').forEach(el => el.style.display = '');
@@ -48,12 +49,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch {}
 
   if (me) {
-    authToken = true;
+    State.authToken = true;
     const username = me.username || sessionStorage.getItem('freiki_user') || '';
-    currentUsername = username;
-    currentRole = me.role || storedRole;
+    State.currentUsername = username;
+    State.currentRole = me.role || storedRole;
     sessionStorage.setItem('freiki_user', username);
-    sessionStorage.setItem('freiki_role', currentRole);
+    sessionStorage.setItem('freiki_role', State.currentRole);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     const banner = document.getElementById('disclaimer-banner');
@@ -65,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyRoleIndicator(me.role || storedRole);
     const tcBtn = document.getElementById('teamchat-btn');
     if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';
-    enterToSend = me.enter_to_send !== false;
+    State.enterToSend = me.enter_to_send !== false;
     if (window.FK_I18N_READY) await window.FK_I18N_READY;
     updateEnterToSendUI();
     loadModes();
@@ -76,22 +77,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mitternachts-Watchdog
   const now = new Date();
   const msUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
-  setTimeout(() => { if (authToken) forceLogout(); }, msUntilMidnight);
+  setTimeout(() => { if (State.authToken) forceLogout(); }, msUntilMidnight);
 });
 function updateEnterToSendUI() {
   const btn = document.getElementById('enter-to-send-toggle');
   const labelOn = document.getElementById('enter-to-send-label-on');
   const labelOff = document.getElementById('enter-to-send-label-off');
-  if (btn) btn.setAttribute('aria-pressed', String(enterToSend));
+  if (btn) btn.setAttribute('aria-pressed', String(State.enterToSend));
   // Text kommt jetzt ausschliesslich ueber das data-i18n-Attribut der beiden Spans
   // (wie bei allen anderen Menuepunkten) - hier wird nur noch umgeschaltet, welcher
   // sichtbar ist. Kein window.t()-Aufruf mehr, also auch kein Race gegen den
   // i18n-Dict-Fetch mehr moeglich.
-  if (labelOn) labelOn.style.display = enterToSend ? '' : 'none';
-  if (labelOff) labelOff.style.display = enterToSend ? 'none' : '';
+  if (labelOn) labelOn.style.display = State.enterToSend ? '' : 'none';
+  if (labelOff) labelOff.style.display = State.enterToSend ? 'none' : '';
   const input = document.getElementById('message-input');
   if (input) {
-    input.placeholder = enterToSend
+    input.placeholder = State.enterToSend
       ? window.t('input.message_placeholder', 'Nachricht eingeben oder Datei hierher ziehen... (Shift+Enter für einen Absatz, Enter zum Senden)')
       : window.t('input.message_placeholder_ctrl', 'Nachricht eingeben oder Datei hierher ziehen... (Enter für einen Absatz, Strg+Enter zum Senden)');
   }
@@ -100,8 +101,8 @@ function updateEnterToSendUI() {
 // Optimistisch umschalten (sofortiges UI-Feedback), bei Server-Fehler zurückrollen -
 // analog zu anderen Selbst-Service-Änderungen (Sprache) ohne eigenes Modal, da nur ein Bool.
 async function toggleEnterToSend() {
-  const next = !enterToSend;
-  enterToSend = next;
+  const next = !State.enterToSend;
+  State.enterToSend = next;
   updateEnterToSendUI();
   try {
     const res = await fetch('/api/change-enter-to-send', {
@@ -111,9 +112,27 @@ async function toggleEnterToSend() {
     });
     if (!res.ok) throw new Error('request failed');
   } catch (e) {
-    enterToSend = !next;
+    State.enterToSend = !next;
     updateEnterToSendUI();
   }
+}
+
+// Darkmode ist reine Client-Einstellung (localStorage) - keine Server-Rundreise noetig,
+// anders als Enter-Verhalten, das pro Account gespeichert wird. Der Blocking-Script im
+// <head> setzt data-theme schon vor dem ersten Paint, hier folgt nur noch der UI-Sync.
+function updateDarkModeUI() {
+  const btn = document.getElementById('dark-mode-toggle');
+  const labelOn = document.getElementById('dark-mode-label-on');
+  const labelOff = document.getElementById('dark-mode-label-off');
+  if (btn) btn.setAttribute('aria-pressed', String(State.darkMode));
+  if (labelOn) labelOn.style.display = State.darkMode ? '' : 'none';
+  if (labelOff) labelOff.style.display = State.darkMode ? 'none' : '';
+}
+function toggleDarkMode() {
+  State.darkMode = !State.darkMode;
+  document.documentElement.setAttribute('data-theme', State.darkMode ? 'dark' : 'light');
+  try { localStorage.setItem('fk_theme', State.darkMode ? 'dark' : 'light'); } catch (e) {}
+  updateDarkModeUI();
 }
 
 // ── Tip of the day ──

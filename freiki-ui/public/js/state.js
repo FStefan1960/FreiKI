@@ -1,33 +1,37 @@
-let modes = {};
-let currentMode = null;
-let chatHistory = [];
-  const threadIds = {}; // mode -> threadId for AnythingLLM
-  function getThreadId(mode) {
-    if (!threadIds[mode]) threadIds[mode] = `${currentUsername}_${mode}_${Date.now()}`;
-    return threadIds[mode];
-  }
-  function resetThreadId(mode) {
-    threadIds[mode] = `${currentUsername}_${mode}_${Date.now()}`;
-  }
+const State = {
+  modes: {},
+  currentMode: null,
+  chatHistory: [],
 
-let selectedFile = null;
-let selectedFiles = [];
-let authToken = null;
+  threadIds: {}, // mode -> threadId for AnythingLLM
+  getThreadId(mode) {
+    if (!this.threadIds[mode]) this.threadIds[mode] = `${this.currentUsername}_${mode}_${Date.now()}`;
+    return this.threadIds[mode];
+  },
+  resetThreadId(mode) {
+    this.threadIds[mode] = `${this.currentUsername}_${mode}_${Date.now()}`;
+  },
 
-let currentUsername = '';
-let currentRole = '';
-let enterToSend = true;
+  selectedFile: null,
+  selectedFiles: [],
+  authToken: null,
 
-let pending2faToken = null;
-let pendingUsername = null;
+  currentUsername: '',
+  currentRole: '',
+  enterToSend: true,
+  darkMode: document.documentElement.getAttribute('data-theme') === 'dark',
 
-// MultiDoc: welche Aufgabe die zwei Beispiel-Buttons ("Vergleiche ..." / "Fasse ... zusammen")
-// serverseitig auslösen sollen (ersetzt das frühere Dropdown, siehe useExample() und sendMessage()).
-let multidocTaskChoice = 'zusammenfassen';
+  pending2faToken: null,
+  pendingUsername: null,
 
-const inputHistory = [];
-let historyIndex = -1;
-let historyDraft = '';
+  // MultiDoc: welche Aufgabe die zwei Beispiel-Buttons ("Vergleiche ..." / "Fasse ... zusammen")
+  // serverseitig auslösen sollen (ersetzt das frühere Dropdown, siehe useExample() und sendMessage()).
+  multidocTaskChoice: 'zusammenfassen',
+
+  inputHistory: [],
+  historyIndex: -1,
+  historyDraft: '',
+};
 
 // Icon-Konstanten, die dateiuebergreifend genutzt werden (session-bootstrap.js/
 // dictation.js bzw. message-actions.js/symbols-wizard.js) - restliche, nur lokal

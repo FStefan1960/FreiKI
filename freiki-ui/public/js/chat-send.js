@@ -2,19 +2,19 @@
 async function sendMessage() {
   const input = document.getElementById('message-input');
   const text = input.value.trim();
-  const isMulti = !!(modes[currentMode]?.multifile);
-  if (!text && !selectedFile && selectedFiles.length === 0) return;
-  if (text) { inputHistory.unshift(text); if (inputHistory.length > 50) inputHistory.pop(); historyIndex = -1; historyDraft = ''; }
+  const isMulti = !!(State.modes[State.currentMode]?.multifile);
+  if (!text && !State.selectedFile && State.selectedFiles.length === 0) return;
+  if (text) { State.inputHistory.unshift(text); if (State.inputHistory.length > 50) State.inputHistory.pop(); State.historyIndex = -1; State.historyDraft = ''; }
 
   const sendBtn = document.getElementById('send-btn');
   sendBtn.disabled = true;
 
-  const fileLabel = isMulti && selectedFiles.length > 0
-    ? t('chat.n_documents', '{n} Dokument(e)').replace('{n}', selectedFiles.length)
-    : selectedFile?.name;
+  const fileLabel = isMulti && State.selectedFiles.length > 0
+    ? t('chat.n_documents', '{n} Dokument(e)').replace('{n}', State.selectedFiles.length)
+    : State.selectedFile?.name;
   const displayText = text || t('chat.process_files_fallback', 'Bitte verarbeite diese Datei(en).');
   addMessage('user', displayText, fileLabel);
-  chatHistory.push({ role: 'user', content: displayText });
+  State.chatHistory.push({ role: 'user', content: displayText });
 
   input.value = '';
   input.style.height = 'auto';
@@ -23,16 +23,16 @@ async function sendMessage() {
   try {
     const formData = new FormData();
     formData.append('message', text || t('chat.process_files_fallback', 'Bitte verarbeite diese Datei(en).'));
-    formData.append('mode', currentMode);
-    formData.append('username', currentUsername);
-    formData.append('history', JSON.stringify(chatHistory.slice(-4)));
-    formData.append('threadId', getThreadId(currentMode));
+    formData.append('mode', State.currentMode);
+    formData.append('username', State.currentUsername);
+    formData.append('history', JSON.stringify(State.chatHistory.slice(-4)));
+    formData.append('threadId', State.getThreadId(State.currentMode));
     if (isMulti) {
-      selectedFiles.forEach(f => formData.append('files', f));
-      formData.append('multidoc_task', multidocTaskChoice);
-      multidocTaskChoice = 'zusammenfassen';
-    } else if (selectedFile) {
-      formData.append('file', selectedFile);
+      State.selectedFiles.forEach(f => formData.append('files', f));
+      formData.append('multidoc_task', State.multidocTaskChoice);
+      State.multidocTaskChoice = 'zusammenfassen';
+    } else if (State.selectedFile) {
+      formData.append('file', State.selectedFile);
     }
     removeFile();
 
@@ -83,8 +83,8 @@ async function sendMessage() {
     // gerenderten HTML unsichtbar sind, aber beim Kopieren/Vorlesen mitgehen.
     fullText = fullText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-    chatHistory.push({ role: 'assistant', content: fullText });
-    saveHistory(currentMode);
+    State.chatHistory.push({ role: 'assistant', content: fullText });
+    saveHistory(State.currentMode);
     if (fullText) {
       const msgId = bubble.id;
       bubble.innerHTML = safeMarked(fullText);
@@ -96,7 +96,7 @@ async function sendMessage() {
       // Zugehörige User-Frage merken, damit z.B. der Word-Export einen sprechenden
       // Dateinamen ableiten kann (analog zu promptText bei Mermaid-Diagramm-Exporten).
       bubble.dataset.promptText = displayText;
-      addMessageActions(bubble, msgId, !!(modes[currentMode]?.imagegen || modes[currentMode]?.qrgen));
+      addMessageActions(bubble, msgId, !!(State.modes[State.currentMode]?.imagegen || State.modes[State.currentMode]?.qrgen));
       addStarRating(bubble, msgId);
       const msgs = document.getElementById('messages');
       requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });

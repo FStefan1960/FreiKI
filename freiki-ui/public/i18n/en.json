@@ -148,8 +148,8 @@
   "panel.lehrtext_label": "Teaching text",
   "panel.gedanke_label": "Thought for the day",
   "chat.my_vcard_example": "📇 My business card (editable)",
-  "chat.history_hint_truncated": "↑ Only the last {n} messages from today are shown – \"+ New\" for a new conversation",
-  "chat.history_hint_full": "↑ Today's history – \"+ New\" for a new conversation",
+  "chat.history_hint_truncated": "↑ Only the last {n} messages are shown – \"+ New\" for a new conversation",
+  "chat.history_hint_full": "↑ Previous history – \"+ New\" for a new conversation",
   "files.n_selected": "{n} files selected",
   "paperless.no_text_content": "No text content available.",
   "paperless.searching": "Searching…",
@@ -169,6 +169,7 @@
   "js.document_load_error": "Error loading the document.",
   "common.copied": "Copied",
   "common.copy": "Copy",
+  "common.retry": "Try again",
   "common.error_word": "Error",
   "common.loading_ellipsis": "Loading…",
   "tts.stop": "Stop",
@@ -204,5 +205,7 @@
   "tts.read": "Read aloud",
   "input.message_placeholder_ctrl": "Type a message or drag a file here... (Enter for a paragraph, Ctrl+Enter to send)",
   "account_menu.enter_to_send_on": "Enter behavior: Send",
-  "account_menu.enter_to_send_off": "Enter behavior: New paragraph"
+  "account_menu.enter_to_send_off": "Enter behavior: New paragraph",
+  "account_menu.dark_mode_on": "Dark mode: On",
+  "account_menu.dark_mode_off": "Dark mode: Off"
 }

@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
-  <link rel="stylesheet" href="/style.css?v=23">
+  <script>(function(){try{var t=localStorage.getItem('fk_theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <link rel="stylesheet" href="/style.css?v=24">
   <link rel="stylesheet" href="/brand.css">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="{{APP_COLOR}}">
@@ -69,6 +70,24 @@
   </div>
 </div>
 
+<!-- Pflichtschulung beim ersten Login (nur wo aktiviert, siehe APP_MANDATORY_TRAINING) -->
+<div id="training-modal" class="demo-modal-overlay hide" style="padding:0">
+  <div class="demo-modal" style="width:100vw;height:100vh;max-width:100%;max-height:100%;border-radius:0;border-top:none;display:flex;flex-direction:column;padding:20px 24px;box-sizing:border-box">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-shrink:0">
+      <h2 style="margin:0" data-i18n="training.title">Datenschutz-Schulung</h2>
+      <span id="training-progress" style="font-size:14px;color:var(--fk-text-muted)"></span>
+    </div>
+    <p style="font-size:13px;color:var(--fk-text-muted);margin:4px 0 12px;flex-shrink:0" data-i18n="training.intro">Bitte alle Folien durchklicken – die Teilnahme wird anschließend dokumentiert.</p>
+    <div style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center">
+      <img id="training-slide-img" src="" alt="Schulungsfolie" data-i18n-alt="training.title" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;border:1px solid var(--fk-border-strong)">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-shrink:0">
+      <button class="demo-modal-btn" id="training-prev-btn" onclick="prevTrainingSlide()" style="width:140px;background:var(--fk-tint);color:var(--fk-text)" data-i18n="training.prev">Zurück</button>
+      <button class="demo-modal-btn" id="training-next-btn" onclick="nextTrainingSlide()" style="width:140px" data-i18n="training.next">Weiter</button>
+    </div>
+  </div>
+</div>
+
 <!-- Hinweis für BGT-Nutzer (Berufsgeheimnisträger) -->
 <div id="highrisk-modal" class="demo-modal-overlay hide" role="dialog" aria-modal="true" aria-labelledby="highrisk-title">
   <div class="demo-modal" style="width:420px">
@@ -128,10 +147,10 @@
 
 
       <div class="sidebar-footer">
-        <div class="user-info" onclick="toggleAccountMenu(event)" title="Konto-Menü" data-i18n-title="sidebar.account_menu">
+        <button class="user-info" type="button" onclick="toggleAccountMenu(event)" title="Konto-Menü" data-i18n-title="sidebar.account_menu" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu">
           <div class="user-avatar" id="user-avatar">?</div>
           <div class="user-name" id="user-name">Benutzer</div>
-        </div>
+        </button>
         <button class="logout-btn" onclick="logout()" title="Abmelden" data-i18n-title="sidebar.logout" aria-label="Abmelden" type="button">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
@@ -179,6 +198,13 @@
         <span id="enter-to-send-label-on" data-i18n="account_menu.enter_to_send_on">Enter-Verhalten: Senden</span>
         <span id="enter-to-send-label-off" data-i18n="account_menu.enter_to_send_off" style="display:none">Enter-Verhalten: Absatz</span>
       </button>
+      <button class="account-menu-item" id="dark-mode-toggle" onclick="closeAccountMenu();toggleDarkMode()" type="button" aria-pressed="false">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <span id="dark-mode-label-on" data-i18n="account_menu.dark_mode_on">Dunkelmodus: An</span>
+        <span id="dark-mode-label-off" data-i18n="account_menu.dark_mode_off" style="display:none">Dunkelmodus: Aus</span>
+      </button>
     </div>
 
     <!-- Main -->
@@ -197,7 +223,7 @@
             </svg>
             <span>DSGVO · DSG-EKD · EU · Open Source</span>
           </div>
-          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute / GPU-Cache (Peak) — Klick: Tagesbericht jetzt senden" data-i18n-title="header.admin_stats_title" onclick="triggerDailyReport(event)">
+          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute / GPU-Cache (Peak) / GPU-Leistung — Klick: Tagesbericht jetzt senden" data-i18n-title="header.admin_stats_title" onclick="triggerDailyReport(event)">
             <span id="stats-text">– / – / –%</span>
           </div>
           <div class="header-icon-group">
@@ -483,23 +509,23 @@
 <script>window.FK_APP_NAME = "{{APP_NAME}}";</script>
 <script src="/js/i18n.js?v=2"></script>
 <script src="/js/render-math-mermaid.js?v=1"></script>
-<script src="/js/state.js?v=1"></script>
-<script src="/js/session-bootstrap.js?v=3"></script>
-<script src="/js/chat-history.js?v=1"></script>
-<script src="/js/modes.js?v=1"></script>
-<script src="/js/auth.js?v=1"></script>
-<script src="/js/ui-chrome.js?v=1"></script>
-<script src="/js/chat-session.js?v=1"></script>
-<script src="/js/chat-input.js?v=1"></script>
+<script src="/js/state.js?v=3"></script>
+<script src="/js/session-bootstrap.js?v=5"></script>
+<script src="/js/chat-history.js?v=3"></script>
+<script src="/js/modes.js?v=2"></script>
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/ui-chrome.js?v=2"></script>
+<script src="/js/chat-session.js?v=3"></script>
+<script src="/js/chat-input.js?v=2"></script>
 <script src="/js/paperless.js?v=1"></script>
 <script src="/js/dictation.js?v=1"></script>
-<script src="/js/feedback.js?v=1"></script>
-<script src="/js/message-render.js?v=1"></script>
-<script src="/js/message-actions.js?v=1"></script>
+<script src="/js/feedback.js?v=2"></script>
+<script src="/js/message-render.js?v=2"></script>
+<script src="/js/message-actions.js?v=3"></script>
 <script src="/js/symbols-wizard.js?v=1"></script>
-<script src="/js/chat-send.js?v=1"></script>
+<script src="/js/chat-send.js?v=2"></script>
 <script src="/js/hilfe-bubble.js?v=1"></script>
 <script src="/js/account-self-service.js?v=1"></script>
-<script src="/js/admin-stats.js?v=1"></script>
+<script src="/js/admin-stats.js?v=3"></script>
 </body>
 </html>

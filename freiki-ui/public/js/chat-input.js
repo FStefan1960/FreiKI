@@ -1,40 +1,40 @@
 // ── File ──
 function fileSelected(input) {
   if (!input.files.length) return;
-  if (modes[currentMode]?.multifile) {
-    selectedFiles = Array.from(input.files);
+  if (State.modes[State.currentMode]?.multifile) {
+    State.selectedFiles = Array.from(input.files);
     document.getElementById('file-name').textContent =
-      selectedFiles.length === 1 ? selectedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', selectedFiles.length);
+      State.selectedFiles.length === 1 ? State.selectedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', State.selectedFiles.length);
   } else {
-    selectedFile = input.files[0];
-    document.getElementById('file-name').textContent = selectedFile.name;
+    State.selectedFile = input.files[0];
+    document.getElementById('file-name').textContent = State.selectedFile.name;
   }
   document.getElementById('file-preview').classList.add('show');
 }
 
 function filesSelected(input) {
-  selectedFiles = Array.from(input.files);
-  if (selectedFiles.length > 0) {
+  State.selectedFiles = Array.from(input.files);
+  if (State.selectedFiles.length > 0) {
     document.getElementById('file-name').textContent =
-      selectedFiles.length === 1 ? selectedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', selectedFiles.length);
+      State.selectedFiles.length === 1 ? State.selectedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', State.selectedFiles.length);
     document.getElementById('file-preview').classList.add('show');
   }
 }
 
 function removeFile() {
-  selectedFile = null;
-  selectedFiles = [];
+  State.selectedFile = null;
+  State.selectedFiles = [];
   document.getElementById('file-input').value = '';
   document.getElementById('file-preview').classList.remove('show');
 }
 
 function attachFile(file) {
-  if (modes[currentMode]?.multifile) {
-    selectedFiles = [...selectedFiles, file];
+  if (State.modes[State.currentMode]?.multifile) {
+    State.selectedFiles = [...State.selectedFiles, file];
     document.getElementById('file-name').textContent =
-      selectedFiles.length === 1 ? file.name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', selectedFiles.length);
+      State.selectedFiles.length === 1 ? file.name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', State.selectedFiles.length);
   } else {
-    selectedFile = file;
+    State.selectedFile = file;
     document.getElementById('file-name').textContent = file.name;
   }
   document.getElementById('file-preview').classList.add('show');
@@ -115,13 +115,13 @@ inputBox.addEventListener('drop', e => {
   });
   if (!droppedFiles.length) return;
 
-  if (modes[currentMode]?.multifile) {
-    selectedFiles = droppedFiles;
+  if (State.modes[State.currentMode]?.multifile) {
+    State.selectedFiles = droppedFiles;
     document.getElementById('file-name').textContent =
       droppedFiles.length === 1 ? droppedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', droppedFiles.length);
   } else {
-    selectedFile = droppedFiles[0];
-    document.getElementById('file-name').textContent = selectedFile.name;
+    State.selectedFile = droppedFiles[0];
+    document.getElementById('file-name').textContent = State.selectedFile.name;
   }
   const file = droppedFiles[0]; // für Kompatibilität mit dem nachfolgenden Code
   document.getElementById('file-preview').classList.add('show');
@@ -131,25 +131,25 @@ inputBox.addEventListener('drop', e => {
 function handleKey(e) {
   const input = document.getElementById('message-input');
   if (e.key === 'Enter') {
-    const shouldSend = enterToSend ? !e.shiftKey : (e.ctrlKey || e.metaKey);
+    const shouldSend = State.enterToSend ? !e.shiftKey : (e.ctrlKey || e.metaKey);
     if (shouldSend) { e.preventDefault(); sendMessage(); }
     return;
   }
   if (e.key === 'ArrowUp' && input.selectionStart === 0) {
     e.preventDefault();
-    if (inputHistory.length === 0) return;
-    if (historyIndex === -1) historyDraft = input.value;
-    historyIndex = Math.min(historyIndex + 1, inputHistory.length - 1);
-    input.value = inputHistory[historyIndex];
+    if (State.inputHistory.length === 0) return;
+    if (State.historyIndex === -1) State.historyDraft = input.value;
+    State.historyIndex = Math.min(State.historyIndex + 1, State.inputHistory.length - 1);
+    input.value = State.inputHistory[State.historyIndex];
     autoResize(input);
     setTimeout(() => input.setSelectionRange(0, 0), 0);
     return;
   }
   if (e.key === 'ArrowDown' && input.selectionStart === input.value.length) {
     e.preventDefault();
-    if (historyIndex === -1) return;
-    historyIndex--;
-    input.value = historyIndex === -1 ? historyDraft : inputHistory[historyIndex];
+    if (State.historyIndex === -1) return;
+    State.historyIndex--;
+    input.value = State.historyIndex === -1 ? State.historyDraft : State.inputHistory[State.historyIndex];
     autoResize(input);
     setTimeout(() => { const l = input.value.length; input.setSelectionRange(l, l); }, 0);
     return;

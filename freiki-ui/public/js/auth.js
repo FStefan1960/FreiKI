@@ -8,12 +8,12 @@ function applyRoleIndicator(role) {
 }
 
 function completeLogin(data, username) {
-  authToken = true;
+  State.authToken = true;
   const role = data.role || 'default';
   sessionStorage.setItem('freiki_user', username);
   sessionStorage.setItem('freiki_role', role);
-  currentUsername = username;
-  currentRole = role;
+  State.currentUsername = username;
+  State.currentRole = role;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('disclaimer-banner').style.display = 'flex';
@@ -85,8 +85,8 @@ async function login() {
     });
     const data = await res.json();
     if (data.requires2fa) {
-      pending2faToken = data.pendingToken;
-      pendingUsername = username;
+      State.pending2faToken = data.pendingToken;
+      State.pendingUsername = username;
       document.getElementById('login-form').style.display = 'none';
       document.getElementById('twofa-form').style.display = 'flex';
       document.getElementById('twofa-code').focus();
@@ -117,11 +117,11 @@ async function verifyTwoFactor() {
     const res = await fetch('/api/login/verify-2fa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken: pending2faToken, code })
+      body: JSON.stringify({ pendingToken: State.pending2faToken, code })
     });
     const data = await res.json();
     if (res.ok && data.role) {
-      completeLogin(data, pendingUsername);
+      completeLogin(data, State.pendingUsername);
     } else {
       errorEl.textContent = data.error || t('common.invalid_code', 'Ungültiger Code');
       errorEl.style.display = 'block';
@@ -165,7 +165,7 @@ async function loginWithPasskey() {
     const optRes = await fetch('/api/webauthn/login/options', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken: pending2faToken })
+      body: JSON.stringify({ pendingToken: State.pending2faToken })
     });
     const options = await optRes.json();
     if (!optRes.ok) throw new Error(options.error || 'Fehler');
@@ -175,11 +175,11 @@ async function loginWithPasskey() {
     const res = await fetch('/api/webauthn/login/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken: pending2faToken, response })
+      body: JSON.stringify({ pendingToken: State.pending2faToken, response })
     });
     const data = await res.json();
     if (res.ok && data.role) {
-      completeLogin(data, pendingUsername);
+      completeLogin(data, State.pendingUsername);
     } else {
       errorEl.textContent = data.error || t('js.passkey_login_failed', 'Passkey-Anmeldung fehlgeschlagen');
       errorEl.style.display = 'block';
@@ -319,7 +319,7 @@ async function confirmSetup2FA() {
 
 function closeSetup2FAModal() {
   document.getElementById('setup2fa-modal').classList.add('hide');
-  if (currentRole === 'high_risk') showHighRiskModal();
+  if (State.currentRole === 'high_risk') showHighRiskModal();
 }
 
 // ── Hinweis für BGT-Nutzer (Berufsgeheimnisträger) ──
@@ -331,7 +331,8 @@ function closeHighRiskModal() {
 }
 
 function logout() {
-  chatHistory = [];
+  if (!confirm(t('sidebar.confirm_logout', 'Wirklich abmelden?'))) return;
+  State.chatHistory = [];
   forceLogout();
 }
 

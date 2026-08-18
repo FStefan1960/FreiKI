@@ -75,8 +75,8 @@ async function loadModes() {
   try {
     const res = await fetch('/api/modes?lang=' + encodeURIComponent(fkGetUiLang()), { cache: 'no-store' });
     const list = await res.json();
-    modes = {};
-    list.forEach(m => { modes[m.key] = m; });
+    State.modes = {};
+    list.forEach(m => { State.modes[m.key] = m; });
 
     const cw = document.getElementById('mode-buttons-werkzeuge');
     const ck = document.getElementById('mode-buttons-wissen');
@@ -93,7 +93,7 @@ async function loadModes() {
       { panel: '/whisper.html', icon: '🎙️', title: t('tools.transcription.title', 'Transkription'), desc: t('tools.transcription.desc', 'Audio → Text per E-Mail') },
       { panel: '/formular-chat.html', icon: '📋', title: t('tools.form_chat.title', 'Formular-Chat'), desc: t('tools.form_chat.desc', 'Formular per Dialog ausfüllen & drucken') },
     ];
-    if (['admin', 'manager'].includes(currentRole)) {
+    if (['admin', 'manager'].includes(State.currentRole)) {
       builtinTools.push({ panel: '/admin-formulare.html', icon: '📋', title: t('tools.form_templates.title', 'Formular-Vorlagen'), desc: t('tools.form_templates.desc', 'Scans hochladen & Felder markieren') });
     }
     builtinTools.forEach(t => {
@@ -111,7 +111,7 @@ async function loadModes() {
       const extras = await extRes.json();
       // Optionales roles-Feld im Manifest (analog zum admin/manager-Filter oben bei
       // builtinTools): fehlt es, ist das Extra wie bisher für alle Rollen sichtbar.
-      const visibleExtras = extras.filter(t => !t.roles || t.roles.includes(currentRole));
+      const visibleExtras = extras.filter(t => !t.roles || t.roles.includes(State.currentRole));
       const ce = document.getElementById('mode-buttons-extras');
       const tabExtras = document.getElementById('tab-extras');
       if (ce) ce.innerHTML = '';

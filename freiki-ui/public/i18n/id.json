@@ -148,8 +148,8 @@
   "panel.lehrtext_label": "Teks pengajaran",
   "panel.gedanke_label": "Pemikiran hari ini",
   "chat.my_vcard_example": "📇 Kartu nama saya (dapat diedit)",
-  "chat.history_hint_truncated": "↑ Hanya {n} pesan terakhir hari ini yang ditampilkan – \"+ Baru\" untuk percakapan baru",
-  "chat.history_hint_full": "↑ Riwayat hari ini – \"+ Baru\" untuk percakapan baru",
+  "chat.history_hint_truncated": "↑ Hanya {n} pesan terakhir yang ditampilkan – \"+ Baru\" untuk percakapan baru",
+  "chat.history_hint_full": "↑ Riwayat sebelumnya – \"+ Baru\" untuk percakapan baru",
   "files.n_selected": "{n} berkas dipilih",
   "paperless.no_text_content": "Tidak ada konten teks yang tersedia.",
   "paperless.searching": "Mencari…",
@@ -169,6 +169,7 @@
   "js.document_load_error": "Kesalahan saat memuat dokumen.",
   "common.copied": "Disalin",
   "common.copy": "Salin",
+  "common.retry": "Coba lagi",
   "common.error_word": "Kesalahan",
   "common.loading_ellipsis": "Memuat…",
   "tts.stop": "Berhenti",
@@ -204,5 +205,7 @@
   "tts.read": "Bacakan",
   "input.message_placeholder_ctrl": "Ketik pesan atau seret berkas ke sini... (Enter untuk paragraf baru, Ctrl+Enter untuk mengirim)",
   "account_menu.enter_to_send_on": "Perilaku Enter: Kirim",
-  "account_menu.enter_to_send_off": "Perilaku Enter: Paragraf baru"
+  "account_menu.enter_to_send_off": "Perilaku Enter: Paragraf baru",
+  "account_menu.dark_mode_on": "Mode gelap: Aktif",
+  "account_menu.dark_mode_off": "Mode gelap: Nonaktif"
 }
