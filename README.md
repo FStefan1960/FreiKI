@@ -17,10 +17,10 @@ Klicke dazu einfach oben auf den Reiter **[Issues](https://github.com)** und wä
 
 ```
 Browser → Caddy (Reverse Proxy)
-               ├── freiki-ui (Node.js / Express)    ← Frontend + API-Gateway
+               ├── freiki-ui (Node.js / Express)    ← Frontend + API-Gateway + native Berichts-Jobs (src/jobs/)
                ├── PostgreSQL (pgvector)             ← User-DB + direktes RAG (kb_*-Tabellen)
                ├── vLLM (lokal) / DeepInfra / Mistral ← LLM-Inferenz (instanzabhängig)
-               ├── n8n                               ← Automatisierung (Paperless-Sync, Monitoring, Bots)
+               ├── n8n                               ← noch installiert, aber inaktiv (siehe unten)
                ├── Paperless-ngx (+Gotenberg, Tika)   ← Dokumentenarchiv
                ├── Mattermost                        ← Team-Chat (FreiKI/KorKI, nicht FrankKI)
                ├── Mailserver (docker-mailserver)     ← eigener SMTP/IMAP
@@ -31,15 +31,17 @@ Browser → Caddy (Reverse Proxy)
 
 Alle Services laufen als Docker-Container via `docker compose`. Die Datenhaltung erfolgt in PostgreSQL (eigene `freiki_users`-Tabelle + direkte pgvector-RAG-Tabellen `kb_*`, kein Flowise/AnythingLLM — diese Ansätze wurden verworfen) sowie in gemounteten Volumes für Modelle und Konfiguration.
 
+**n8n-Ablösung (Stand 0.7.8):** Automatisierung (Paperless-Sync, Tageslosung, Wetter-/NINA-Warnungen, Sicherheitslage, Health-Checks, Mattermost-Bots, Content-Extras, Tages-/Datenabfluss-Berichte) läuft inzwischen als native Node.js-Jobs in `freiki-ui/src/jobs/` statt über n8n-Workflows. Der n8n-Container läuft auf FreiKI/KorKI zwar noch, alle Workflows sind aber deaktiviert (nur noch als Referenz/Fallback vorhanden, nicht mehr Teil des aktiven Betriebs).
+
 ## Features
 
 - **Chat-Interface** — PWA mit Service Worker, Offline-fähig, installierbar auf Desktop und Mobilgeräten
 - **Wissens-Modi** — bereichsspezifische RAG-Assistenten, direkt über pgvector (`kb_*`-Tabellen), kein externes RAG-Tool
 - **Werkzeuge** — Websuche (SearXNG), Sprachtranskription (Whisper), TTS (Piper/Thorsten-DE), Excel-Chat (MCP Tool-Calling, experimentell)
-- **Benutzerverwaltung** — eigene PostgreSQL-Tabelle mit bcrypt + JWT (Token gültig bis Mitternacht Europe/Berlin); Rollen (admin / manager / default); bereichsbasierte Zugriffskontrolle
-- **Admin-Panel** — CRUD für Nutzer, Passwort-Reset, Sperren, Bereichszuweisungen, Branding-Konfiguration
-- **Extras** — instanzspezifische Zusatzfeatures (Tageslosung, Medienspiegel, Gesellschaftstrends), über n8n täglich aktualisiert
-- **Integrationen** — Paperless-ngx (Dokumentenarchiv als Wissensquelle), Mattermost (Team-Chat + Bot), n8n (Automatisierung)
+- **Benutzerverwaltung** — eigene PostgreSQL-Tabelle mit bcrypt + JWT in HttpOnly-Cookie (kein localStorage; Token gültig bis Mitternacht Europe/Berlin); Rollen (admin / manager / default); bereichsbasierte Zugriffskontrolle
+- **Admin-Panel** — CRUD für Nutzer, Passwort-Reset, Sperren, Bereichszuweisungen, Branding-Konfiguration; In-App-Dashboard für Nutzungsstatistik + Prompt-Editor (seit 0.7.8)
+- **Extras** — instanzspezifische Zusatzfeatures (Tageslosung, Medienspiegel, Gesellschaftstrends), über native Berichts-Jobs (`src/jobs/`) täglich aktualisiert
+- **Integrationen** — Paperless-ngx (Dokumentenarchiv als Wissensquelle), Mattermost (Team-Chat + Bot)
 
 ## Instanz-Hierarchie
 
@@ -49,7 +51,7 @@ Alle Services laufen als Docker-Container via `docker compose`. Die Datenhaltung
 | **KorKI** | Produktiv / on-premise | Qwen3-32B-AWQ via vLLM (lokale GPU) | assi.diakonie-kork-ki.de | Diakonie Kork (DSGVO) |
 | **FrankKI / BeB-KI** | Persönlicher Assistent / Kunde | Mistral API (mistral-medium-latest) | ki.fst60.de | Privat / BeB e.V. |
 
-Alle drei laufen auf IONOS VPS. Codebasis: FreiKI ist seit 2026-07-05 modularisiert (`freiki-ui/src/`, siehe unten) — KorKI und FrankKI laufen noch auf dem monolithischen `server.js`, Portierung steht aus.
+Alle drei laufen auf IONOS VPS. Codebasis: Seit der auf FreiKI begonnenen Modularisierung (2026-07-05, `freiki-ui/src/`, siehe unten) sind alle drei Instanzen umgebaut — `server.js` ist überall nur noch der Einzeiler-Entrypoint.
 
 ## Stack
 
@@ -57,7 +59,7 @@ Alle drei laufen auf IONOS VPS. Codebasis: FreiKI ist seit 2026-07-05 modularisi
 |------------|-------------|
 | Frontend | HTML/CSS/JS PWA, Service Worker |
 | Backend | Node.js / Express (`freiki-ui/`) |
-| Auth | bcryptjs + jsonwebtoken (JWT, gültig bis Mitternacht Europe/Berlin) |
+| Auth | bcryptjs + jsonwebtoken (JWT in HttpOnly-Cookie, kein localStorage; gültig bis Mitternacht Europe/Berlin) |
 | Datenbank | PostgreSQL mit pgvector-Extension (`freiki_users`, `kb_*`-RAG-Tabellen, n8n/Paperless/Mattermost je eigene DB im selben Postgres-Server) |
 | LLM | vLLM (lokal, GPU) oder DeepInfra / Mistral API, je nach Instanz |
 | RAG | Direkt über pgvector — kein Flowise, kein AnythingLLM |
@@ -66,13 +68,13 @@ Alle drei laufen auf IONOS VPS. Codebasis: FreiKI ist seit 2026-07-05 modularisi
 | Dokumentenarchiv | Paperless-ngx (+ Gotenberg, Tika) |
 | Team-Chat | Mattermost (FreiKI, KorKI) |
 | Mail | docker-mailserver (eigener SMTP/IMAP) |
-| Automatisierung | n8n |
+| Automatisierung | Native Node.js-Jobs (`src/jobs/`) — n8n-Container läuft noch mit, alle Workflows sind aber deaktiviert |
 | Proxy | Caddy |
 | Orchestrierung | Docker Compose |
 
 ## Code-Struktur (`freiki-ui/`)
 
-Seit der Modularisierung (2026-07-05, bisher nur FreiKI) ist `server.js` nur noch ein Einzeiler:
+Seit der auf FreiKI begonnenen Modularisierung (2026-07-05, KorKI/FrankKI inzwischen nachgezogen) ist `server.js` nur noch ein Einzeiler:
 
 ```js
 require('./src/infrastructure/express/app').start();
@@ -87,7 +89,7 @@ src/
 └── shared/              # Config (Env-Variablen, Brand-Config), Utils
 ```
 
-KorKI und FrankKI haben diesen Umbau noch nicht erhalten — dort ist `server.js` weiterhin der ~2500-Zeilen-Monolith.
+KorKI und FrankKI haben denselben Umbau inzwischen ebenfalls erhalten.
 
 ## Deployment
 
