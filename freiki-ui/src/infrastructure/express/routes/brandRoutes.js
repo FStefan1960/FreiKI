@@ -36,6 +36,17 @@ router.get('/index.html', (_req, res) => res.redirect(301, '/'));
 
 router.get('/', (_req, res) => res.type('html').send(getIndexHtml()));
 
+// Öffentliches Anmeldeformular nur ausliefern, wenn APP_SELF_REGISTRATION=true - sonst 404
+// statt der rohen Datei mit ungefüllten {{APP_NAME}}-Platzhaltern (siehe app.js, wo aus
+// demselben Grund /api/register selbst nur bei aktiviertem Flag gemountet wird).
+router.get('/register.html', (_req, res) => {
+  const brand = getBrandConfig();
+  if (!brand.selfRegistration) return res.status(404).end();
+  const html = fs.readFileSync(path.join(config.PUBLIC_DIR, 'register.html'), 'utf8')
+    .replace(/\{\{APP_NAME\}\}/g, brand.name);
+  res.type('html').send(html);
+});
+
 // Dynamisch: Cache-Name + Assets richten sich nach der aktuellen Marke (Name, Logo, swVersion).
 // (Im Original-server.js gab es hierfür zwei "/sw.js"-Routen, eine davon toter Code durch
 // Doppelregistrierung – am 2026-07-05 auf FreiKI/KorKI/FrankKI/BonKI einheitlich gefixt.)
@@ -144,6 +155,7 @@ router.get('/api/brand', (_req, res) => {
     mattermost: brand.mattermostUrl,
     paperless: brand.paperlessUrl,
     supportEmail: brand.supportEmail,
+    useMetacom: brand.useMetacom,
   });
 });
 

@@ -12,6 +12,10 @@ const chatRepo = require('../../../core/chat/ChatRepository');
 const auditLog = require('../../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const jobsScheduler = require('../../../jobs/scheduler');
+const feedbackReport = require('../../../jobs/feedbackReport');
+const usageStatsReport = require('../../../jobs/usageStatsReport');
+const gpuMetricsReport = require('../../../jobs/gpuMetricsReport');
 
 const router = express.Router();
 router.use(express.json({ limit: '256kb' }));
@@ -261,13 +265,13 @@ router.get('/api/admin/users', asyncHandler(async (req, res) => {
 }));
 
 router.post('/api/admin/users', asyncHandler(async (req, res) => {
-  const { username, role, use, manage, first_name, last_name, funktion, telefon, email, language, use_paperless, password } = req.body || {};
+  const { username, role, use, manage, first_name, last_name, dienststelle, funktion, telefon, email, language, use_paperless, use_metacom, password } = req.body || {};
   if (!users.isValidUsername(username)) return res.status(400).json({ error: 'Benutzername: 3–64 Zeichen, nur Buchstaben, Zahlen und ._-' });
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
   if (password && password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
   try {
-    const result = await AuthService.createUser({ username, role, use, manage, first_name, last_name, funktion, telefon, email, language, use_paperless, password });
-    auditLog.log(req.admin, 'user.create', { id: result.id, username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless });
+    const result = await AuthService.createUser({ username, role, use, manage, first_name, last_name, dienststelle, funktion, telefon, email, language, use_paperless, use_metacom, password });
+    auditLog.log(req.admin, 'user.create', { id: result.id, username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless, use_metacom: !!use_metacom });
     res.json({ ok: true, id: result.id, mailSent: result.mailSent });
   } catch (e) {
     if (e.code === '23505') return res.status(400).json({ error: 'Benutzername existiert bereits' });
@@ -278,14 +282,14 @@ router.post('/api/admin/users', asyncHandler(async (req, res) => {
 router.post('/api/admin/users/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ error: 'Ungültige Nutzer-ID' });
-  const { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, language, use_paperless } = req.body || {};
+  const { role, use, manage, suspended, first_name, last_name, dienststelle, funktion, telefon, email, language, use_paperless, use_metacom } = req.body || {};
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
   // Selbstschutz: eigenes Konto nicht sperren / nicht zu Nicht-Admin herabstufen
   if (id === req.admin.uid && (suspended === true || (role && role !== 'admin')))
     return res.status(400).json({ error: 'Das eigene Admin-Konto kann nicht gesperrt oder herabgestuft werden.' });
   try {
     const before = await users.findById(id);
-    const ok = await users.update(id, { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, language, use_paperless });
+    const ok = await users.update(id, { role, use, manage, suspended, first_name, last_name, dienststelle, funktion, telefon, email, language, use_paperless, use_metacom });
     if (!ok) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
     if (before) {
       const changes = {};
@@ -358,6 +362,48 @@ router.delete('/api/admin/users/:id', asyncHandler(async (req, res) => {
     auditLog.log(req.admin, 'user.delete', { id, username: target?.username }, { role: target?.role });
     res.json({ ok: true });
   } catch (e) { console.error('admin/users DELETE:', e.message); res.status(500).json({ error: 'Löschen fehlgeschlagen' }); }
+}));
+
+// ── Registrierungsanfragen (öffentliches Anmeldeformular, siehe registrationRoutes.js) ──
+router.get('/api/admin/registrations', asyncHandler(async (req, res) => {
+  try {
+    res.json({ registrations: await users.listPending() });
+  } catch (e) { console.error('admin/registrations GET:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
+}));
+
+router.post('/api/admin/registrations/:id/approve', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const { role, use, manage, use_paperless, use_metacom } = req.body || {};
+  try {
+    const before = await users.findById(id);
+    const result = await AuthService.approveRegistration(id, { role, use, manage, use_paperless, use_metacom });
+    if (result.error === 'not-found') return res.status(404).json({ error: 'Registrierung nicht gefunden' });
+    auditLog.log(req.admin, 'user.registration_approved', { id, username: before?.username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless, use_metacom: !!use_metacom });
+    res.json({ ok: true, mailSent: result.mailSent });
+  } catch (e) { console.error('registrations approve:', e.message); res.status(500).json({ error: 'Freischalten fehlgeschlagen' }); }
+}));
+
+router.post('/api/admin/registrations/:id/reject', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const result = await AuthService.rejectRegistration(id);
+    if (result.error === 'not-found') return res.status(404).json({ error: 'Registrierung nicht gefunden' });
+    auditLog.log(req.admin, 'user.registration_rejected', { id, username: result.username });
+    res.json({ ok: true });
+  } catch (e) { console.error('registrations reject:', e.message); res.status(500).json({ error: 'Ablehnen fehlgeschlagen' }); }
+}));
+
+// ── Native Berichts-Jobs (Ersatz für die entsprechenden n8n-Workflows, siehe src/jobs/) ──
+router.get('/api/admin/jobs', (req, res) => {
+  res.json({ jobs: jobsScheduler.listRegistry() });
+});
+
+router.post('/api/admin/jobs/:name/run', asyncHandler(async (req, res) => {
+  try {
+    await jobsScheduler.runNow(req.params.name);
+    auditLog.log(req.admin, 'job.manual_run', { name: req.params.name });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
 }));
 
 // ── Medienspiegel / Gesellschaftstrends / Tageslosung: Admin-seitiges Schreiben ──
@@ -445,22 +491,14 @@ router.get('/api/admin/sensitive-query-log', asyncHandler(async (req, res) => {
   } catch (e) { console.error('admin/sensitive-query-log:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
 }));
 
+// Vorher: Weiterleitung an einen n8n-Webhook. Jetzt drei unabhängige native Flows direkt
+// aufgerufen (siehe jobs/feedbackReport.js, usageStatsReport.js, gpuMetricsReport.js) -
+// jeder meldet für sich, ob er wegen fehlender Daten stillbleibt.
 router.post('/api/admin/trigger-daily-report', asyncHandler(async (req, res) => {
-  if (!config.N8N_DAILY_REPORT_WEBHOOK_URL) {
-    return res.status(501).json({ error: 'Auf dieser Instanz nicht konfiguriert' });
-  }
-  try {
-    const r = await fetch(config.N8N_DAILY_REPORT_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!r.ok) return res.status(502).json({ error: `n8n antwortete mit ${r.status}` });
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(502).json({ error: 'n8n nicht erreichbar' });
-  }
+  const results = await Promise.allSettled([feedbackReport.run(), usageStatsReport.run(), gpuMetricsReport.run()]);
+  const errors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message || String(r.reason));
+  if (errors.length) return res.status(500).json({ error: errors.join('; ') });
+  res.json({ ok: true });
 }));
 
 module.exports = router;

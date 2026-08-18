@@ -1,0 +1,7 @@
+{
+  "name": "paperless-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ersetzt die n8n-Workflows Tags-Sync, Paperless->FreiKI-Sync und Paperless KI-Tagging durch native, self-schedulende Jobs.",
+  "main": "index.js"
+}

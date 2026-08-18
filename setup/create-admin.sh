@@ -22,6 +22,6 @@ set +a
 HASH=$(docker exec FreiKI node -e "console.log(require('bcryptjs').hashSync(process.argv[1], 10))" "$PASSWORD")
 
 docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" PostgreSQL psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
-  "INSERT INTO korki_users (username, password_hash, role) VALUES ('$USERNAME', '$HASH', 'admin') ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin';"
+  "INSERT INTO freiki_users (username, password_hash, role) VALUES ('$USERNAME', '$HASH', 'admin') ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = 'admin';"
 
 echo "Admin-Benutzer '$USERNAME' angelegt/aktualisiert."

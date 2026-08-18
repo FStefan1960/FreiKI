@@ -30,6 +30,15 @@ Diese Anleitung beschreibt, was bei einer neuen Installation (z. B. für einen w
 
 ### Schritt 1: Repo klonen
 
+Falls der Server noch keinen SSH-Zugriff auf das Repo hat, erst einen Deploy-Key anlegen:
+
+```bash
+ssh-keygen -t ed25519 -C "<instanz>-server-deploy" -f ~/.ssh/id_ed25519 -N ''
+cat ~/.ssh/id_ed25519.pub
+# → GitHub → FStefan1960/FreiKI → Settings → Deploy keys → Add (Read-only)
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+```
+
 ```bash
 git clone git@github.com:FStefan1960/FreiKI.git ~/freiki-package
 cd ~/freiki-package
@@ -68,6 +77,31 @@ PG_PASS_KB=<passwort>
 
 **Hinweis:** `PG_DB=freiki` (nicht `flowise` — Flowise/AnythingLLM wurden nie produktiv genutzt und sind fester Bestandteil keiner Instanz).
 
+Weitere Infrastruktur-Variablen, je nach Instanz relevant (vollständige Liste in `.env.example`):
+
+| Bereich | Variablen |
+|---|---|
+| Datenbank/Docker | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
+| n8n | `N8N_HOST`, `WEBHOOK_URL`, `N8N_ENCRYPTION_KEY`, `N8N_WEBHOOK_URL`, `N8N_API_KEY` |
+| Mail | `MAIL_DOMAIN`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
+| Mattermost (optional) | `MATTERMOST_URL`, `MATTERMOST_OIDC_CLIENT_ID`, `MATTERMOST_OIDC_CLIENT_SECRET`, `MATTERMOST_OIDC_REDIRECT_URI` |
+| Paperless (optional) | `PAPERLESS_URL`, `PAPERLESS_INTERNAL_URL`, `PAPERLESS_TOKEN`, `PAPERLESS_SECRET_KEY`, `PAPERLESS_ADMIN_USER`, `PAPERLESS_ADMIN_PASSWORD` |
+| GPU-Instanz | `HUGGING_FACE_HUB_TOKEN` (nur bei eigenem vLLM) |
+| Sonstige APIs | `KB_INGEST_API_KEY`, `BOT_API_KEY` |
+
+Feature-Flags für optionale Bausteine (alle standardmäßig aus, siehe `.env.example`):
+
+| Variable | Feature |
+|---|---|
+| `APP_SELF_REGISTRATION` | Öffentliches Anmeldeformular (`/register.html`) mit Admin-Freischaltung |
+| `APP_MANDATORY_TRAINING` | Pflichtschulung beim ersten Login (braucht eigene Folien unter `public/training/`, siehe unten) |
+| `APP_USE_METACOM` | METACOM-Nutzungsfeld in der Nutzerverwaltung |
+| `WEATHER_WARN_LAT` / `_LON` / `_RECIPIENTS` | Native Wetterwarnungen (DWD), siehe Schritt 8a |
+| `NINA_WARN_AGS` / `_RECIPIENTS` | Native NINA-Gefahrenwarnungen, siehe Schritt 8a |
+| `TAGESLOSUNG_AUDIENCE` | Zielgruppen-Text für den LLM-Gedanken der Tageslosung (leer = generisch) |
+
+**Wichtig:** Eine neue Variable in `.env` zu setzen reicht nicht. `docker-compose.yml` hat pro Dienst eine explizite `environment:`-Allowlist (`- VAR=${VAR}`) — fehlt die Variable dort, kommt sie nie im Container an, ohne Fehlermeldung (nur eine leicht zu übersehende Compose-Warnung "variable is not set"). Bei jedem neuen Flag also **drei** Stellen pflegen: `.env`, `.env.example` (Dokumentation) und `docker-compose.yml` (Allowlist beim `freiki-ui`-Dienst).
+
 ### Schritt 3: docker-compose.yml anpassen
 
 Ausgehend von der Vorlage im Repo – instanzspezifisch anpassen:
@@ -95,11 +129,11 @@ Empfohlene Größen:
 
 ```bash
 # Willkommensmail-Vorlage
-cp freiki-ui/instance-template/welcome.md freiki-ui/welcome.md
+cp instance-template/welcome.md freiki-ui/welcome.md
 # → Inhalt anpassen (App-Name, Domain, Ansprechpartner)
 
 # Tipp des Tages
-cp freiki-ui/instance-template/tips.md freiki-ui/tips.md
+cp instance-template/tips.md freiki-ui/tips.md
 ```
 
 ### Schritt 6: Wissensbereiche einrichten
@@ -108,11 +142,11 @@ Nur wenn Wissensbereiche gewünscht:
 
 ```bash
 # areas.json anlegen (Mapping Bereich → DB-Tabelle)
-cp freiki-ui/instance-template/areas.json freiki-ui/areas.json
+cp instance-template/areas.json freiki-ui/areas.json
 # → Bereiche eintragen
 
 # Pro Bereich: Prompt-Datei
-cp freiki-ui/instance-template/prompts/w_stvo.md freiki-ui/prompts/w_neuerbereich.md
+cp instance-template/prompts/w_stvo.md freiki-ui/prompts/w_neuerbereich.md
 # → Frontmatter anpassen (title, welcome, hint, examples)
 # → workspace: wissen setzen!
 
@@ -142,11 +176,30 @@ cp caddy/Caddyfile.example caddy/Caddyfile
 
 ```bash
 docker compose up -d
+bash setup/deploy.sh <git-sha-des-release-commits>
 ```
 
-Beim ersten Start wird die Tabelle `freiki_users` automatisch angelegt (einheitlicher Name auf allen Instanzen, kein `korki_users`).
+`deploy.sh` baut versioniert (Image-Tags nach `package.json`-Version + Git-SHA), prüft nach dem Deploy, dass der Container läuft und erreichbar ist — sicherer als ein bloßes `docker compose up -d --force-recreate freiki-ui` bei künftigen Updates.
+
+Beim ersten Start legt die App die Tabelle `freiki_users` selbst an (`CREATE TABLE IF NOT EXISTS`, seit 2026-08 — vorher brauchte es dafür ein inzwischen entferntes Einmal-Skript). Einheitlicher Name auf allen Instanzen, kein `korki_users`.
+
+### Schritt 8a: Native Berichts-Module (optional)
+
+Wetterwarnungen (DWD), NINA-Gefahrenwarnungen, Tageslosung, IT-Sicherheitslage-Digest, Ressourcen-Alert, synthetischer Health-Check, Tagesbericht, vLLM-Signal-Monitor und Docker-Update-Check laufen als eingebaute Module (`freiki-ui/src/jobs/`), nicht mehr über n8n. Aktivierung ausschließlich per `.env` (siehe Feature-Flag-Tabelle oben):
+- Wetterwarnungen/NINA: nur aktiv, wenn Koordinaten/AGS **und** Empfängerliste gesetzt sind
+- Tageslosung/IT-Sicherheitslage/synthetischer Health-Check/Docker-Update-Check: laufen automatisch, sobald `VLLM_URL`/`VLLM_MODEL` konfiguriert sind
+- vLLM-Signal-Monitor: nur aktiv, wenn `SIGNAL_PHONE` **und** `SIGNAL_APIKEY` gesetzt sind
+- Synthetischer Health-Check braucht zusätzlich einen dedizierten `healthcheck`-Testnutzer (`HEALTHCHECK_PASSWORD`) und testet echten Login+RAG-Chat über den eigenen HTTP-Endpunkt
+- Docker-Update-Check braucht `docker-compose.yml` lesbar im Container (siehe `docker-compose.example.yml`: Mount `./docker-compose.yml:/data/docker-compose.yml:ro` bei `freiki-ui`) sowie eine vorab angelegte leere `freiki-ui/docker-update-state.json` (Inhalt `{"digests":{}}`) auf dem Host — sonst legt Docker beim ersten Start ein Verzeichnis statt einer Datei an
+- Status/manueller Trigger: `GET /api/admin/jobs`, `POST /api/admin/jobs/:name/run` (Admin-Session nötig)
 
 ### Schritt 9: Ersten Admin-User anlegen
+
+```bash
+bash setup/create-admin.sh <username> <passwort>
+```
+
+Alternativ manuell:
 
 ```bash
 docker exec -it PostgreSQL psql -U freiki_user -d freiki
@@ -170,7 +223,7 @@ Nach dem ersten Login: Admin-UI → Konfiguration (`/admin/config`):
 
 ## 3. n8n-Workflows einrichten (optional)
 
-Für Paperless-Integration, Monitoring, Tageslosung/Medienspiegel/Gesellschaftstrends-Extras:
+Für Paperless-Integration, Medienspiegel/Gesellschaftstrends-Extras (Tageslosung, Wetterwarnungen, NINA-Warnungen, IT-Sicherheitslage und der Workflow-Gesundheitscheck laufen seit 2026-08 nativ, siehe Schritt 8a — dafür kein n8n-Import mehr nötig):
 
 Workflows per n8n-API von einer bestehenden Instanz exportieren und importieren (siehe [[feedback_n8n_sql_statt_cli]] — CLI-Import/Export war unzuverlässig, lieber über die REST-API `/api/v1/workflows`). Beim Übernehmen von einer anderen Instanz immer prüfen:
 - Login-Node nutzt das richtige Service-Konto/Passwort dieser Instanz
@@ -195,10 +248,11 @@ N8N_API_KEY=<key>
 - [ ] Logos eingespielt (`app-header.png`, `app-icon-192.png`)
 - [ ] `welcome.md`, `tips.md` angepasst
 - [ ] `Caddyfile` mit Domain konfiguriert
-- [ ] Stack gestartet: `docker compose up -d`
-- [ ] Ersten Admin-User angelegt (SQL, Hash via Node.js/bcryptjs)
+- [ ] Stack gestartet: `docker compose up -d` + `bash setup/deploy.sh <git-sha>`
+- [ ] Ersten Admin-User angelegt: `bash setup/create-admin.sh <user> <passwort>`
 - [ ] Branding in Admin-UI gesetzt (Name, Farben, Cache-Version)
 - [ ] Wissensbereiche: `areas.json` + `prompts/w_*.md` + Icons + KB-Tabellen
+- [ ] Native Berichts-Module: gewünschte Feature-Flags/Empfänger in `.env` gesetzt, per `POST /api/admin/jobs/:name/run` getestet
 - [ ] Paperless: Tags in Paperless anlegen, n8n-Workflows importieren und aktivieren
 - [ ] Mailserver: DNS-Records prüfen, DKIM eintragen
 - [ ] Backup-Script einrichten und testen (`setup/backup.sh`/`setup/restore.sh`, IONOS HiDrive — eigener SSH-Key + eigener Unterordner je Instanz, siehe [`docs/Restore-Anleitung.md`](Restore-Anleitung.md))

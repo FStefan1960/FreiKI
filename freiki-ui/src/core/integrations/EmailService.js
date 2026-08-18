@@ -124,4 +124,40 @@ async function sendSensitiveQueryReportMail(to, entries) {
   });
 }
 
-module.exports = { sendWelcomeMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail };
+// Benachrichtigt alle aktiven Admins über eine neue Selbstregistrierung (siehe
+// registerInterest() in AuthService.js) - Admins müssen sonst aktiv die Nutzerverwaltung
+// aufrufen, um von wartenden Anfragen zu erfahren.
+async function sendRegistrationNotificationMail(adminEmails, registrant) {
+  if (!adminEmails || !adminEmails.length || !config.SMTP_HOST) return;
+  const brand = getBrandConfig();
+  const transporter = createTransporter();
+  const name = `${registrant.first_name || ''} ${registrant.last_name || ''}`.trim() || registrant.username;
+  const text = `Neue Registrierungsanfrage für ${brand.name}:\n\n` +
+    `Name: ${name}\nBenutzername: ${registrant.username}\nDienststelle: ${registrant.dienststelle || '–'}\nFunktion: ${registrant.funktion || '–'}\n` +
+    `Telefon: ${registrant.telefon || '–'}\nE-Mail: ${registrant.email || '–'}\n\n` +
+    `Zur Freischaltung: ${config.APP_URL}/users.html`;
+  await transporter.sendMail({
+    from: `${brand.name} <${config.SMTP_FROM}>`,
+    to: adminEmails.join(','),
+    subject: `${brand.name}: Neue Registrierungsanfrage von ${name}`,
+    text,
+  });
+}
+
+// Generischer Versand für Berichte/Warnmeldungen (jobs/*.js) - eigene Betreff/Body-Logik
+// pro Job, aber dieselbe Transport-Konfiguration wie alle anderen Mails.
+async function sendReportMail(to, subject, { text, html } = {}) {
+  if (!to || !to.length || !config.SMTP_HOST) return;
+  const brand = getBrandConfig();
+  const transporter = createTransporter();
+  const recipients = Array.isArray(to) ? to.join(',') : to;
+  await transporter.sendMail({
+    from: `${brand.name} <${config.SMTP_FROM}>`,
+    to: recipients,
+    subject,
+    text,
+    html,
+  });
+}
+
+module.exports = { sendWelcomeMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail };

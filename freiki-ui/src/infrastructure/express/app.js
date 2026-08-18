@@ -6,6 +6,7 @@ const { getBrandConfig, loadBrandConfig } = require('../../shared/config/BrandCo
 const { errorHandler } = require('../../shared/utils/errors');
 const { securityHeaders, apiLimiter, require2FASetupComplete } = require('./middlewares/security');
 const { startUploadCleanupSchedule } = require('../storage/FileStorage');
+const { startJobs } = require('../../jobs');
 const pool = require('../database/postgres/pool');
 const chatRepo = require('../../core/chat/ChatRepository');
 const auditLog = require('../../core/audit/AdminAuditRepository');
@@ -42,6 +43,9 @@ app.use(require('./routes/oidcRoutes'));
 app.use(require('./routes/extrasRoutes'));
 app.use(require('./routes/scannerRoutes'));
 app.use(require('./routes/healthRoutes'));
+// Öffentliches Anmeldeformular nur, wo per APP_SELF_REGISTRATION=true aktiviert - siehe
+// registrationRoutes.js. Ungated wäre jede Instanz (auch die öffentliche Demo) sofort offen.
+if (getBrandConfig().selfRegistration) app.use(require('./routes/registrationRoutes'));
 
 app.use(errorHandler);
 
@@ -80,6 +84,7 @@ async function start() {
   sensitiveLog.startRetentionPurgeSchedule();
   auditLog.startRetentionPurgeSchedule();
   formSessions.startFormSessionPurgeSchedule();
+  startJobs();
 
   app.listen(config.PORT, () => console.log(`${getBrandConfig().name} UI läuft auf Port ${config.PORT}`));
 }

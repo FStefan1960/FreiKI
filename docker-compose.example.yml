@@ -145,6 +145,10 @@ services:
       - ./freiki-ui/medienspiegel.json:/app/medienspiegel.json
       - ./freiki-ui/gesellschaftstrends.json:/app/gesellschaftstrends.json
       - ./freiki-ui/sicherheitslage.json:/app/sicherheitslage.json
+      - ./freiki-ui/docker-update-state.json:/app/docker-update-state.json
+      - ./freiki-ui/feedback-state.json:/app/feedback-state.json
+      - ./freiki-ui/usage-state.json:/app/usage-state.json
+      - ./docker-compose.yml:/data/docker-compose.yml:ro
     dns:
       - 1.1.1.1
     environment:
@@ -188,6 +192,19 @@ services:
       - APP_SW_VERSION=${APP_SW_VERSION}
       - APP_DEMO_MODE=${APP_DEMO_MODE}
       - APP_FOOTER_NOTE=${APP_FOOTER_NOTE}
+      - APP_MANDATORY_TRAINING=${APP_MANDATORY_TRAINING}
+      - APP_SELF_REGISTRATION=${APP_SELF_REGISTRATION}
+      - APP_USE_METACOM=${APP_USE_METACOM}
+      - REGISTRATION_NOTIFY_EMAIL=${REGISTRATION_NOTIFY_EMAIL}
+      - WEATHER_WARN_LAT=${WEATHER_WARN_LAT}
+      - WEATHER_WARN_LON=${WEATHER_WARN_LON}
+      - WEATHER_WARN_RECIPIENTS=${WEATHER_WARN_RECIPIENTS}
+      - NINA_WARN_AGS=${NINA_WARN_AGS}
+      - NINA_WARN_RECIPIENTS=${NINA_WARN_RECIPIENTS}
+      - TAGESLOSUNG_AUDIENCE=${TAGESLOSUNG_AUDIENCE}
+      - HEALTHCHECK_PASSWORD=${HEALTHCHECK_PASSWORD}
+      - SIGNAL_PHONE=${SIGNAL_PHONE}
+      - SIGNAL_APIKEY=${SIGNAL_APIKEY}
       - JWT_SECRET=${JWT_SECRET}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}

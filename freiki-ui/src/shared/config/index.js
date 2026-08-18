@@ -36,10 +36,36 @@ const config = {
   SMTP_PASS: process.env.SMTP_PASS || '',
   SMTP_FROM: process.env.SMTP_FROM || process.env.SMTP_USER || '',
 
+  // Signal-Alert bei vLLM-Ausfall (CallMeBot, siehe jobs/vllmSignalMonitor.js) - optional,
+  // Monitor bleibt inaktiv ohne beide Werte. Vorher hartkodiert im n8n-Workflow-JSON.
+  SIGNAL_PHONE: process.env.SIGNAL_PHONE || '',
+  SIGNAL_APIKEY: process.env.SIGNAL_APIKEY || '',
+
+  // Feste Adresse für Benachrichtigungen über neue Selbstregistrierungen (zusätzlich zu
+  // allen Admin-Konten mit hinterlegter E-Mail, siehe UserRepository.listAdminEmails()) -
+  // deckt z.B. ein Sammelpostfach ab, das keinem einzelnen Admin-Login zugeordnet ist.
+  REGISTRATION_NOTIFY_EMAIL: process.env.REGISTRATION_NOTIFY_EMAIL || '',
+
+  // ── Instanzspezifische Berichte (src/jobs/*.js) - alle optional, Job überspringt sich
+  // selbst (siehe jeweiliges Modul), wenn die nötigen Werte fehlen. ──
+  WEATHER_WARN_LAT: process.env.WEATHER_WARN_LAT || '',
+  WEATHER_WARN_LON: process.env.WEATHER_WARN_LON || '',
+  WEATHER_WARN_RECIPIENTS: (process.env.WEATHER_WARN_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean),
+  // Amtlicher Gemeindeschlüssel (AGS) der Region, siehe warnung.bund.de API-Dokumentation.
+  NINA_WARN_AGS: process.env.NINA_WARN_AGS || '',
+  NINA_WARN_RECIPIENTS: (process.env.NINA_WARN_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean),
+  // Zielgruppen-Beschreibung für den LLM-Gedanken der Tageslosung, z.B. eine diakonische
+  // Einrichtung mit eigenem Alltagsbezug. Leer = generischer Default (siehe tageslosung.js).
+  TAGESLOSUNG_AUDIENCE: process.env.TAGESLOSUNG_AUDIENCE || '',
+
   APP_URL: process.env.APP_URL || 'http://localhost:3000',
 
   PAPERLESS_INTERNAL_URL: process.env.PAPERLESS_INTERNAL_URL || 'http://paperless:8000',
   PAPERLESS_TOKEN: process.env.PAPERLESS_TOKEN || '',
+
+  // Passwort des dedizierten "healthcheck"-Testnutzers (siehe jobs/syntheticHealthCheck.js) -
+  // bisher nur von n8n gelesen, jetzt auch von der App selbst gebraucht.
+  HEALTHCHECK_PASSWORD: process.env.HEALTHCHECK_PASSWORD || '',
 
   MAX_CONTEXT_CHARS: parseInt(process.env.MAX_CONTEXT_CHARS || '40000'),
   MAX_VLLM_CHARS: parseInt(process.env.MAX_VLLM_CHARS || '20000'),
@@ -61,6 +87,16 @@ const config = {
   OIDC_CLIENT_ID: process.env.MATTERMOST_OIDC_CLIENT_ID || '',
   OIDC_CLIENT_SECRET: process.env.MATTERMOST_OIDC_CLIENT_SECRET || '',
   OIDC_REDIRECT_URI: process.env.MATTERMOST_OIDC_REDIRECT_URI || '',
+
+  MATTERMOST_URL: process.env.MATTERMOST_URL || '',
+  // Verifikations-Token des Mattermost-Slash-Commands "/freiki" (siehe commands-Tabelle in der
+  // Mattermost-DB) - ersetzt den früheren n8n-Webhook-Workflow "FreiKI Mattermost Bot".
+  MATTERMOST_SLASH_TOKEN: process.env.MATTERMOST_SLASH_TOKEN || '',
+  // Verifikations-Token des Outgoing Webhooks "@freiki" (siehe outgoingwebhooks-Tabelle in der
+  // Mattermost-DB) - ersetzt den früheren n8n-Workflow "FreiKI @mention Handler".
+  MATTERMOST_MENTION_TOKEN: process.env.MATTERMOST_MENTION_TOKEN || '',
+  // Personal Access Token des Mattermost-Bot-Nutzers "freiki", zum Zurückposten der Antwort.
+  MATTERMOST_BOT_TOKEN: process.env.MATTERMOST_BOT_TOKEN || '',
 };
 
 const REQUIRED_ENV = ['JWT_SECRET', 'VLLM_URL', 'VLLM_API_KEY', 'PG_PASS_KB'];

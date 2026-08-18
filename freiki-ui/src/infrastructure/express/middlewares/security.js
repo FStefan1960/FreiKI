@@ -37,6 +37,16 @@ const loginLimiter = rateLimit({
   skip: (req) => isDockerInternalIp(req.ip),
 });
 
+// Öffentliches Anmeldeformular: legt DB-Zeilen an und verschickt Mails, daher enger als
+// der globale API-Limiter - verhindert, dass die Registrierungsanfragen-Liste zugespamt wird.
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'Zu viele Registrierungsversuche – bitte später erneut versuchen' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Gegen Brute-Force der 8-stelligen DokumentenPIN beim Formular-Fortsetzen (Formular-Chat).
 const formResumeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -58,6 +68,7 @@ const TWO_FA_SETUP_ALLOWLIST = new Set([
   '/api/webauthn/login/options', '/api/webauthn/login/verify',
   '/api/logout', '/api/me',
   '/api/2fa/setup', '/api/2fa/confirm', '/api/2fa/reinit',
+  '/api/training/complete',
 ]);
 
 function require2FASetupComplete(req, res, next) {
@@ -73,6 +84,6 @@ function require2FASetupComplete(req, res, next) {
 }
 
 module.exports = {
-  securityHeaders, apiLimiter, loginLimiter, formResumeLimiter, isDockerInternalIp,
+  securityHeaders, apiLimiter, loginLimiter, registrationLimiter, formResumeLimiter, isDockerInternalIp,
   require2FASetupComplete,
 };

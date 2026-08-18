@@ -117,3 +117,4 @@ router.get('/api/health/detail', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.computeReadiness = computeReadiness;

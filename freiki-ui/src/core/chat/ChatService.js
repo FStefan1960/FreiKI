@@ -14,7 +14,7 @@ const documents = require('../documents/DocumentService');
 const kb = require('../knowledge/KBService');
 const users = require('../auth/UserRepository');
 const { webSearch } = require('../integrations/SearXNGService');
-const { sendToN8n } = require('../integrations/N8nService');
+const { recordChatEvent } = require('../../jobs/usageStatsReport');
 const { quickSearch } = require('../integrations/PaperlessService');
 
 // /no_think im Prompt wird von Qwen3.6 nicht mehr zuverlässig respektiert (siehe KorKI-Fix).
@@ -201,8 +201,8 @@ async function handleChat(req, res) {
       catch (e) { console.warn('Sprache konnte nicht geladen werden:', e.message); }
     }
 
-    sendToN8n({
-      event: 'chat', user: username, mode, title: modeConf?.title || mode,
+    recordChatEvent({
+      user: username, mode, title: modeConf?.title || mode,
       hasFile: !!file, timestamp: new Date().toISOString()
     });
 

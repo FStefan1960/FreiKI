@@ -4,7 +4,7 @@ const { signToken, signPendingToken, verifyPendingToken } = require('./AuthMiddl
 const totp = require('./TotpService');
 const webauthn = require('./WebauthnService');
 const webauthnCreds = require('./WebauthnCredentialRepository');
-const { sendWelcomeMail } = require('../integrations/EmailService');
+const { sendWelcomeMail, sendRegistrationNotificationMail } = require('../integrations/EmailService');
 const { generatePassword, fetchWithTimeout } = require('../../shared/utils/text');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { config } = require('../../shared/config');
@@ -12,6 +12,12 @@ const { config } = require('../../shared/config');
 const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
   ? { chat_template_kwargs: { enable_thinking: false } }
   : {};
+
+// Pflichtschulung greift vor der 2FA-Einrichtung, gilt aber (anders als 2FA) für alle Rollen
+// und nur, wo APP_MANDATORY_TRAINING=true gesetzt ist (aktuell nirgends aktiv).
+function trainingDue(u) {
+  return getBrandConfig().mandatoryTraining && !u.training_completed;
+}
 
 async function login(username, password) {
   const u = await users.findByUsername(username);
@@ -21,7 +27,7 @@ async function login(username, password) {
 
   if (u.totp_enabled) {
     const hasPasskeys = (await webauthnCreds.countByUser(u.id)) > 0;
-    return { requires2fa: true, pendingToken: signPendingToken(u), hasPasskeys };
+    return { requires2fa: true, pendingToken: signPendingToken(u), mustCompleteTraining: trainingDue(u), hasPasskeys };
   }
 
   const token = signToken(u);
@@ -29,6 +35,7 @@ async function login(username, password) {
   // Rolle verlangt 2FA, aber noch nicht eingerichtet: Login gelingt (sonst kein Weg zum
   // Einrichten), Frontend muss den Setup-Dialog erzwingen, bevor der Nutzer weiterarbeitet.
   if (totp.requires2FA(u.role)) result.mustSetup2fa = true;
+  if (trainingDue(u)) result.mustCompleteTraining = true;
   return result;
 }
 
@@ -42,7 +49,10 @@ async function verifyTwoFactor(pendingToken, code) {
 
   if (totp.verifyToken(u.totp_secret, code)) {
     const token = signToken(u);
-    return { token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas };
+    return {
+      token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
+      mustCompleteTraining: trainingDue(u),
+    };
   }
 
   const { valid, remaining } = await totp.consumeBackupCode(u.totp_backup_codes, code);
@@ -52,6 +62,7 @@ async function verifyTwoFactor(pendingToken, code) {
     return {
       token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
       backupCodeUsed: true, backupCodesRemaining: remaining.length,
+      mustCompleteTraining: trainingDue(u),
     };
   }
   return { error: 'invalid-code' };
@@ -211,7 +222,10 @@ async function verifyPasskeyLogin(pendingToken, response) {
   if (result.error) return result;
 
   const token = signToken(u);
-  return { token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas };
+  return {
+    token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
+    mustCompleteTraining: trainingDue(u),
+  };
 }
 
 // Passkey-Selbstverwaltung für eingeloggte Nutzer (Registrieren/Auflisten/Löschen).
@@ -239,9 +253,92 @@ async function resetPasskeys(uid) {
   return { ok: true };
 }
 
+async function completeTraining(uid) {
+  await users.completeTraining(uid);
+  return { ok: true };
+}
+
+// ── Selbstregistrierung (öffentliches Anmeldeformular) ──────────────────────
+// Legt den Nutzer bewusst gesperrt und ohne Rolle/Bereiche an (role bleibt 'default',
+// use/manage leer) - erst die Admin-Freischaltung (approveRegistration) vergibt echte
+// Rechte. Anders als createUser() wird HIER NIE eine Willkommensmail verschickt: das
+// Passwort ist ein Wegwerfwert, der Nutzer bekommt sein echtes Passwort erst bei der
+// Freischaltung per resendWelcome().
+async function registerInterest(rawFields) {
+  const throwawayPassword = generatePassword();
+  const passwordHash = await bcrypt.hash(throwawayPassword, 10);
+  // Antwortsprache ist im Formular ein Freitextfeld (kein festes Auswahlmenü) - dieselbe
+  // KI-gestützte Normalisierung wie bei changeLanguage() für eingeloggte Nutzer, nicht
+  // interpretierbare Angaben fallen auf '' zurück -> users.create() ergänzt dann 'de'.
+  const language = (await normalizeLanguage(rawFields.language)) || '';
+  const fields = { ...rawFields, language };
+  // Benutzername wird NICHT vom Formular übernommen, sondern serverseitig aus Vor-/Nachname
+  // generiert (siehe UserRepository.generateUniqueUsername) - das Formular fragt ihn gar
+  // nicht erst ab.
+  const username = await users.generateUniqueUsername(fields.first_name, fields.last_name);
+  let id;
+  try {
+    id = await users.create({
+      ...fields, username, passwordHash, role: 'default', use: [], manage: [],
+      use_paperless: false, use_metacom: false, suspended: true, pending_approval: true,
+    });
+  } catch (e) {
+    // Seltene Race zwischen der Verfuegbarkeitspruefung in generateUniqueUsername() und
+    // diesem INSERT (zwei Registrierungen mit identischem Namen zur exakt selben Zeit) -
+    // ein einziger Versuch mit Zeitstempel-Suffix statt Endlosschleife.
+    if (e.code !== '23505') throw e;
+    const retryUsername = username + Date.now().toString().slice(-4);
+    id = await users.create({
+      ...fields, username: retryUsername, passwordHash, role: 'default', use: [], manage: [],
+      use_paperless: false, use_metacom: false, suspended: true, pending_approval: true,
+    });
+    return await notifyAndReturn(id, retryUsername, fields);
+  }
+  return await notifyAndReturn(id, username, fields);
+}
+
+async function notifyAndReturn(id, username, fields) {
+  try {
+    const adminEmails = await users.listAdminEmails();
+    const recipients = [...new Set([...adminEmails, config.REGISTRATION_NOTIFY_EMAIL].filter(Boolean))];
+    await sendRegistrationNotificationMail(recipients, { ...fields, id, username });
+  } catch (mailErr) {
+    console.error('Registrierungs-Benachrichtigung fehlgeschlagen:', mailErr.message);
+  }
+  return { id, username };
+}
+
+// Admin-Freischaltung einer Selbstregistrierung: weist Rolle/Bereiche zu, entsperrt,
+// generiert das echte Passwort und verschickt die Willkommensmail (resendWelcome deckt
+// beides ab, da der Nutzer technisch bereits existiert - nur eben noch gesperrt war).
+async function approveRegistration(id, adminFields) {
+  const before = await users.findById(id);
+  if (!before || !before.pending_approval) return { error: 'not-found' };
+  // update() erwartet ein komplettes Formular und überschreibt sonst first_name/last_name/
+  // funktion/telefon/email/language mit '' (siehe Kommentar bei updateLanguage()) - die bei
+  // der Registrierung erfassten Werte hier explizit mitgeben, adminFields liefert nur
+  // role/use/manage/use_paperless/use_metacom.
+  await users.update(id, {
+    ...adminFields,
+    first_name: before.first_name, last_name: before.last_name, funktion: before.funktion,
+    telefon: before.telefon, email: before.email, language: before.language,
+    suspended: false, pending_approval: false,
+  });
+  const result = await resendWelcome(id);
+  return { ok: true, mailSent: !result.error };
+}
+
+async function rejectRegistration(id) {
+  const before = await users.findById(id);
+  if (!before || !before.pending_approval) return { error: 'not-found' };
+  await users.remove(id);
+  return { ok: true, username: before.username };
+}
+
 module.exports = {
   login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA, requestReinit2FA,
-  changePassword, changeLanguage, changeEnterToSend, createUser, resetPassword, resendWelcome,
+  changePassword, changeLanguage, changeEnterToSend, createUser, resetPassword, resendWelcome, completeTraining,
   getPasskeyLoginOptions, verifyPasskeyLogin, getPasskeyRegistrationOptions,
   confirmPasskeyRegistration, listPasskeys, removePasskey, resetPasskeys,
+  registerInterest, approveRegistration, rejectRegistration,
 };

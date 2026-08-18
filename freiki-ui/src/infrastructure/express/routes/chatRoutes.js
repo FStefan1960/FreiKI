@@ -10,7 +10,7 @@ const { chatUpload } = require('../../../core/chat/ChatValidator');
 const ChatService = require('../../../core/chat/ChatService');
 const kb = require('../../../core/knowledge/KBService');
 const users = require('../../../core/auth/UserRepository');
-const { sendToN8n } = require('../../../core/integrations/N8nService');
+const { recordFeedback } = require('../../../jobs/feedbackReport');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { safeEqual } = require('../../../shared/utils/security');
 
@@ -81,7 +81,7 @@ router.post('/api/feedback', asyncHandler(async (req, res) => {
     timestamp: req.body.timestamp || new Date().toISOString()
   };
   console.log(`Feedback: ${payload.type}`);
-  await sendToN8n(payload);
+  await recordFeedback(payload);
   res.json({ ok: true });
 }));
 
@@ -134,15 +134,66 @@ router.post('/api/bot-chat', asyncHandler(async (req, res) => {
   }
   try {
     const result = await kb.answerBotChat(message, username);
-    sendToN8n({
-      event: 'bot-chat', user: username || 'bot',
-      areasFound: result.sources, timestamp: new Date().toISOString(),
-    });
     res.json(result);
   } catch (e) {
     console.error('bot-chat Fehler:', e);
     res.status(500).json({ error: 'Fehler bei der Bot-Anfrage' });
   }
 }));
+
+// Mattermost Slash-Command "/freiki" - ersetzt den früheren n8n-Webhook-Workflow
+// "FreiKI Mattermost Bot" (nur intern erreichbar, Mattermost commands.url zeigt jetzt
+// direkt hierher statt auf http://n8n:5678/webhook/freiki-bot). Mattermost verlangt eine
+// Antwort binnen 3s, daher sofortige Bestätigung + asynchrone Auslieferung über response_url.
+router.post('/api/mattermost/slash-command', express.urlencoded({ extended: false, limit: '20kb' }), (req, res) => {
+  const { token, text, user_name, response_url } = req.body || {};
+  if (!config.MATTERMOST_SLASH_TOKEN || !safeEqual(config.MATTERMOST_SLASH_TOKEN, token || '')) {
+    return res.status(403).json({ text: 'Ungültiges Slash-Command-Token.' });
+  }
+  if (!text || !text.trim() || !response_url) {
+    return res.status(200).json({ response_type: 'ephemeral', text: 'Bitte eine Frage nach /freiki eingeben.' });
+  }
+  res.status(200).json({ response_type: 'ephemeral', text: 'FreiKI denkt nach …' });
+
+  kb.answerBotChat(text, user_name).then((result) => {
+    return fetch(response_url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ response_type: 'in_channel', text: result.answer }),
+    });
+  }).catch((e) => {
+    console.error('Mattermost Slash-Command Fehler:', e);
+    fetch(response_url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ response_type: 'ephemeral', text: 'Fehler bei der Bot-Anfrage.' }),
+    }).catch(() => {});
+  });
+});
+
+// Mattermost Outgoing Webhook "@freiki" (Erwähnung in einem Channel) - ersetzt den früheren
+// n8n-Workflow "FreiKI @mention Handler" (outgoingwebhooks.callbackurls in der Mattermost-DB
+// zeigt jetzt direkt hierher). Antwort kommt nicht über die Webhook-Response, sondern per
+// separatem REST-Aufruf mit dem Bot-Access-Token, weil die RAG/LLM-Antwort zu lange dauert.
+router.post('/api/mattermost/mention', express.urlencoded({ extended: false, limit: '20kb' }), (req, res) => {
+  const { token, text, user_name, channel_id } = req.body || {};
+  if (!config.MATTERMOST_MENTION_TOKEN || !safeEqual(config.MATTERMOST_MENTION_TOKEN, token || '')) {
+    return res.status(403).end();
+  }
+  res.status(200).end();
+
+  const message = (text || '').replace(/@freiki\s*/i, '').trim();
+  if (!message || !channel_id) return;
+
+  kb.answerBotChat(message, user_name).then((result) => {
+    return fetch(`${config.MATTERMOST_URL}/api/v4/posts`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.MATTERMOST_BOT_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel_id, message: result.answer }),
+    });
+  }).catch((e) => {
+    console.error('Mattermost @mention Fehler:', e);
+  });
+});
 
 module.exports = router;

@@ -15,6 +15,9 @@ const BRAND_DEFAULTS = {
   swVersion:     process.env.APP_SW_VERSION    || '1',
   demoMode:      process.env.APP_DEMO_MODE === 'true',
   footerNote:    process.env.APP_FOOTER_NOTE   || '',
+  mandatoryTraining: process.env.APP_MANDATORY_TRAINING === 'true',
+  selfRegistration:  process.env.APP_SELF_REGISTRATION === 'true',
+  useMetacom:        process.env.APP_USE_METACOM === 'true',
 };
 
 // Laufzeit-Zustand + Setter statt Export des rohen Objekts: Module, die getBrandConfig()
@@ -53,6 +56,9 @@ async function loadBrandConfig() {
       swVersion:     db.swVersion     ?? BRAND_DEFAULTS.swVersion,
       demoMode:      BRAND_DEFAULTS.demoMode,   // nur aus .env steuerbar
       footerNote:    db.footerNote    ?? BRAND_DEFAULTS.footerNote,
+      mandatoryTraining: BRAND_DEFAULTS.mandatoryTraining, // nur aus .env steuerbar
+      selfRegistration:  BRAND_DEFAULTS.selfRegistration,  // nur aus .env steuerbar
+      useMetacom:        BRAND_DEFAULTS.useMetacom,        // nur aus .env steuerbar
     };
   } catch (e) {
     console.error('loadBrandConfig Fehler:', e.message);

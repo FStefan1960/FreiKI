@@ -29,8 +29,47 @@ function completeLogin(data, username) {
   if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';
   loadModes();
   loadTips();
-  if (data.mustSetup2fa) startSetup2FA();
+  if (data.mustCompleteTraining) startTraining(role, !!data.mustSetup2fa);
+  else if (data.mustSetup2fa) startSetup2FA();
   else if (role === 'high_risk') showHighRiskModal();
+}
+
+// ── Pflichtschulung beim ersten Login ──
+let trainingTrack = 'default';
+let trainingSlide = 1;
+let trainingTotal = 8;
+let trainingRole = 'default';
+let trainingThenSetup2fa = false;
+
+function startTraining(role, thenSetup2fa) {
+  trainingRole = role;
+  trainingThenSetup2fa = thenSetup2fa;
+  trainingTrack = role === 'high_risk' ? 'bgt' : 'default';
+  trainingTotal = trainingTrack === 'bgt' ? 9 : 8;
+  trainingSlide = 1;
+  renderTrainingSlide();
+  document.getElementById('training-modal').classList.remove('hide');
+}
+
+function renderTrainingSlide() {
+  document.getElementById('training-slide-img').src = `/training/${trainingTrack}/slide-${trainingSlide}.jpg`;
+  document.getElementById('training-progress').textContent = t('training.progress', 'Folie {i} / {n}').replace('{i}', trainingSlide).replace('{n}', trainingTotal);
+  document.getElementById('training-prev-btn').style.visibility = trainingSlide === 1 ? 'hidden' : 'visible';
+  document.getElementById('training-next-btn').textContent = trainingSlide === trainingTotal ? t('training.finish', 'Abschließen') : t('training.next', 'Weiter');
+}
+
+function prevTrainingSlide() {
+  if (trainingSlide > 1) { trainingSlide--; renderTrainingSlide(); }
+}
+
+async function nextTrainingSlide() {
+  if (trainingSlide < trainingTotal) { trainingSlide++; renderTrainingSlide(); return; }
+  try {
+    await fetch('/api/training/complete', { method: 'POST' });
+  } catch (e) { /* Abschluss beim nächsten Login erneut versucht */ }
+  document.getElementById('training-modal').classList.add('hide');
+  if (trainingThenSetup2fa) startSetup2FA();
+  else if (trainingRole === 'high_risk') showHighRiskModal();
 }
 
 async function login() {

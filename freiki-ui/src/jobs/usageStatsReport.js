@@ -1,0 +1,117 @@
+// Ersatz für den Statistik-Teil von "KorKI Tagesbericht v2 (akkumuliert)" - eigenständiger Flow.
+// recordChatEvent() wird direkt aus ChatService.js aufgerufen (vorher: Fire-and-forget-POST an
+// einen n8n-Webhook). "chats" wird nach jedem Bericht auf den aktuellen Tag zurückgestutzt,
+// "chatsGesamt" wächst unbegrenzt (Nutzungshistorie).
+const fs = require('fs');
+const path = require('path');
+const { config } = require('../shared/config');
+const users = require('../core/auth/UserRepository');
+const { sendReportMail } = require('../core/integrations/EmailService');
+const { getBrandConfig } = require('../shared/config/BrandConfig');
+
+const STATE_PATH = path.join(config.APP_ROOT, 'usage-state.json');
+const SYSTEM_USERS = ['n8n', 'system', 'webhook', 'test', 'unknown'];
+
+function loadState() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
+    return { chats: parsed.chats || [], chatsGesamt: parsed.chatsGesamt || [] };
+  } catch { return { chats: [], chatsGesamt: [] }; }
+}
+function saveState(state) {
+  fs.writeFileSync(STATE_PATH, JSON.stringify(state));
+}
+
+async function recordChatEvent(payload) {
+  const state = loadState();
+  const entry = {
+    user: payload.user || 'unknown',
+    mode: payload.mode || 'unknown',
+    title: payload.title || payload.mode || 'unknown',
+    hasFile: !!payload.hasFile,
+    timestamp: payload.timestamp || new Date().toISOString(),
+  };
+  state.chats.push(entry);
+  state.chatsGesamt.push(entry);
+  saveState(state);
+}
+
+function buildMatrixHtml(userWorkspace) {
+  const th = (t, extra = '') => `<th style="padding:8px 12px;background:#1E3A8A;color:#fff;font-size:12px;font-weight:600;text-align:left;white-space:nowrap;${extra}">${t}</th>`;
+  const td = (t, extra = '') => `<td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #e5e7eb;${extra}">${t}</td>`;
+  const usersList = Object.keys(userWorkspace).sort();
+  const workspaces = [...new Set(usersList.flatMap(u => Object.keys(userWorkspace[u])))].sort();
+  if (!usersList.length || !workspaces.length) return '<p style="color:#6b7280;font-size:13px;margin:8px 0;">Keine Nutzungsdaten vorhanden.</p>';
+  const header = `<tr>${th('Benutzer')}${workspaces.map(w => th(w)).join('')}${th('Gesamt', 'background:#0f2460;')}</tr>`;
+  const rows = usersList.map((user, i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#f8fafc';
+    const gesamt = workspaces.reduce((s, w) => s + (userWorkspace[user][w] || 0), 0);
+    const cells = workspaces.map(w => {
+      const val = userWorkspace[user][w] || 0;
+      return td(val > 0 ? `<strong>${val}</strong>` : '–', `background:${bg};color:${val > 0 ? '#1E3A8A' : '#d1d5db'};`);
+    });
+    return `<tr>${td(`<strong>${user}</strong>`, `background:${bg};`)}${cells.join('')}${td(`<strong>${gesamt}</strong>`, `background:${bg};color:#1E3A8A;`)}</tr>`;
+  });
+  const sumRow = workspaces.map(w => usersList.reduce((s, u) => s + (userWorkspace[u][w] || 0), 0));
+  const gesamtGesamt = sumRow.reduce((a, b) => a + b, 0);
+  const sumCells = sumRow.map(v => td(`<strong>${v}</strong>`, 'background:#eef2ff;color:#1E3A8A;'));
+  const sumRowHtml = `<tr>${td('<strong>Gesamt</strong>', 'background:#eef2ff;font-weight:700;')}${sumCells.join('')}${td(`<strong>${gesamtGesamt}</strong>`, 'background:#dbeafe;color:#1E3A8A;font-weight:700;')}</tr>`;
+  return `<table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);"><thead>${header}</thead><tbody>${rows.join('')}${sumRowHtml}</tbody></table>`;
+}
+
+function buildUserWorkspace(chats) {
+  const uw = {};
+  chats.forEach(c => {
+    const user = c.user || 'unbekannt';
+    const label = c.title || c.mode || '?';
+    if (!uw[user]) uw[user] = {};
+    uw[user][label] = (uw[user][label] || 0) + 1;
+  });
+  return uw;
+}
+
+async function run() {
+  const state = loadState();
+  const heute = new Date().toISOString().slice(0, 10);
+  const gestern = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  const chatsHeute = state.chats.filter(c =>
+    c.timestamp && (c.timestamp.startsWith(gestern) || c.timestamp.startsWith(heute)) &&
+    !SYSTEM_USERS.includes((c.user || '').toLowerCase())
+  );
+  const chatsGesamt = state.chatsGesamt.filter(c => !SYSTEM_USERS.includes((c.user || '').toLowerCase()));
+
+  // Nur gestrige Chats aus dem Tagespuffer entfernen, chatsGesamt bleibt für immer.
+  state.chats = state.chats.filter(c => !c.timestamp || !c.timestamp.startsWith(gestern));
+  saveState(state);
+
+  if (!chatsHeute.length) return; // nichts zu berichten
+
+  const nutzerSet = [...new Set(chatsHeute.map(c => c.user))];
+  const werkzeuge = {};
+  chatsHeute.forEach(c => { const label = c.title || c.mode; werkzeuge[label] = (werkzeuge[label] || 0) + 1; });
+  const topWerkzeug = Object.entries(werkzeuge).sort((a, b) => b[1] - a[1])[0];
+
+  const h2 = txt => `<h2 style="font-size:15px;color:#1E3A8A;border-bottom:2px solid #bfdbfe;padding-bottom:6px;margin:20px 0 12px;">${txt}</h2>`;
+  const datum = new Date().toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const appName = getBrandConfig().name;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#0e0f0f;">
+  <div style="background:linear-gradient(135deg,#1E3A8A,#2B9CD8);padding:24px 28px;border-radius:10px 10px 0 0;">
+    <h1 style="margin:0;color:#fff;font-size:20px;">📊 Nutzungs-Statistik</h1>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">${datum} – ${chatsHeute.length} Gespräche, ${nutzerSet.length} Nutzer${topWerkzeug ? `, meistgenutzt: ${topWerkzeug[0]} (${topWerkzeug[1]}×)` : ''}</p>
+  </div>
+  <div style="background:#fff;padding:24px 28px;border:1px solid #e5e7eb;border-top:none;">
+    ${h2('Heute – Benutzer &amp; Werkzeug')}
+    ${buildMatrixHtml(buildUserWorkspace(chatsHeute))}
+    ${h2('Gesamt – Benutzer &amp; Werkzeug')}
+    ${buildMatrixHtml(buildUserWorkspace(chatsGesamt))}
+  </div>
+  <div style="background:#f8fafc;padding:12px 28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;font-size:11px;color:#9ca3af;text-align:center;">${appName} · Automatisch generiert</div>
+</div>`;
+
+  const recipients = await users.listAdminEmails();
+  if (!recipients.length) return;
+  await sendReportMail(recipients, `${appName} Nutzungs-Statistik – ${datum}`, { html });
+}
+
+module.exports = { recordChatEvent, run };

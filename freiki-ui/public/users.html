@@ -128,6 +128,7 @@
       <div><label>Passwort <span style="font-weight:400;color:#9ca3af">(leer = automatisch, per Mail)</span></label><input type="password" id="n-pass" autocomplete="new-password"></div>
       <div><label>Vorname</label><input type="text" id="n-first" autocomplete="off"></div>
       <div><label>Nachname</label><input type="text" id="n-last" autocomplete="off"></div>
+      <div><label>Dienststelle</label><input type="text" id="n-dienststelle" autocomplete="off"></div>
       <div><label>Funktion</label><input type="text" id="n-funktion" autocomplete="off"></div>
       <div><label>Telefon</label><input type="text" id="n-telefon" autocomplete="off"></div>
       <div><label>E-Mail</label><input type="text" id="n-email" autocomplete="off"></div>
@@ -135,9 +136,16 @@
       <div><label>Rolle</label><select id="n-role"><option value="default">User</option><option value="high_risk">Berufsgeheimnisträger (BGT)</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
       <div><label>Nutzen</label><div id="n-use"></div></div>
       <div><label>Paperless-Zugriff</label><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="n-paperless"> Archiv durchsuchen</label></div>
+      <div class="metacom-only" style="display:none"><label>METACOM-Nutzung</label><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="n-metacom"> METACOM nutzen</label></div>
       <div id="n-manage-cell"><label>Verwalten</label><div id="n-manage"></div></div>
       <div><button class="btn btn-primary" id="n-create">Anlegen</button></div>
     </div>
+  </div>
+
+  <div class="card" id="registrations-card" style="display:none;">
+    <h2>📥 Registrierungsanfragen</h2>
+    <div class="hint" style="margin-bottom:14px;">Selbstregistrierungen über die öffentliche Anmeldeseite. Klick auf eine Zeile, um Rolle und Bereiche zuzuweisen und freizuschalten.</div>
+    <div id="registrations-wrap"></div>
   </div>
 
   <div class="card">
@@ -159,6 +167,17 @@
   </div>
 </div>
 
+<!-- Freischalt-Modal (Registrierungsanfragen) -->
+<div class="modal-ov" id="approve-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="approve-title">Registrierung freischalten</h3>
+      <button class="modal-close" id="approve-close" title="Schließen" aria-label="Schließen" type="button">×</button>
+    </div>
+    <div id="approve-body"></div>
+  </div>
+</div>
+
 <script>
 function bail(){ (window.top||window).location.href='/'; }
 // Session-Cookie ist HttpOnly, daher /api/me als Server-Rundruf statt lokalem Token/Rolle.
@@ -173,6 +192,7 @@ async function ensureAdmin() {
 }
 const H = { 'Content-Type': 'application/json' };
 let AREAS = [];
+let USE_METACOM = false;
 
 function statusMsg(type, txt){ const s=document.getElementById('status'); s.className='status-msg '+type; s.textContent=txt; if(type==='ok') setTimeout(()=>{ s.className='status-msg'; s.textContent=''; },3000); }
 
@@ -208,6 +228,9 @@ document.addEventListener('click',()=>document.querySelectorAll('.ms.open').forE
 
 async function load(){
   try{
+    const br = await fetch('/api/brand'); const brand = await br.json();
+    USE_METACOM = !!brand.useMetacom;
+    document.querySelectorAll('.metacom-only').forEach(el=>{ el.style.display = USE_METACOM ? '' : 'none'; });
     const ar = await fetch('/api/admin/areas',{headers:H});
     if(ar.status===403) return bail();
     AREAS = await ar.json();
@@ -224,6 +247,7 @@ async function load(){
     const ur = await fetch('/api/admin/users',{headers:H});
     const data = await ur.json();
     renderTable(data.users||[]);
+    loadRegistrations();
   }catch(e){ statusMsg('err','Laden fehlgeschlagen: '+e.message); }
 }
 
@@ -292,11 +316,125 @@ function openEdit(u){
 function closeEdit(){ document.getElementById('edit-modal').classList.remove('show'); }
 document.getElementById('edit-close').addEventListener('click',closeEdit);
 document.getElementById('edit-modal').addEventListener('click',e=>{ if(e.target.id==='edit-modal') closeEdit(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeEdit(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeEdit(); closeApprove(); } });
 document.getElementById('u-filter').addEventListener('input',renderRows);
 
+// ── Registrierungsanfragen ──
+let REGISTRATIONS=[];
+function fmtDate(iso){ try{ return new Date(iso).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}); }catch{ return ''; } }
+
+async function loadRegistrations(){
+  try{
+    const r=await fetch('/api/admin/registrations',{headers:H});
+    const data=await r.json();
+    REGISTRATIONS=data.registrations||[];
+    renderRegistrations();
+  }catch(e){ console.error('Registrierungen laden fehlgeschlagen:',e.message); }
+}
+
+function renderRegistrations(){
+  const card=document.getElementById('registrations-card');
+  const wrap=document.getElementById('registrations-wrap');
+  if(!REGISTRATIONS.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  const table=document.createElement('table'); table.className='utable';
+  table.innerHTML='<thead><tr><th>Name</th><th>Dienststelle</th><th>Funktion</th><th>Telefon</th><th>E-Mail</th><th>Antwortsprache</th><th>Angefragt</th></tr></thead>';
+  const tb=document.createElement('tbody');
+  REGISTRATIONS.forEach(reg=>{
+    const tr=document.createElement('tr');
+    const name=((reg.first_name||'')+' '+(reg.last_name||'')).trim()||'—';
+    tr.innerHTML='<td><span class="uname">'+esc(name)+'</span></td><td>'+esc(reg.dienststelle||'—')+'</td><td>'+esc(reg.funktion||'—')+'</td><td>'+esc(reg.telefon||'—')+'</td>'
+      +'<td>'+esc(reg.email||'—')+'</td><td>'+esc(reg.language||'de')+'</td><td>'+esc(fmtDate(reg.created_at))+'</td>';
+    tr.addEventListener('click',()=>openApprove(reg));
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb); wrap.innerHTML=''; wrap.appendChild(table);
+}
+
+function openApprove(reg){
+  document.getElementById('approve-title').textContent='Registrierung: '+reg.username;
+  const body=document.getElementById('approve-body'); body.innerHTML=''; body.appendChild(buildApproveCard(reg));
+  document.getElementById('approve-modal').classList.add('show');
+}
+function closeApprove(){ document.getElementById('approve-modal').classList.remove('show'); }
+document.getElementById('approve-close').addEventListener('click',closeApprove);
+document.getElementById('approve-modal').addEventListener('click',e=>{ if(e.target.id==='approve-modal') closeApprove(); });
+
+function buildApproveCard(reg){
+  const state={role:'default',use:[],manage:[],use_paperless:false,use_metacom:false};
+  const card=document.createElement('div');
+
+  const info=document.createElement('div');
+  info.style.cssText='background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;line-height:1.7;color:#374151';
+  const name=((reg.first_name||'')+' '+(reg.last_name||'')).trim()||'—';
+  info.innerHTML='<b>'+esc(name)+'</b> · '+esc(reg.dienststelle||'—')+' · '+esc(reg.funktion||'—')+'<br>'
+    +esc(reg.telefon||'—')+' · '+esc(reg.email||'—')+'<br>'
+    +'Benutzername: <b>'+esc(reg.username)+'</b> · Antwortsprache: '+esc(reg.language||'de')+' · Angefragt: '+esc(fmtDate(reg.created_at));
+  card.appendChild(info);
+
+  const grid=document.createElement('div'); grid.className='ucard-grid';
+  const field=(labelText,node)=>{ const f=document.createElement('div'); f.className='field'; const l=document.createElement('label'); l.textContent=labelText; f.appendChild(l); f.appendChild(node); grid.appendChild(f); return f; };
+
+  const selR=document.createElement('select');
+  [['default','User'],['high_risk','Berufsgeheimnisträger (BGT)'],['manager','Manager'],['admin','Admin']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;if(v===state.role)o.selected=true;selR.appendChild(o);});
+  field('Rolle', selR);
+
+  const useHost=document.createElement('div'); makeMultiSelect(useHost,[],(v)=>{state.use=v;});
+  field('Nutzen (Bereiche)', useHost);
+
+  const cbPaper=document.createElement('input'); cbPaper.type='checkbox';
+  cbPaper.addEventListener('change',()=>{state.use_paperless=cbPaper.checked;});
+  const cbWrap=document.createElement('label'); cbWrap.style.display='flex'; cbWrap.style.alignItems='center'; cbWrap.style.gap='8px';
+  cbWrap.appendChild(cbPaper); cbWrap.appendChild(document.createTextNode('Archiv durchsuchen'));
+  field('Paperless-Zugriff', cbWrap);
+
+  if(USE_METACOM){
+    const cbMeta=document.createElement('input'); cbMeta.type='checkbox';
+    cbMeta.addEventListener('change',()=>{state.use_metacom=cbMeta.checked;});
+    const cbMetaWrap=document.createElement('label'); cbMetaWrap.style.display='flex'; cbMetaWrap.style.alignItems='center'; cbMetaWrap.style.gap='8px';
+    cbMetaWrap.appendChild(cbMeta); cbMetaWrap.appendChild(document.createTextNode('METACOM nutzen'));
+    field('METACOM-Nutzung', cbMetaWrap);
+  }
+
+  const manHost=document.createElement('div');
+  function renderManage(){
+    if(state.role==='manager'){
+      const sel=document.createElement('select');
+      const empty=document.createElement('option'); empty.value=''; empty.textContent='– bitte wählen –'; sel.appendChild(empty);
+      AREAS.forEach(a=>{ const o=document.createElement('option'); o.value=a.key; o.textContent=a.title; sel.appendChild(o); });
+      sel.addEventListener('change',()=>{ state.manage=sel.value?[sel.value]:[]; });
+      manHost.innerHTML=''; manHost.appendChild(sel);
+    } else { manHost.innerHTML = state.role==='admin' ? '<span class="muted">alle</span>' : '<span class="muted">–</span>'; }
+  }
+  renderManage();
+  field('Verwalten (Bereiche)', manHost);
+  selR.addEventListener('change',()=>{ state.role=selR.value; renderManage(); });
+
+  card.appendChild(grid);
+
+  const acts=document.createElement('div'); acts.className='row-actions'; acts.style.marginTop='16px';
+  const approveBtn=document.createElement('button'); approveBtn.className='btn btn-primary'; approveBtn.textContent='Freischalten';
+  approveBtn.addEventListener('click',async()=>{ approveBtn.disabled=true; approveBtn.innerHTML='<span class="spinner"></span>';
+    try{
+      const r=await fetch('/api/admin/registrations/'+reg.id+'/approve',{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],use_paperless:state.use_paperless,use_metacom:state.use_metacom})});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
+      closeApprove(); statusMsg('ok','„'+reg.username+'" freigeschaltet.'+(d.mailSent?' Willkommensmail versendet.':' Achtung: Willkommensmail konnte nicht versendet werden.')); load();
+    }catch(e){ statusMsg('err','Freischalten fehlgeschlagen: '+e.message); approveBtn.disabled=false; approveBtn.textContent='Freischalten'; }
+  });
+  const rejectBtn=document.createElement('button'); rejectBtn.className='btn btn-danger'; rejectBtn.textContent='Ablehnen';
+  rejectBtn.addEventListener('click',async()=>{ if(!confirm('Registrierungsanfrage von „'+reg.username+'" wirklich löschen?')) return;
+    rejectBtn.disabled=true;
+    try{ const r=await fetch('/api/admin/registrations/'+reg.id+'/reject',{method:'POST',headers:H});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
+      closeApprove(); statusMsg('ok','Anfrage von „'+reg.username+'" abgelehnt.'); load();
+    }catch(e){ statusMsg('err','Ablehnen fehlgeschlagen: '+e.message); rejectBtn.disabled=false; }
+  });
+  acts.append(approveBtn,rejectBtn); card.appendChild(acts);
+  return card;
+}
+
 function buildEditCard(u){
-    const state={role:u.role,use:u.use.slice(),manage:u.manage.slice(),suspended:u.suspended,first_name:u.first_name||'',last_name:u.last_name||'',funktion:u.funktion||'',telefon:u.telefon||'',email:u.email||'',language:u.language||'de',use_paperless:!!u.use_paperless};
+    const state={role:u.role,use:u.use.slice(),manage:u.manage.slice(),suspended:u.suspended,first_name:u.first_name||'',last_name:u.last_name||'',dienststelle:u.dienststelle||'',funktion:u.funktion||'',telefon:u.telefon||'',email:u.email||'',language:u.language||'de',use_paperless:!!u.use_paperless,use_metacom:!!u.use_metacom};
     const card=document.createElement('div'); card.className='ucard';
     const markDirty=()=>card.classList.add('dirty');
 
@@ -307,6 +445,7 @@ function buildEditCard(u){
 
     field('Vorname', textInput('first_name'));
     field('Nachname', textInput('last_name'));
+    field('Dienststelle', textInput('dienststelle'));
     field('Funktion', textInput('funktion'));
     field('Telefon', textInput('telefon'));
     field('E-Mail', textInput('email'));
@@ -324,6 +463,14 @@ function buildEditCard(u){
     const cbWrap=document.createElement('label'); cbWrap.style.display='flex'; cbWrap.style.alignItems='center'; cbWrap.style.gap='8px';
     cbWrap.appendChild(cbPaper); cbWrap.appendChild(document.createTextNode('Archiv durchsuchen'));
     field('Paperless-Zugriff', cbWrap);
+
+    if(USE_METACOM){
+      const cbMeta=document.createElement('input'); cbMeta.type='checkbox'; cbMeta.checked=state.use_metacom;
+      cbMeta.addEventListener('change',()=>{state.use_metacom=cbMeta.checked;markDirty();});
+      const cbMetaWrap=document.createElement('label'); cbMetaWrap.style.display='flex'; cbMetaWrap.style.alignItems='center'; cbMetaWrap.style.gap='8px';
+      cbMetaWrap.appendChild(cbMeta); cbMetaWrap.appendChild(document.createTextNode('METACOM nutzen'));
+      field('METACOM-Nutzung', cbMetaWrap);
+    }
 
     const manHost=document.createElement('div');
     function renderManage(){
@@ -345,13 +492,13 @@ function buildEditCard(u){
     const acts=document.createElement('div'); acts.className='row-actions';
     const save=document.createElement('button'); save.className='btn btn-primary'; save.textContent='Speichern';
     save.addEventListener('click',async()=>{ save.disabled=true; save.innerHTML='<span class="spinner"></span>';
-      try{ const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,telefon:state.telefon,email:state.email,language:state.language,use_paperless:state.use_paperless})});
+      try{ const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,dienststelle:state.dienststelle,funktion:state.funktion,telefon:state.telefon,email:state.email,language:state.language,use_paperless:state.use_paperless,use_metacom:state.use_metacom})});
         const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); statusMsg('ok','„'+u.username+'" gespeichert.'); load();
       }catch(e){ statusMsg('err','Speichern fehlgeschlagen: '+e.message); } finally{ save.disabled=false; save.textContent='Speichern'; }
     });
     const susp=document.createElement('button'); susp.className='btn btn-ghost'; susp.textContent=u.suspended?'Entsperren':'Sperren';
     susp.addEventListener('click',async()=>{ susp.disabled=true;
-      try{ const ns=u.suspended?0:1; const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,funktion:state.funktion,telefon:state.telefon,email:state.email,language:state.language,suspended:ns,use_paperless:state.use_paperless})});
+      try{ const ns=u.suspended?0:1; const r=await fetch('/api/admin/users/'+u.id,{method:'POST',headers:H,body:JSON.stringify({role:state.role,use:state.use,manage:state.role==='manager'?state.manage:[],first_name:state.first_name,last_name:state.last_name,dienststelle:state.dienststelle,funktion:state.funktion,telefon:state.telefon,email:state.email,language:state.language,suspended:ns,use_paperless:state.use_paperless,use_metacom:state.use_metacom})});
         const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); closeEdit(); load();
       }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); susp.disabled=false; }
     });
@@ -400,6 +547,7 @@ document.getElementById('n-create').addEventListener('click',async()=>{
   const role=document.getElementById('n-role').value;
   const first_name=document.getElementById('n-first').value.trim();
   const last_name=document.getElementById('n-last').value.trim();
+  const dienststelle=document.getElementById('n-dienststelle').value.trim();
   const funktion=document.getElementById('n-funktion').value.trim();
   const telefon=document.getElementById('n-telefon').value.trim();
   const email=document.getElementById('n-email').value.trim();
@@ -410,9 +558,10 @@ document.getElementById('n-create').addEventListener('click',async()=>{
   if(!password && !email){ statusMsg('err','Ohne Passwort wird ein Zufallspasswort per Mail versendet – dafür ist eine E-Mail-Adresse erforderlich.'); return; }
   const btn=document.getElementById('n-create'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
   const use_paperless=document.getElementById('n-paperless').checked;
-  try{ const r=await fetch('/api/admin/users',{method:'POST',headers:H,body:JSON.stringify({username,password:password||undefined,role,first_name,last_name,funktion,telefon,email,language,use,manage:role==='manager'?manage:[],use_paperless})});
+  const use_metacom=document.getElementById('n-metacom').checked;
+  try{ const r=await fetch('/api/admin/users',{method:'POST',headers:H,body:JSON.stringify({username,password:password||undefined,role,first_name,last_name,dienststelle,funktion,telefon,email,language,use,manage:role==='manager'?manage:[],use_paperless,use_metacom})});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status);
-    ['n-user','n-pass','n-first','n-last','n-funktion','n-telefon','n-email','n-sprache'].forEach(id=>document.getElementById(id).value='');
+    ['n-user','n-pass','n-first','n-last','n-dienststelle','n-funktion','n-telefon','n-email','n-sprache'].forEach(id=>document.getElementById(id).value='');
     statusMsg('ok','Nutzer „'+username+'" angelegt.'+(d.mailSent?' Zugangsdaten per Mail versendet.':'')); load();
   }catch(e){ statusMsg('err','Anlegen fehlgeschlagen: '+e.message); } finally{ btn.disabled=false; btn.textContent='Anlegen'; }
 });
