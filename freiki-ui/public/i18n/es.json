@@ -34,7 +34,6 @@
   "sidebar.logout": "Cerrar sesión",
   "account_menu.feedback": "Comentarios y sugerencias",
   "account_menu.user_admin": "Gestión de usuarios",
-  "account_menu.prompt_admin": "Gestionar prompts",
   "account_menu.change_password": "Cambiar contraseña",
   "account_menu.security": "Seguridad: 2FA / claves de acceso",
   "account_menu.change_response_language": "Cambiar idioma de respuesta",

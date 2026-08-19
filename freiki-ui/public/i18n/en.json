@@ -34,7 +34,6 @@
   "sidebar.logout": "Sign out",
   "account_menu.feedback": "Feedback & suggestions",
   "account_menu.user_admin": "User management",
-  "account_menu.prompt_admin": "Manage prompts",
   "account_menu.change_password": "Change password",
   "account_menu.security": "Security: 2FA / Passkeys",
   "account_menu.change_response_language": "Change response language",

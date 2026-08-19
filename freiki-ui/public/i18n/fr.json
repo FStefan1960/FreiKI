@@ -34,7 +34,6 @@
   "sidebar.logout": "Se déconnecter",
   "account_menu.feedback": "Retours & suggestions",
   "account_menu.user_admin": "Gestion des utilisateurs",
-  "account_menu.prompt_admin": "Gérer les prompts",
   "account_menu.change_password": "Changer le mot de passe",
   "account_menu.security": "Sécurité : 2FA / clés d'accès",
   "account_menu.change_response_language": "Changer la langue de réponse",
