@@ -194,11 +194,15 @@ function weekday(dateStr) {
 
 function renderChart(daily) {
   const max = Math.max(1, ...daily.map(d => d.count));
-  document.getElementById('chart').innerHTML = daily.map(d =>
+  const chartEl = document.getElementById('chart');
+  chartEl.innerHTML = daily.map(d =>
     `<div class="bar-wrap" title="${weekday(d.date)}, ${d.date}: ${d.count} Anfrage${d.count === 1 ? '' : 'n'}">
       <div class="bar${weekday(d.date) === 'So' ? ' bar-sunday' : ''}" style="height:${Math.round((d.count / max) * 100)}%"></div>
     </div>`
   ).join('');
+  // Balken sind chronologisch (älteste links, heute rechts) - bei Zeiträumen, die die
+  // Kartenbreite sprengen (90/365 Tage), sonst müsste man erst manuell zu "heute" scrollen.
+  chartEl.scrollLeft = chartEl.scrollWidth;
   const labels = document.getElementById('chart-labels');
   if (!daily.length) { labels.innerHTML = ''; return; }
   if (daily.length <= 10) {
