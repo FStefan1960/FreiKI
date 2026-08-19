@@ -12,6 +12,18 @@ const { getBrandConfig } = require('../shared/config/BrandConfig');
 const STATE_PATH = path.join(config.APP_ROOT, 'usage-state.json');
 const SYSTEM_USERS = ['n8n', 'system', 'webhook', 'test', 'unknown'];
 
+// Historische Einträge tragen den Werkzeug-Titel, der zum Zeitpunkt der Anfrage galt (siehe
+// recordChatEvent) - bei einer Umbenennung/Zusammenlegung von Modi taucht ein Werkzeug sonst
+// dauerhaft als zwei getrennte Balken in der Statistik auf. Alte Titel hier auf den aktuellen
+// mappen, damit Alt- und Neu-Daten in allen Auswertungen (Dashboard + Tagesbericht) zusammen
+// gezählt werden, ohne usage-state.json rückwirkend anfassen zu müssen.
+const LEGACY_TOOL_TITLES = {
+  'Bild (Experimentell)': 'Bilder generieren',
+};
+function normalizeToolLabel(label) {
+  return LEGACY_TOOL_TITLES[label] || label;
+}
+
 function loadState() {
   try {
     const parsed = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
@@ -63,7 +75,7 @@ function buildUserWorkspace(chats) {
   const uw = {};
   chats.forEach(c => {
     const user = c.user || 'unbekannt';
-    const label = c.title || c.mode || '?';
+    const label = normalizeToolLabel(c.title || c.mode || '?');
     if (!uw[user]) uw[user] = {};
     uw[user][label] = (uw[user][label] || 0) + 1;
   });
@@ -93,7 +105,7 @@ function getHistoricalStats(days = 30) {
   const daily = Object.keys(dailyMap).sort().map(date => ({ date, count: dailyMap[date] }));
 
   const toolCounts = {};
-  inRange.forEach(c => { const label = c.title || c.mode || '?'; toolCounts[label] = (toolCounts[label] || 0) + 1; });
+  inRange.forEach(c => { const label = normalizeToolLabel(c.title || c.mode || '?'); toolCounts[label] = (toolCounts[label] || 0) + 1; });
   const byTool = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]).map(([title, count]) => ({ title, count }));
 
   const uw = buildUserWorkspace(inRange);
@@ -138,7 +150,7 @@ async function run() {
 
   const nutzerSet = [...new Set(chatsHeute.map(c => c.user))];
   const werkzeuge = {};
-  chatsHeute.forEach(c => { const label = c.title || c.mode; werkzeuge[label] = (werkzeuge[label] || 0) + 1; });
+  chatsHeute.forEach(c => { const label = normalizeToolLabel(c.title || c.mode); werkzeuge[label] = (werkzeuge[label] || 0) + 1; });
   const topWerkzeug = Object.entries(werkzeuge).sort((a, b) => b[1] - a[1])[0];
 
   const h2 = txt => `<h2 style="font-size:15px;color:#1E3A8A;border-bottom:2px solid #bfdbfe;padding-bottom:6px;margin:20px 0 12px;">${txt}</h2>`;
