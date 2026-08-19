@@ -10,6 +10,11 @@ const config = {
   PUBLIC_DIR: path.join(APP_ROOT, 'public'),
   PROMPT_DIR: process.env.PROMPT_DIR || path.join(APP_ROOT, 'prompts'),
   FORM_TEMPLATES_DIR: path.join(APP_ROOT, 'form-templates'),
+  // Admin-hochgeladene PPTX-Vorlagen (siehe PptxTemplateRepository.js) - bewusst UNTER
+  // FORM_TEMPLATES_DIR (führendes "_" schließt Kollision mit Formular-Slugs aus, siehe
+  // SLUG_RE in adminFormRoutes.js), weil dieses Verzeichnis in docker-compose.yml schon
+  // volume-gemountet ist - kein zusätzlicher Mount-Eintrag/Container-Recreate nötig.
+  PPTX_UPLOAD_DIR: path.join(APP_ROOT, 'form-templates', '_pptx-templates'),
   PORT: 3000,
 
   VLLM_URL: process.env.VLLM_URL || 'http://vllm:8000',

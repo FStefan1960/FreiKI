@@ -131,6 +131,8 @@
   "tools.form_chat.desc": "Isi dan cetak formulir lewat dialog",
   "tools.form_templates.title": "Templat Formulir",
   "tools.form_templates.desc": "Unggah pindaian & tandai bidang",
+  "tools.pptx_templates.title": "Templat PowerPoint",
+  "tools.pptx_templates.desc": "Unggah templat PowerPoint milikmu sendiri",
   "js.bgt_access_title": "Akses BGT (kewajiban kerahasiaan profesional) – kehati-hatian khusus dengan data sensitif",
   "common.connection_error": "Kesalahan koneksi.",
   "js.setup_start_failed": "Kesalahan saat memulai pengaturan.",

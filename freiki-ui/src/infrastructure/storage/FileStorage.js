@@ -65,9 +65,23 @@ const uploadFormScan = multer({
   }
 });
 
+// Für PPTX-Vorlagen-Uploads (Admin-Tool, siehe adminRoutes.js) - Mimetype-Check bewusst
+// über die Dateiendung statt file.mimetype: Browser/OS liefern für .pptx/.potx je nach
+// Plattform uneinheitliche oder gar generische (application/octet-stream) Werte. Die
+// eigentliche Validierung (ist es eine echte, kompatible Praesentation?) passiert ohnehin
+// erst per Dry-Run-Build in adminRoutes.js, nicht hier.
+const uploadPptxTemplate = multer({
+  dest: '/tmp/pptx_template_uploads/',
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (/\.(pptx|potx)$/i.test(file.originalname)) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp. Erlaubt: .pptx, .potx'), false);
+  }
+});
+
 // Temp-Dateien älter als 24h aus den Upload-Verzeichnissen löschen
 function cleanupUploads() {
-  ['/tmp/uploads/', '/tmp/kb_uploads/', '/tmp/excel_uploads/', '/tmp/form_scan_uploads/'].forEach(dir => {
+  ['/tmp/uploads/', '/tmp/kb_uploads/', '/tmp/excel_uploads/', '/tmp/form_scan_uploads/', '/tmp/pptx_template_uploads/'].forEach(dir => {
     try {
       fs.readdirSync(dir).forEach(file => {
         const fp = path.join(dir, file);
@@ -82,4 +96,4 @@ function startUploadCleanupSchedule() {
   setInterval(cleanupUploads, 6 * 60 * 60 * 1000).unref();
 }
 
-module.exports = { upload, uploadAudio, uploadDictation, uploadKB, uploadFormScan, cleanupUploads, startUploadCleanupSchedule };
+module.exports = { upload, uploadAudio, uploadDictation, uploadKB, uploadFormScan, uploadPptxTemplate, cleanupUploads, startUploadCleanupSchedule };

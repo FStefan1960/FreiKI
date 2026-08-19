@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPT-Vorlagen (Admin)</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 800; font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk'; font-style: normal; font-weight: 400 800; font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hanken Grotesk', sans-serif; background: #f1f5f9; min-height: 100vh; padding: 24px; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(30,58,138,0.10); padding: 32px; margin-bottom: 20px; }
+    .header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .header img { width: 44px; height: 44px; border-radius: 10px; }
+    .header h1 { font-size: 19px; font-weight: 700; color: #1E3A8A; }
+    .header p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    h2 { font-size: 15px; color: #1E3A8A; margin-bottom: 14px; }
+
+    label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin: 10px 0 4px; }
+    input[type="text"], input[type="file"] {
+      width: 100%; padding: 9px 11px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    input:focus { border-color: #2B9CD8; }
+
+    .btn {
+      padding: 9px 16px; background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.danger { background: #dc2626; }
+    .btn.small { padding: 5px 10px; font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #e5e7eb; }
+    th { color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase; }
+    .actions { display: flex; gap: 6px; }
+
+    .status { display: none; margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 13px; }
+    .status.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .status.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .hint { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
+    .field-form-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .empty { font-size: 13px; color: #9ca3af; padding: 8px 0; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <img src="/icons/app-mark.svg" alt="">
+      <div>
+        <h1>PPT-Vorlagen</h1>
+        <p>Eigene PowerPoint-Vorlagen für den "Als PowerPoint"-Export hochladen</p>
+      </div>
+    </div>
+
+    <h2>Neue Vorlage hochladen</h2>
+    <p class="hint">.pptx oder .potx - die Vorlage wird sofort gegen eine Testfolie geprüft (Titel- und Textplatzhalter müssen vorhanden sein). Fest eingebaute Vorlagen (Diakonie Kork, Madison) erscheinen hier nicht und können nicht gelöscht werden.</p>
+    <form id="upload-form">
+      <label>Anzeigename (im Export-Dropdown sichtbar)</label>
+      <input type="text" id="new-label" required>
+      <label>Datei</label>
+      <input type="file" id="new-file" accept=".pptx,.potx" required>
+      <div class="field-form-actions"><button type="submit" class="btn" id="upload-btn">Hochladen</button></div>
+    </form>
+    <div class="status" id="upload-status"></div>
+
+    <h2 style="margin-top:28px">Vorhandene Uploads</h2>
+    <table>
+      <thead><tr><th>Anzeigename</th><th>Hochgeladen</th><th></th></tr></thead>
+      <tbody id="template-rows"></tbody>
+    </table>
+    <p class="empty" id="empty-hint" style="display:none">Noch keine eigenen Vorlagen hochgeladen.</p>
+  </div>
+</div>
+
+<script>
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      const me = await r.json();
+      if (!r.ok || me.role !== 'admin') throw new Error();
+    } catch {
+      window.location.href = '/';
+    }
+  })();
+
+  const uploadForm = document.getElementById('upload-form');
+  const uploadBtn = document.getElementById('upload-btn');
+  const uploadStatus = document.getElementById('upload-status');
+  const templateRows = document.getElementById('template-rows');
+  const emptyHint = document.getElementById('empty-hint');
+
+  function showStatus(el, msg, type) {
+    if (!msg) { el.className = 'status'; el.textContent = ''; return; }
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+
+  async function loadTemplates() {
+    const res = await fetch('/api/admin/pptx-templates', { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.ok) { showStatus(uploadStatus, data.error || 'Fehler beim Laden', 'error'); return; }
+    templateRows.innerHTML = '';
+    emptyHint.style.display = data.templates.length ? 'none' : 'block';
+    data.templates.forEach(t => {
+      const tr = document.createElement('tr');
+      const created = new Date(t.created_at).toLocaleDateString('de-DE');
+      tr.innerHTML =
+        '<td>' + t.label + '<div style="font-size:11px;color:#9ca3af">' + t.key + '</div></td>' +
+        '<td>' + created + '</td>' +
+        '<td class="actions"></td>';
+      const actions = tr.querySelector('.actions');
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn danger small'; delBtn.textContent = 'Löschen';
+      delBtn.onclick = () => deleteTemplate(t.id, t.label);
+      actions.appendChild(delBtn);
+      templateRows.appendChild(tr);
+    });
+  }
+
+  async function deleteTemplate(id, label) {
+    if (!confirm('Vorlage "' + label + '" wirklich löschen?')) return;
+    try {
+      const res = await fetch('/api/admin/pptx-templates/' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Löschen');
+      loadTemplates();
+    } catch (e) {
+      showStatus(uploadStatus, e.message, 'error');
+    }
+  }
+
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showStatus(uploadStatus, '', '');
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Prüfe & lädt hoch …';
+    const fd = new FormData();
+    fd.append('label', document.getElementById('new-label').value.trim());
+    fd.append('file', document.getElementById('new-file').files[0]);
+    try {
+      const res = await fetch('/api/admin/pptx-templates', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
+      uploadForm.reset();
+      showStatus(uploadStatus, 'Vorlage "' + data.template.label + '" hochgeladen.', 'success');
+      loadTemplates();
+    } catch (err) {
+      showStatus(uploadStatus, err.message, 'error');
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Hochladen';
+    }
+  });
+
+  loadTemplates();
+</script>
+</body>
+</html>

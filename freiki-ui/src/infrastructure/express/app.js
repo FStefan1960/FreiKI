@@ -15,6 +15,7 @@ const users = require('../../core/auth/UserRepository');
 const webauthnCreds = require('../../core/auth/WebauthnCredentialRepository');
 const formTemplates = require('../../core/forms/FormTemplateRepository');
 const formSessions = require('../../core/forms/FormSessionRepository');
+const pptxTemplates = require('../../core/documents/PptxTemplateRepository');
 
 validateEnv();
 
@@ -77,7 +78,9 @@ async function start() {
   await webauthnCreds.ensureSchema();
   await formTemplates.ensureSchema();
   await formSessions.ensureSchema();
+  await pptxTemplates.ensureSchema();
   fs.mkdirSync(config.FORM_TEMPLATES_DIR, { recursive: true });
+  fs.mkdirSync(config.PPTX_UPLOAD_DIR, { recursive: true });
   await loadBrandConfig();
   startUploadCleanupSchedule();
   sensitiveLog.startDailyReportSchedule();

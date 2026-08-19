@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const fetch = require('node-fetch');
 const { config } = require('../../../shared/config');
 const { getBrandConfig, updateBrandConfig, ALLOWED_FIELDS } = require('../../../shared/config/BrandConfig');
@@ -13,11 +14,14 @@ const chatRepo = require('../../../core/chat/ChatRepository');
 const auditLog = require('../../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
-const { parseFrontmatter } = require('../../../shared/utils/text');
+const { parseFrontmatter, slugifyForFilename } = require('../../../shared/utils/text');
 const jobsScheduler = require('../../../jobs/scheduler');
 const feedbackReport = require('../../../jobs/feedbackReport');
 const usageStatsReport = require('../../../jobs/usageStatsReport');
 const gpuMetricsReport = require('../../../jobs/gpuMetricsReport');
+const { uploadPptxTemplate } = require('../../storage/FileStorage');
+const pptxTemplateRepo = require('../../../core/documents/PptxTemplateRepository');
+const pptxTemplateService = require('../../../core/documents/PptxTemplateService');
 
 const router = express.Router();
 router.use(express.json({ limit: '256kb' }));
@@ -620,6 +624,70 @@ router.post('/api/admin/trigger-daily-report', asyncHandler(async (req, res) => 
   const results = await Promise.allSettled([feedbackReport.run(), usageStatsReport.run(), gpuMetricsReport.run()]);
   const errors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message || String(r.reason));
   if (errors.length) return res.status(500).json({ error: errors.join('; ') });
+  res.json({ ok: true });
+}));
+
+// PPTX-Export-Vorlagen (siehe PptxTemplateService.js/PptxTemplateRepository.js) - Upload,
+// Liste und Löschen sind bewusst admin-only (anders als Formular-Vorlagen, die auch Manager
+// pflegen dürfen): eine PPTX-Vorlage prägt das Branding aller Nutzer:innen der Instanz.
+router.get('/api/admin/pptx-templates', asyncHandler(async (req, res) => {
+  res.json({ ok: true, templates: await pptxTemplateRepo.listTemplates() });
+}));
+
+router.post('/api/admin/pptx-templates', uploadPptxTemplate.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen.' });
+  const cleanupUpload = () => { try { fs.unlinkSync(req.file.path); } catch (_) {} };
+
+  const label = (req.body.label || '').trim();
+  if (!label) { cleanupUpload(); return res.status(400).json({ error: 'Anzeigename erforderlich.' }); }
+
+  let key = slugifyForFilename(label, 'vorlage');
+  const existingKeys = new Set([
+    ...Object.keys(pptxTemplateService.TEMPLATES),
+    ...(await pptxTemplateRepo.listTemplates()).map(t => t.key),
+  ]);
+  if (existingKeys.has(key)) {
+    let n = 2;
+    while (existingKeys.has(`${key}-${n}`)) n++;
+    key = `${key}-${n}`;
+  }
+
+  let candidateBuffer;
+  try {
+    candidateBuffer = fs.readFileSync(req.file.path);
+    if (/\.potx$/i.test(req.file.originalname)) {
+      candidateBuffer = await pptxTemplateService.convertPotxToPptxBuffer(candidateBuffer);
+    }
+  } catch (e) {
+    cleanupUpload();
+    return res.status(400).json({ error: 'Datei konnte nicht gelesen werden: ' + e.message });
+  }
+
+  const filename = `${crypto.randomUUID()}.pptx`;
+  const destPath = path.join(config.PPTX_UPLOAD_DIR, filename);
+  fs.writeFileSync(destPath, candidateBuffer);
+
+  try {
+    // Testfolie durch die echte Export-Pipeline schicken - fängt Vorlagen ohne nutzbares
+    // Titel/Text-Layout ab (siehe find_content_layout() im Python-Skript), bevor sie im
+    // Export-Dropdown landen und beim ersten echten Nutzer-Export scheitern würden.
+    pptxTemplateService.validateTemplate(destPath);
+  } catch (e) {
+    fs.rmSync(destPath, { force: true });
+    cleanupUpload();
+    return res.status(400).json({ error: 'Vorlage nicht kompatibel: ' + e.message });
+  }
+
+  cleanupUpload();
+  const template = await pptxTemplateRepo.createTemplate({ key, label, filename, createdBy: req.admin.uid });
+  res.json({ ok: true, template });
+}));
+
+router.delete('/api/admin/pptx-templates/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const deleted = await pptxTemplateRepo.deleteTemplate(id);
+  if (!deleted) return res.status(404).json({ error: 'Vorlage nicht gefunden.' });
+  fs.rmSync(path.join(config.PPTX_UPLOAD_DIR, deleted.filename), { force: true });
   res.json({ ok: true });
 }));
 

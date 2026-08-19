@@ -112,6 +112,35 @@ function countPptxSlides(text) {
 let _pptxExportMsgId = null;
 let _pptxExportBtn = null;
 
+// Lädt die Vorlagenliste bei jedem Öffnen frisch (statt einmalig zu cachen) - damit neu
+// hochgeladene Vorlagen (siehe admin-pptx-templates.html) sofort im Dropdown auftauchen,
+// ohne dass Nutzer:innen die Seite neu laden müssen. "generic" ist kein registriertes
+// Template (siehe TEMPLATES in PptxTemplateService.js), sondern der pptxgenjs-Fallback -
+// wird deshalb clientseitig fix angehängt statt vom Server mitgeliefert.
+async function loadPptxTemplateOptions() {
+  const select = document.getElementById('pptx-export-template');
+  const previous = select.value;
+  try {
+    const res = await fetch('/api/pptx-templates', { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error();
+    select.innerHTML = '';
+    data.templates.forEach(tpl => {
+      const opt = document.createElement('option');
+      opt.value = tpl.key;
+      opt.textContent = tpl.label;
+      select.appendChild(opt);
+    });
+    const genericOpt = document.createElement('option');
+    genericOpt.value = 'generic';
+    genericOpt.textContent = t('pptx_export.template_generic', 'Generisch (ohne Bild)');
+    select.appendChild(genericOpt);
+    if ([...select.options].some(o => o.value === previous)) select.value = previous;
+  } catch (e) {
+    console.warn('Vorlagenliste konnte nicht geladen werden, nutze Standardauswahl:', e.message);
+  }
+}
+
 function exportMessageAsPptx(msgId, btn) {
   const bubble = document.getElementById(msgId);
   if (!bubble) return;
@@ -124,6 +153,7 @@ function exportMessageAsPptx(msgId, btn) {
   const modeFallback = slugifyForFilename(State.modes[State.currentMode]?.title, 'gliederung');
   nameInput.value = slugifyForFilename(bubble.dataset.promptText, modeFallback) + '-gliederung';
   document.getElementById('pptx-export-modal').classList.add('show');
+  loadPptxTemplateOptions();
   setTimeout(() => { nameInput.focus(); nameInput.select(); }, 50);
 }
 

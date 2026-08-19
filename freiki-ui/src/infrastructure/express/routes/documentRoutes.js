@@ -12,7 +12,7 @@ const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
 const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
 const { markdownToSlideData, buildTitleImagePrompt, markdownToPptxBuffer } = require('../../../core/documents/PptxExportService');
-const { buildPptxFromTemplate, TEMPLATES } = require('../../../core/documents/PptxTemplateService');
+const { buildPptxFromTemplate, resolveTemplateEntry, listAllTemplates } = require('../../../core/documents/PptxTemplateService');
 const { generateAiImage } = require('../../../core/chat/MediaGenChatMode');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { safeEqual } = require('../../../shared/utils/security');
@@ -34,12 +34,22 @@ router.post('/api/export-docx', asyncHandler(async (req, res) => {
   res.send(buffer);
 }));
 
+// Liste für das Vorlagen-Dropdown im Export-Modal (siehe message-actions.js) - eingeloggt,
+// aber NICHT admin-only: jeder Nutzer soll beim Export wählen können, nur das Hochladen/
+// Löschen selbst ist admin-only (siehe /api/admin/pptx-templates in adminRoutes.js).
+router.get('/api/pptx-templates', asyncHandler(async (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+  res.json({ ok: true, templates: await listAllTemplates() });
+}));
+
 // Wandelt eine Chat-Antwort (Markdown mit #/##-Ueberschriften als Folien) in eine .pptx um.
-// "template" ist eine Whitelist statt eines freien Pfads vom Client (siehe TEMPLATES in
-// PptxTemplateService.js) - alles außer "generic" nutzt eine echte .pptx-Vorlage mit
-// Logo/Verlauf/Layouts, "generic" den alten pptxgenjs-Fallback ohne Branding und ohne
-// Bildunterstützung. Optional wird ein KI-Titelbild fürs Deck generiert (kostet auf
-// DeepInfra-Instanzen echtes Geld pro Export, daher per includeImage abschaltbar).
+// "template" ist eine Whitelist statt eines freien Pfads vom Client (siehe resolveTemplateEntry
+// in PptxTemplateService.js, das fest einprogrammierte UND per Admin hochgeladene Vorlagen
+// abdeckt) - alles außer "generic" nutzt eine echte .pptx-Vorlage mit Logo/Verlauf/Layouts,
+// "generic" den alten pptxgenjs-Fallback ohne Branding und ohne Bildunterstützung. Optional
+// wird ein KI-Titelbild fürs Deck generiert (kostet auf DeepInfra-Instanzen echtes Geld pro
+// Export, daher per includeImage abschaltbar).
 router.post('/api/export-pptx', asyncHandler(async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Bitte neu anmelden.' });
@@ -54,7 +64,7 @@ router.post('/api/export-pptx', asyncHandler(async (req, res) => {
     return res.send(await markdownToPptxBuffer(text));
   }
 
-  const templateEntry = TEMPLATES[template] || TEMPLATES['diakonie-kork'];
+  const templateEntry = (await resolveTemplateEntry(template)) || (await resolveTemplateEntry('diakonie-kork'));
   const slides = markdownToSlideData(text);
   let titleImagePath = null;
   if (includeImage) {

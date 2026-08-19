@@ -131,6 +131,8 @@
   "tools.form_chat.desc": "Rellenar e imprimir un formulario mediante diálogo",
   "tools.form_templates.title": "Plantillas de formularios",
   "tools.form_templates.desc": "Subir escaneos y marcar campos",
+  "tools.pptx_templates.title": "Plantillas de PowerPoint",
+  "tools.pptx_templates.desc": "Subir tus propias plantillas de PowerPoint",
   "js.bgt_access_title": "Acceso BGT (obligación de secreto profesional) – deber especial de diligencia con datos sensibles",
   "common.connection_error": "Error de conexión.",
   "js.setup_start_failed": "Error al iniciar la configuración.",

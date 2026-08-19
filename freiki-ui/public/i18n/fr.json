@@ -131,6 +131,8 @@
   "tools.form_chat.desc": "Remplir et imprimer un formulaire par dialogue",
   "tools.form_templates.title": "Modèles de formulaires",
   "tools.form_templates.desc": "Téléverser des scans et marquer les champs",
+  "tools.pptx_templates.title": "Modèles PowerPoint",
+  "tools.pptx_templates.desc": "Téléverser vos propres modèles PowerPoint",
   "js.bgt_access_title": "Accès BGT (secret professionnel) – devoir de diligence particulier pour les données sensibles",
   "common.connection_error": "Erreur de connexion.",
   "js.setup_start_failed": "Erreur lors du démarrage de la configuration.",

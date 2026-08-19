@@ -131,6 +131,8 @@
   "tools.form_chat.desc": "Fenoy sy tontay taratasy amin'ny alalan'ny resadresaka",
   "tools.form_templates.title": "Modely Taratasy",
   "tools.form_templates.desc": "Handefa sary voatsindry & manamarika saha",
+  "tools.pptx_templates.title": "Modely PowerPoint",
+  "tools.pptx_templates.desc": "Handefa ny modely PowerPoint manokana",
   "js.bgt_access_title": "Fidirana BGT (adidy fitazomana tsiambaratelo ara-tsehatra) – fitandremana manokana amin'ny angon-drakitra manokana",
   "common.connection_error": "Diso fifandraisana.",
   "js.setup_start_failed": "Diso teo am-panombohana ny fametrahana.",
