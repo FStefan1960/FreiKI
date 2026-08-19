@@ -31,6 +31,20 @@ MINOR_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}"
 export FREIKI_VERSION="$APP_VERSION"
 export FREIKI_GIT_SHA="$GIT_SHA"
 
+# .env dauerhaft mitziehen, nicht nur für diesen Shell-Lauf exportieren - sonst löst ein
+# reiner "docker compose up -d" (z.B. nach Reboot, ohne dieses Skript) wieder das alte,
+# in der .env stehende FREIKI_VERSION auf und startet ein überholtes Image.
+sync_env_var() {
+  local key="$1" value="$2"
+  if [[ -f .env ]] && grep -q "^${key}=" .env; then
+    sed -i.bak "s|^${key}=.*|${key}=${value}|" .env && rm -f .env.bak
+  else
+    echo "${key}=${value}" >> .env
+  fi
+}
+sync_env_var FREIKI_VERSION "$APP_VERSION"
+sync_env_var FREIKI_GIT_SHA "$GIT_SHA"
+
 RELEASE_IMAGE="freiki-ui:${APP_VERSION}"
 CONFIGURED_IMAGE="$(
   docker compose config --format json |

@@ -23,7 +23,6 @@ const GITHUB_MAP = {
   'amir20/dozzle': { name: 'Dozzle', github: 'amir20/dozzle' },
   'vllm/vllm-openai': { name: 'vLLM', github: 'vllm-project/vllm' },
   'pgvector/pgvector': { name: 'pgvector', github: 'pgvector/pgvector' },
-  'flowiseai/flowise': { name: 'Flowise', github: 'FlowiseAI/Flowise' },
   'onerahmet/openai-whisper-asr-webservice': { name: 'Whisper', github: 'ahmetoner/whisper-asr-webservice' },
   'ghcr.io/paperless-ngx/paperless-ngx': { name: 'Paperless', github: 'paperless-ngx/paperless-ngx' },
   'mattermost/mattermost-team-edition': { name: 'Mattermost', github: 'mattermost/mattermost' },

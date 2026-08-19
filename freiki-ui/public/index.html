@@ -25,7 +25,9 @@
       ⚠️ <strong>Hinweis:</strong> {{APP_NAME}} ist ein KI-Hilfsinstrument. Alle Ergebnisse müssen geprüft werden. <strong>Die Verantwortung liegt beim Benutzer.</strong>
     </div>
     <div class="login-form" id="login-form">
+      <label class="sr-only" for="username" data-i18n="login.username">Benutzername</label>
       <input type="text" id="username" placeholder="Benutzername" data-i18n-placeholder="login.username" autocomplete="username">
+      <label class="sr-only" for="password" data-i18n="login.password">Passwort</label>
       <input type="password" id="password" placeholder="Passwort" data-i18n-placeholder="login.password" autocomplete="current-password">
       <select id="fk-lang-switch" onchange="localStorage.setItem('fk_ui_lang', this.value); location.reload();">
         <option value="de">🇩🇪 Deutsch</option>
