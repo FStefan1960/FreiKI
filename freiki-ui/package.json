@@ -29,6 +29,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "jszip": "^3.10.1",
     "supertest": "^7.2.2"
   }
 }
