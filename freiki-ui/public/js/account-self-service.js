@@ -19,7 +19,7 @@
     errEl.style.display = 'none';
     if (!current || !newPw || !confirm) { errEl.textContent = t('changepw.fill_all_fields', 'Bitte alle Felder ausfüllen.'); errEl.style.display='block'; return; }
     if (newPw !== confirm) { errEl.textContent = t('changepw.passwords_mismatch', 'Neue Passwörter stimmen nicht überein.'); errEl.style.display='block'; return; }
-    if (newPw.length < 10) { errEl.textContent = t('changepw.min_length', 'Passwort muss mindestens 10 Zeichen haben.'); errEl.style.display='block'; return; }
+    if (newPw.length < 8) { errEl.textContent = t('changepw.min_length', 'Passwort muss mindestens 8 Zeichen haben.'); errEl.style.display='block'; return; }
 
     btn.disabled = true;
     btn.textContent = '...';
