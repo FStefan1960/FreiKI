@@ -63,6 +63,16 @@ const config = {
   PAPERLESS_INTERNAL_URL: process.env.PAPERLESS_INTERNAL_URL || 'http://paperless:8000',
   PAPERLESS_TOKEN: process.env.PAPERLESS_TOKEN || '',
 
+  // ── Admin-Quicklinks (Nutzungsstatistik-Seite, siehe /api/admin/service-links) ──
+  // Ausschließlich browserseitige URLs zu Infrastruktur-Diensten. Jede leer = Button
+  // bleibt ausgeblendet, damit das auf jeder Instanz unabhängig konfigurierbar ist.
+  BESZEL_HUB_URL: process.env.BESZEL_HUB_URL || '',
+  N8N_URL: process.env.N8N_URL || '',
+  UPTIME_KUMA_URL: process.env.UPTIME_KUMA_URL || '',
+  DOZZLE_URL: process.env.DOZZLE_URL || '',
+  PORTAINER_URL: process.env.PORTAINER_URL || '',
+  SWAGGER_URL: process.env.SWAGGER_URL || '',
+
   // Passwort des dedizierten "healthcheck"-Testnutzers (siehe jobs/syntheticHealthCheck.js) -
   // bisher nur von n8n gelesen, jetzt auch von der App selbst gebraucht.
   HEALTHCHECK_PASSWORD: process.env.HEALTHCHECK_PASSWORD || '',

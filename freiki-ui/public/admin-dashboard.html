@@ -32,7 +32,7 @@
     .header h1{font-size:20px;font-weight:700;color:#1E3A8A}
     .header p{font-size:13px;color:#6b7280}
     h2{font-size:15px;font-weight:700;color:#1E3A8A;margin-bottom:14px}
-    .btn{padding:8px 16px;border:none;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,background .15s}
+    .btn{padding:8px 16px;border:none;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s,background .15s;display:inline-flex;align-items:center;gap:4px;text-decoration:none}
     .btn-primary{background:linear-gradient(135deg,#1E3A8A,#2B9CD8);color:#fff}
     .btn-primary:hover{opacity:.9}
     .btn-ghost{background:#eef2ff;color:#1E3A8A}
@@ -93,6 +93,11 @@
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:8px"><span class="status-msg" id="report-status"></span></div>
+  </div>
+
+  <div class="card" id="services-card" style="display:none">
+    <h2>Services &amp; Monitoring</h2>
+    <div class="report-buttons" id="service-links" style="justify-content:flex-start"></div>
   </div>
 
   <div class="card">
@@ -213,6 +218,19 @@ function renderTable(byUser, filter) {
   </tbody></table>`;
 }
 
+async function loadServiceLinks() {
+  try {
+    const r = await fetch('/api/admin/service-links');
+    if (!r.ok) return;
+    const { links } = await r.json();
+    if (!links.length) return;
+    document.getElementById('service-links').innerHTML = links.map(l =>
+      `<a class="btn btn-ghost" href="${l.url}" target="_blank" rel="noopener">🔗 ${l.label} <span style="opacity:.7">– ${l.hint}</span></a>`
+    ).join('');
+    document.getElementById('services-card').style.display = '';
+  } catch {}
+}
+
 async function loadDashboard(days) {
   currentDays = days;
   document.querySelectorAll('.range-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.days, 10) === days));
@@ -267,6 +285,7 @@ document.getElementById('report-buttons').addEventListener('click', async (ev) =
 
 (async () => {
   if (!(await ensureAdmin())) return;
+  loadServiceLinks();
   loadDashboard(currentDays);
 })();
 </script>

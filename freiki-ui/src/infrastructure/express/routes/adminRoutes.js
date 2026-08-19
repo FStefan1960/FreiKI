@@ -573,6 +573,25 @@ router.get('/api/admin/stats', asyncHandler(async (req, res) => {
   }
 }));
 
+// Quicklinks zu Infrastruktur-Diensten (Beszel, Uptime Kuma, n8n, Dozzle, Portainer,
+// Swagger, Paperless, Mattermost) für die Nutzungsstatistik-Seite. Nur konfigurierte
+// URLs (nicht-leer) werden zurückgegeben, damit auf Instanzen ohne z.B. Portainer
+// einfach kein Button erscheint statt auf einen toten Link zu zeigen.
+router.get('/api/admin/service-links', (req, res) => {
+  const brand = getBrandConfig();
+  const links = [
+    { key: 'n8n', label: 'n8n', hint: 'Automatisierung', url: config.N8N_URL },
+    { key: 'paperless', label: 'Paperless', hint: 'Dokumente', url: process.env.PAPERLESS_ADMIN_URL || brand.paperlessUrl },
+    { key: 'mattermost', label: 'Mattermost', hint: 'Team-Chat', url: brand.mattermostUrl },
+    { key: 'kuma', label: 'Uptime Kuma', hint: 'Verfügbarkeit', url: config.UPTIME_KUMA_URL },
+    { key: 'beszel', label: 'Beszel', hint: 'Server-/GPU-Metriken', url: config.BESZEL_HUB_URL },
+    { key: 'dozzle', label: 'Dozzle', hint: 'Container-Logs', url: config.DOZZLE_URL },
+    { key: 'portainer', label: 'Portainer', hint: 'Container-Verwaltung', url: config.PORTAINER_URL },
+    { key: 'swagger', label: 'Swagger', hint: 'API-Doku', url: config.SWAGGER_URL },
+  ].filter(l => l.url);
+  res.json({ links });
+});
+
 router.get('/api/admin/usage-history', (req, res) => {
   const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 30));
   try {
