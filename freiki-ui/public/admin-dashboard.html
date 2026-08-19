@@ -86,13 +86,17 @@
           <p>Wer nutzt welches Werkzeug wie oft · nur für Administratoren</p>
         </div>
       </div>
-      <div class="report-buttons" id="report-buttons">
-        <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/admin-pptx-templates.html') : (window.top.location.href='/admin-pptx-templates.html')">📊 PPT-Vorlagen verwalten</button>
-        <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/admin-prompts.html') : (window.top.location.href='/admin-prompts.html')">📝 Prompts verwalten</button>
-        <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/users.html') : (window.top.location.href='/users.html')">👥 Benutzerverwaltung</button>
-        <button class="btn btn-ghost" id="send-report-btn" data-url="/api/admin/trigger-daily-report" data-label="Tagesbericht">📧 Tagesbericht jetzt per Mail senden</button>
-        <button class="btn btn-ghost" id="send-gpu-btn" data-url="/api/admin/jobs/gpuMetricsReport/run" data-label="GPU/LLM-Statistik">📊 GPU/LLM-Statistik senden</button>
-        <button class="btn btn-ghost" id="send-egress-btn" data-url="/api/admin/trigger-egress-report" data-label="Datenabfluss-Bericht" style="display:none">🔒 Datenabfluss-Bericht senden</button>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <div class="report-buttons" id="admin-nav-buttons">
+          <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/users.html') : (window.top.location.href='/users.html')">👥 Benutzerverwaltung</button>
+          <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/admin-prompts.html') : (window.top.location.href='/admin-prompts.html')">📝 Prompts verwalten</button>
+          <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/admin-pptx-templates.html') : (window.top.location.href='/admin-pptx-templates.html')">📊 PPT-Vorlagen verwalten</button>
+        </div>
+        <div class="report-buttons" id="report-buttons">
+          <button class="btn btn-ghost" id="send-report-btn" data-url="/api/admin/trigger-daily-report" data-label="Tagesbericht">📧 Tagesbericht jetzt per Mail senden</button>
+          <button class="btn btn-ghost" id="send-egress-btn" data-url="/api/admin/trigger-egress-report" data-label="Datenabfluss-Bericht" style="display:none">🔒 Datenabfluss-Bericht senden</button>
+          <button class="btn btn-ghost" id="send-gpu-btn" data-url="/api/admin/jobs/gpuMetricsReport/run" data-label="GPU/LLM-Statistik">📊 GPU/LLM-Statistik senden</button>
+        </div>
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:8px"><span class="status-msg" id="report-status"></span></div>
