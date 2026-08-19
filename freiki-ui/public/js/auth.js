@@ -7,6 +7,21 @@ function applyRoleIndicator(role) {
   avatar.title = isHighRisk ? t('js.bgt_access_title', 'BGT-Zugang (Berufsgeheimnisträger) – besondere Sorgfaltspflicht bei sensiblen Daten') : '';
 }
 
+// DMS-Button (Paperless-Admin-Oberfläche) bekommt seine URL erst nach bestätigtem
+// Admin-Login vom Server - PAPERLESS_ADMIN_URL zeigt oft auf einen internen
+// Docker-Hostnamen und darf nicht im öffentlich ausgelieferten HTML stehen.
+async function loadDmsLink() {
+  const btn = document.getElementById('dms-btn');
+  if (!btn) return;
+  try {
+    const r = await fetch('/api/admin/service-links');
+    if (!r.ok) return;
+    const { links } = await r.json();
+    const paperless = links.find(l => l.key === 'paperless');
+    if (paperless) btn.href = paperless.url;
+  } catch {}
+}
+
 function completeLogin(data, username) {
   State.authToken = true;
   const role = data.role || 'default';
@@ -24,6 +39,7 @@ function completeLogin(data, username) {
   });
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = role === 'admin' ? '' : 'none');
   document.querySelectorAll('.bgt-2fa-only').forEach(el => el.style.display = ['admin', 'high_risk'].includes(role) ? '' : 'none');
+  if (role === 'admin') loadDmsLink();
   applyRoleIndicator(role);
   const tcBtn = document.getElementById('teamchat-btn');
   if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';

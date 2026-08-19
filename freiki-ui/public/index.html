@@ -38,7 +38,7 @@
         <option value="id">🇮🇩 Bahasa Indonesia</option>
         <option value="mg">🇲🇬 Malagasy</option>
       </select>
-      <div class="login-error" id="login-error" data-i18n="login.error_invalid">Ungültige Anmeldedaten</div>
+      <div class="login-error" id="login-error" role="alert" aria-live="assertive" data-i18n="login.error_invalid">Ungültige Anmeldedaten</div>
       <button class="login-btn" onclick="login()" data-i18n="login.submit">Anmelden</button>
       <a class="login-register-link" href="/register.html" style="{{SELF_REGISTRATION_LINK_STYLE}}" data-i18n="login.request_access">Zugang beantragen</a>
     </div>
@@ -236,7 +236,7 @@
             <span id="stats-text">– / – / –%</span>
           </div>
           <div class="header-icon-group">
-            <a href="{{PAPERLESS_ADMIN_URL}}" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled admin-only" title="Dokumentenarchiv (Paperless)" data-i18n-title="header.dms_title" style="display:none;">DMS</a>
+            <a href="#" target="_blank" id="dms-btn" class="header-icon-btn header-icon-btn-labeled admin-only" title="Dokumentenarchiv (Paperless)" data-i18n-title="header.dms_title" style="display:none;">DMS</a>
             <button id="teamchat-btn" class="header-icon-btn header-icon-btn-labeled" title="Team-Chat (Mattermost)" data-i18n-title="header.teamchat_title" aria-label="Team-Chat öffnen" type="button" style="display:none;" data-url="{{MATTERMOST_URL}}" onclick="openTeamchat()">💬 <span class="hilfe-label" data-i18n="header.chat_label">Chat</span></button>
             <button class="header-icon-btn header-icon-btn-labeled" onclick="toggleHilfeBubble()" title="{{APP_NAME}}-Hilfe" data-i18n-title="header.help_title" aria-label="Hilfe-Assistent öffnen" type="button">? <span class="hilfe-label" data-i18n="header.help_label">Hilfe</span></button>
           </div>
@@ -398,7 +398,7 @@
     <h3 data-i18n="changepw.title">🔒 Passwort ändern</h3>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <input id="pw-current" type="password" placeholder="Aktuelles Passwort" data-i18n-placeholder="common.current_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
-      <input id="pw-new" type="password" placeholder="Neues Passwort (min. 6 Zeichen)" data-i18n-placeholder="changepw.new_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
+      <input id="pw-new" type="password" placeholder="Neues Passwort (min. 10 Zeichen)" data-i18n-placeholder="changepw.new_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
       <input id="pw-confirm" type="password" placeholder="Neues Passwort bestätigen" data-i18n-placeholder="changepw.confirm_password" style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
     </div>
     <div id="pw-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px;"></div>

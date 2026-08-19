@@ -20,7 +20,6 @@ function getIndexHtml() {
     .replace(/\{\{APP_TAGLINE\}\}/g,       brand.tagline)
     .replace(/\{\{APP_COLOR\}\}/g,         brand.color)
     .replace(/\{\{PAPERLESS_URL\}\}/g,     brand.paperlessUrl)
-    .replace(/\{\{PAPERLESS_ADMIN_URL\}\}/g, process.env.PAPERLESS_ADMIN_URL || brand.paperlessUrl)
     .replace(/\{\{MATTERMOST_URL\}\}/g,    brand.mattermostUrl)
     .replace(/\{\{DEMO_MODE\}\}/g,         brand.demoMode ? '' : 'display:none')
     .replace(/\{\{SELF_REGISTRATION_LINK_STYLE\}\}/g, brand.selfRegistration ? '' : 'display:none')

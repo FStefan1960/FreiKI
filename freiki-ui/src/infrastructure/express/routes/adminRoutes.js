@@ -362,7 +362,7 @@ router.post('/api/admin/users', asyncHandler(async (req, res) => {
   const { username, role, use, manage, first_name, last_name, dienststelle, funktion, telefon, email, language, use_paperless, use_metacom, password } = req.body || {};
   if (!users.isValidUsername(username)) return res.status(400).json({ error: 'Benutzername: 3–64 Zeichen, nur Buchstaben, Zahlen und ._-' });
   if (email && !users.isValidEmail(email)) return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
-  if (password && password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
+  if (password && password.length < 10) return res.status(400).json({ error: 'Passwort muss mindestens 10 Zeichen haben' });
   try {
     const result = await AuthService.createUser({ username, role, use, manage, first_name, last_name, dienststelle, funktion, telefon, email, language, use_paperless, use_metacom, password });
     auditLog.log(req.admin, 'user.create', { id: result.id, username }, { role: role || 'default', use, manage, use_paperless: !!use_paperless, use_metacom: !!use_metacom });
@@ -401,7 +401,7 @@ router.post('/api/admin/users/:id', asyncHandler(async (req, res) => {
 
 router.post('/api/admin/users/:id/password', asyncHandler(async (req, res) => {
   const { password } = req.body || {};
-  if (!password || password.length < 6) return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
+  if (!password || password.length < 10) return res.status(400).json({ error: 'Passwort muss mindestens 10 Zeichen haben' });
   const id = parseInt(req.params.id, 10);
   try {
     const ok = await AuthService.resetPassword(id, password);

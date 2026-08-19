@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = storedRole === 'admin' ? '' : 'none');
   document.querySelectorAll('.bgt-2fa-only').forEach(el => el.style.display = ['admin', 'high_risk'].includes(storedRole) ? '' : 'none');
+  if (storedRole === 'admin') loadDmsLink();
 
   // Mic-Button nur zeigen, wenn der Browser Aufnahme tatsächlich unterstützt (alte Browser,
   // Nicht-HTTPS-Kontexte oder deaktivierte Mikrofon-APIs liefern sonst einen toten Button).

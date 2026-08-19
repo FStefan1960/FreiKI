@@ -503,7 +503,7 @@ function buildEditCard(u){
       }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); susp.disabled=false; }
     });
     const pw=document.createElement('button'); pw.className='btn btn-ghost'; pw.textContent='Passwort';
-    pw.addEventListener('click',async()=>{ const np=prompt('Neues Passwort für „'+u.username+'" (min. 6 Zeichen):'); if(!np) return;
+    pw.addEventListener('click',async()=>{ const np=prompt('Neues Passwort für „'+u.username+'" (min. 10 Zeichen):'); if(!np) return;
       try{ const r=await fetch('/api/admin/users/'+u.id+'/password',{method:'POST',headers:H,body:JSON.stringify({password:np})});
         const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); statusMsg('ok','Passwort für „'+u.username+'" gesetzt.');
       }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); }

@@ -138,8 +138,8 @@ router.post('/api/change-password', asyncHandler(async (req, res) => {
   const s = getSession(req);
   const { currentPassword, newPassword } = req.body || {};
   if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
-  if (!newPassword || newPassword.length < 6)
-    return res.status(400).json({ error: 'Neues Passwort muss mindestens 6 Zeichen haben' });
+  if (!newPassword || newPassword.length < 10)
+    return res.status(400).json({ error: 'Neues Passwort muss mindestens 10 Zeichen haben' });
   try {
     const result = await AuthService.changePassword(s.uid, currentPassword, newPassword);
     if (result.error === 'no-session') return res.status(401).json({ error: 'Sitzung ungültig – bitte neu anmelden' });
