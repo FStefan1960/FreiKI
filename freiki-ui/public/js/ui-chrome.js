@@ -66,7 +66,7 @@ function openToolPanel(src) {
   // Admin-Dashboard/Prompt-Editor ebenfalls: zeigen Live-Serverdaten (Nutzungsstatistik,
   // Prompt-Inhalte), die sich zwischen zwei Öffnungen in derselben Tab-Sitzung geändert haben
   // können - ohne Reload bliebe der Stand vom letzten Öffnen stehen.
-  const forceReload = ['/formular-chat.html', '/scanner.html', '/admin-dashboard.html', '/admin-prompts.html'].includes(src);
+  const forceReload = ['/formular-chat.html', '/scanner.html', '/admin-dashboard.html', '/admin-prompts.html', '/admin-pptx-templates.html'].includes(src);
   if (forceReload) {
     frame.setAttribute('src', src + '?_r=' + Date.now());
   } else if (frame.getAttribute('src') !== src) {

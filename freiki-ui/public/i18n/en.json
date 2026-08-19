@@ -131,8 +131,6 @@
   "tools.form_chat.desc": "Fill out and print a form via dialogue",
   "tools.form_templates.title": "Form Templates",
   "tools.form_templates.desc": "Upload scans & mark fields",
-  "tools.pptx_templates.title": "PPT Templates",
-  "tools.pptx_templates.desc": "Upload your own PowerPoint templates",
   "js.bgt_access_title": "BGT access (professional confidentiality obligation) – special duty of care with sensitive data",
   "common.connection_error": "Connection error.",
   "js.setup_start_failed": "Error starting setup.",

@@ -131,8 +131,6 @@
   "tools.form_chat.desc": "Заполнить и распечатать форму в диалоге",
   "tools.form_templates.title": "Шаблоны форм",
   "tools.form_templates.desc": "Загрузить сканы и отметить поля",
-  "tools.pptx_templates.title": "Шаблоны PowerPoint",
-  "tools.pptx_templates.desc": "Загрузить собственные шаблоны PowerPoint",
   "js.bgt_access_title": "Доступ BGT (лицо, обязанное хранить профессиональную тайну) – особая осторожность при работе с чувствительными данными",
   "common.connection_error": "Ошибка соединения.",
   "js.setup_start_failed": "Ошибка при запуске настройки.",

@@ -96,9 +96,9 @@ async function loadModes() {
     if (['admin', 'manager'].includes(State.currentRole)) {
       builtinTools.push({ panel: '/admin-formulare.html', icon: '📋', title: t('tools.form_templates.title', 'Formular-Vorlagen'), desc: t('tools.form_templates.desc', 'Scans hochladen & Felder markieren') });
     }
-    if (State.currentRole === 'admin') {
-      builtinTools.push({ panel: '/admin-pptx-templates.html', icon: '📊', title: t('tools.pptx_templates.title', 'PPT-Vorlagen'), desc: t('tools.pptx_templates.desc', 'Eigene PowerPoint-Vorlagen hochladen') });
-    }
+    // PPT-Vorlagen bewusst NICHT hier (Werkzeuge-Menü) - liegt im Admin-Panel
+    // (admin-dashboard.html), damit es nicht wie ein reguläres Werkzeug für alle
+    // Rollen im selben Menü auftaucht.
     builtinTools.forEach(t => {
       const b = document.createElement('button');
       b.className = 'mode-btn';
