@@ -10,8 +10,8 @@ const users = require('../core/auth/UserRepository');
 function services() {
   const list = [
     { name: `${getBrandConfig().name} App`, url: `http://127.0.0.1:${config.PORT}/api/brand` },
-    { name: 'n8n', url: 'http://n8n:5678/healthz' },
   ];
+  if (config.N8N_URL) list.push({ name: 'n8n', url: 'http://n8n:5678/healthz' });
   if (config.MATTERMOST_URL) list.push({ name: 'Mattermost', url: 'http://mattermost:8065/api/v4/system/ping' });
   if (config.WHISPER_URL) list.push({ name: 'Whisper', url: `${config.WHISPER_URL}/` });
   return list;
