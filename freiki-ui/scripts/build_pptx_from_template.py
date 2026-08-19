@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Füllt das Diakonie-Kork-PPTX-Template (Layout "Title, Content") mit Folien aus
-JSON. Wird von PptxExportService.js als Kindprozess aufgerufen: argv[1] = Pfad zur
-Eingabe-JSON, argv[2] = Zielpfad für die erzeugte .pptx.
+"""Füllt das Diakonie-Kork-PPTX-Template mit Folien aus JSON (passendes Layout wird
+anhand der Platzhalter-Struktur gesucht, nicht anhand des Layout-Namens, siehe
+find_content_layout()/find_title_only_layout()). Wird von PptxExportService.js als
+Kindprozess aufgerufen: argv[1] = Pfad zur Eingabe-JSON, argv[2] = Zielpfad für die
+erzeugte .pptx.
 
 JSON-Form:
 {
@@ -24,20 +26,29 @@ from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 from PIL import Image
 
-# Aus dem realen Template (slideLayout12.xml) ausgelesene Platzhalter-Boxen -
-# das Layout selbst deklariert "buNone" auf allen Ebenen (siehe git-Notiz unten),
+# Das Template deklariert "buNone" auf allen Textebenen (siehe set_bullet() unten),
 # Bullets müssen daher pro Absatz manuell gesetzt werden.
-CONTENT_LAYOUT_NAME = 'Title, Content'
-TITLE_ONLY_LAYOUT_NAME = 'Title Only'
-BODY_FULL = (923883, 2012401, 11596089, 4796281)  # left, top, width, height (EMU)
 IMAGE_MARGIN = 274638  # ~0.3in Abstand zwischen Text- und Bildspalte
 
-
-def find_layout(prs, name):
+# Layouts werden bewusst NICHT über den Namen gesucht: Der Kunde pflegt das Template
+# selbst in PowerPoint, und Layout-Namen/-Anzahl haben sich zwischen zwei Versionen
+# bereits ohne inhaltliche Absicht geändert (z.B. "Title, Content" -> "Titelfolie").
+# Stattdessen wird nach Platzhalter-Struktur gesucht, das bleibt über Rebuilds stabil.
+def find_content_layout(prs):
     for layout in prs.slide_layouts:
-        if layout.name == name:
+        phs = {ph.placeholder_format.idx: ph for ph in layout.placeholders}
+        title, body = phs.get(0), phs.get(1)
+        if title is not None and body is not None and body.width >= prs.slide_width * 0.6:
             return layout
-    raise ValueError(f'Layout "{name}" nicht im Template gefunden')
+    raise ValueError('Kein Layout mit Titel + durchgehend breitem Textplatzhalter im Template gefunden')
+
+
+def find_title_only_layout(prs):
+    for layout in prs.slide_layouts:
+        phs = {ph.placeholder_format.idx: ph for ph in layout.placeholders}
+        if 0 in phs and 1 not in phs:
+            return layout
+    raise ValueError('Kein reines Titel-Layout (Titel ohne Textplatzhalter) im Template gefunden')
 
 
 def set_bullet(paragraph, level, numbered):
@@ -112,8 +123,10 @@ def remove_existing_slides(prs):
 def build(data, out_path):
     prs = Presentation(data['templatePath'])
     remove_existing_slides(prs)
-    content_layout = find_layout(prs, CONTENT_LAYOUT_NAME)
-    title_only_layout = find_layout(prs, TITLE_ONLY_LAYOUT_NAME)
+    content_layout = find_content_layout(prs)
+    title_only_layout = find_title_only_layout(prs)
+    body_ph_def = next(ph for ph in content_layout.placeholders if ph.placeholder_format.idx == 1)
+    BODY_FULL = (body_ph_def.left, body_ph_def.top, body_ph_def.width, body_ph_def.height)
 
     for slide_data in data['slides']:
         image_path = slide_data.get('image')
