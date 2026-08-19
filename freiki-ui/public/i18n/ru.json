@@ -33,7 +33,6 @@
   "sidebar.account_menu": "Меню аккаунта",
   "sidebar.logout": "Выйти",
   "account_menu.feedback": "Отзывы и пожелания",
-  "account_menu.user_admin": "Управление пользователями",
   "account_menu.change_password": "Сменить пароль",
   "account_menu.security": "Безопасность: 2FA / ключи доступа",
   "account_menu.change_response_language": "Изменить язык ответов",
