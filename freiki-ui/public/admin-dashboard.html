@@ -51,7 +51,8 @@
     .bar-wrap{flex:1 0 6px;min-width:6px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;cursor:default}
     .bar{background:linear-gradient(180deg,#2B9CD8,#1E3A8A);border-radius:3px 3px 0 0;min-height:2px;transition:opacity .1s}
     .bar-wrap:hover .bar{opacity:.75}
-    .chart-labels{display:flex;justify-content:space-between;font-size:11px;color:#9ca3af;margin-top:6px}
+    .chart-labels{display:flex;gap:3px;font-size:11px;color:#9ca3af;margin-top:6px}
+    .chart-labels span{flex:1 0 6px;min-width:6px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tool-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
     .tool-row{display:flex;align-items:center;gap:10px;font-size:13px}
     .tool-row .name{width:170px;flex-shrink:0;color:#374151;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -181,18 +182,32 @@ function renderCards(data, live) {
   ).join('');
 }
 
+const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+// UTC statt lokaler Zeitzone: date ist ein reiner "YYYY-MM-DD"-Tagesstempel ohne Uhrzeit,
+// new Date(dateStr) parst das als UTC-Mitternacht - getDay() (lokal) könnte den Wochentag
+// dadurch je nach Zeitzone um einen Tag verschieben, getUTCDay() nicht.
+function weekday(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+}
+
 function renderChart(daily) {
   const max = Math.max(1, ...daily.map(d => d.count));
   document.getElementById('chart').innerHTML = daily.map(d =>
-    `<div class="bar-wrap" title="${d.date}: ${d.count} Anfrage${d.count === 1 ? '' : 'n'}">
+    `<div class="bar-wrap" title="${weekday(d.date)}, ${d.date}: ${d.count} Anfrage${d.count === 1 ? '' : 'n'}">
       <div class="bar" style="height:${Math.round((d.count / max) * 100)}%"></div>
     </div>`
   ).join('');
   const labels = document.getElementById('chart-labels');
   if (!daily.length) { labels.innerHTML = ''; return; }
-  const first = daily[0].date.slice(5).split('-').reverse().join('.');
-  const last = daily[daily.length - 1].date.slice(5).split('-').reverse().join('.');
-  labels.innerHTML = `<span>${first}</span><span>${last}</span>`;
+  if (daily.length <= 10) {
+    // Kurzer Zeitraum (7-Tage-Ansicht): Wochentagskürzel passen noch unter jeden Balken.
+    labels.innerHTML = daily.map(d => `<span>${weekday(d.date)}</span>`).join('');
+  } else {
+    // Langer Zeitraum: jeden Tag zu beschriften wäre unlesbar - stattdessen nur "S" (Sonntag)
+    // als Wochenraster zur Orientierung, exaktes Datum bleibt per Hover (title) abrufbar.
+    labels.innerHTML = daily.map(d => `<span>${weekday(d.date) === 'So' ? 'S' : ''}</span>`).join('');
+  }
 }
 
 function renderToolList(byTool) {
