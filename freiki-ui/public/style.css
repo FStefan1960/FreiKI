@@ -325,6 +325,14 @@ body {
   display: none;
 }
 
+.login-register-link {
+  text-align: center;
+  font-size: var(--fk-fs-caption);
+  color: var(--fk-text-muted);
+  text-decoration: none;
+}
+.login-register-link:hover { text-decoration: underline; color: var(--fk-primary); }
+
 .login-disclaimer {
   background: #fef9c3;
   border: 1px solid #fde047;

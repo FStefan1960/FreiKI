@@ -23,6 +23,7 @@ function getIndexHtml() {
     .replace(/\{\{PAPERLESS_ADMIN_URL\}\}/g, process.env.PAPERLESS_ADMIN_URL || brand.paperlessUrl)
     .replace(/\{\{MATTERMOST_URL\}\}/g,    brand.mattermostUrl)
     .replace(/\{\{DEMO_MODE\}\}/g,         brand.demoMode ? '' : 'display:none')
+    .replace(/\{\{SELF_REGISTRATION_LINK_STYLE\}\}/g, brand.selfRegistration ? '' : 'display:none')
     .replace(/\{\{FOOTER_NOTE\}\}/g,       brand.footerNote || brand.name)
     .replace(/\{\{APP_VERSION\}\}/g,       GIT_VERSION)
     .replace(/\{\{AGPL_SOURCE_NOTICE\}\}/g,

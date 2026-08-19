@@ -4,6 +4,7 @@
   "login.password": "Пароль",
   "login.error_invalid": "Неверные учётные данные",
   "login.submit": "Войти",
+  "login.request_access": "Запросить доступ",
   "twofa.instructions": "Введите 6-значный код из приложения-аутентификатора (или резервный код).",
   "twofa.code_placeholder": "Код",
   "twofa.passkey_btn": "🔓 Войти через Face ID / Touch ID",

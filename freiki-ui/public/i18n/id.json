@@ -4,6 +4,7 @@
   "login.password": "Kata sandi",
   "login.error_invalid": "Data login tidak valid",
   "login.submit": "Masuk",
+  "login.request_access": "Ajukan akses",
   "twofa.instructions": "Masukkan kode 6 digit dari aplikasi autentikator Anda (atau kode cadangan).",
   "twofa.code_placeholder": "Kode",
   "twofa.passkey_btn": "🔓 Masuk dengan Face ID / Touch ID",

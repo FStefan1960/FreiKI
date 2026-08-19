@@ -4,6 +4,7 @@
   "login.password": "Mot de passe",
   "login.error_invalid": "Identifiants invalides",
   "login.submit": "Se connecter",
+  "login.request_access": "Demander un accès",
   "twofa.instructions": "Veuillez saisir le code à 6 chiffres de votre application d'authentification (ou un code de secours).",
   "twofa.code_placeholder": "Code",
   "twofa.passkey_btn": "🔓 Se connecter avec Face ID / Touch ID",

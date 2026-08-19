@@ -4,6 +4,7 @@
   "login.password": "Contraseña",
   "login.error_invalid": "Credenciales no válidas",
   "login.submit": "Iniciar sesión",
+  "login.request_access": "Solicitar acceso",
   "twofa.instructions": "Introduzca el código de 6 dígitos de su aplicación de autenticación (o un código de respaldo).",
   "twofa.code_placeholder": "Código",
   "twofa.passkey_btn": "🔓 Iniciar sesión con Face ID / Touch ID",

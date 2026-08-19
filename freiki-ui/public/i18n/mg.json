@@ -4,6 +4,7 @@
   "login.password": "Tenimiafina",
   "login.error_invalid": "Tsy mety ny angon-drakitra fidirana",
   "login.submit": "Hiditra",
+  "login.request_access": "Mangataka fidirana",
   "twofa.instructions": "Ampidiro ny kaody misy isa 6 avy amin'ny rindrankajy famantarana anao (na kaody tahiry).",
   "twofa.code_placeholder": "Kaody",
   "twofa.passkey_btn": "🔓 Midira miaraka amin'ny Face ID / Touch ID",

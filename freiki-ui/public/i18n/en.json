@@ -4,6 +4,7 @@
   "login.password": "Password",
   "login.error_invalid": "Invalid login credentials",
   "login.submit": "Sign in",
+  "login.request_access": "Request access",
   "twofa.instructions": "Please enter the 6-digit code from your authenticator app (or a backup code).",
   "twofa.code_placeholder": "Code",
   "twofa.passkey_btn": "🔓 Sign in with Face ID / Touch ID",
