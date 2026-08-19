@@ -17,7 +17,6 @@ const BUILD_SCRIPT = path.join(config.APP_ROOT, 'scripts', 'build_pptx_from_temp
 // per resolveTemplateEntry()/listAllTemplates() dazu, stehen NICHT fest in diesem Objekt.
 const TEMPLATES = {
   'diakonie-kork': { label: 'Diakonie Kork', path: config.PPTX_TEMPLATE_PATH },
-  'madison': { label: 'Madison', path: path.join(config.APP_ROOT, 'assets', 'pptx-templates', 'Madison.pptx') },
 };
 
 // Liefert {label, path} für einen Template-Key - erst die fest einprogrammierten, dann
