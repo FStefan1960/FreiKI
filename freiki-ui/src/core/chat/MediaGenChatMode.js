@@ -88,6 +88,28 @@ function applyAiLabel(buf, ext) {
   }
 }
 
+// Antwortformat folgt DeepInfras OpenAI-kompatibler Images-API (data[0].b64_json) - KorKIs
+// lokaler image-gen-Service spiegelt dasselbe Format, damit dieser Code auf allen drei
+// Instanzen identisch ist (nur IMAGE_GEN_URL/-KEY/-MODEL unterscheiden sich). Wird sowohl vom
+// Chat-Bildgen-Modus als auch vom PPTX-Titelbild (PptxExportService.js) genutzt.
+async function generateAiImage(prompt) {
+  const genPrompt = await enhanceImagePrompt(prompt);
+  const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
+    body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 }),
+  });
+  if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
+  const { data } = await r.json();
+  const image_base64 = data?.[0]?.b64_json;
+  if (!image_base64) throw new Error('Keine Bilddaten erhalten');
+  const buf = Buffer.from(image_base64, 'base64');
+  // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
+  // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
+  const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
+  return { buffer: applyAiLabel(buf, ext), ext };
+}
+
 // Generierte Bilder als Datei statt Base64 im Chatverlauf: Base64-Inline-Bilder blähen die
 // "history" bei jeder Folgenachricht auf mehrere hundert KB auf (Multer-Feldlimit, siehe
 // FileStorage.js) und landen 1:1 im "Kopieren"-Button (dataset.copyText = Rohtext) – dort
@@ -101,24 +123,7 @@ async function handleImageGenMode(res, message) {
     return res.end();
   }
   try {
-    // Antwortformat folgt DeepInfras OpenAI-kompatibler Images-API (data[0].b64_json) -
-    // KorKIs lokaler image-gen-Service spiegelt dasselbe Format, damit dieser Code auf
-    // allen drei Instanzen identisch ist (nur IMAGE_GEN_URL/-KEY/-MODEL unterscheiden sich).
-    const genPrompt = await enhanceImagePrompt(prompt);
-    const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
-      body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 }),
-    });
-    if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
-    const { data } = await r.json();
-    const image_base64 = data?.[0]?.b64_json;
-    if (!image_base64) throw new Error('Keine Bilddaten erhalten');
-    const buf = Buffer.from(image_base64, 'base64');
-    // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
-    // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
-    const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
-    const labeledBuf = applyAiLabel(buf, ext);
+    const { buffer: labeledBuf, ext } = await generateAiImage(prompt);
     const filename = `${crypto.randomUUID()}.${ext}`;
     fs.writeFileSync(path.join(GENERATED_IMAGES_DIR, filename), labeledBuf);
     const url = `/api/generated-images/${filename}`;
@@ -160,4 +165,4 @@ async function handleQrGenMode(res, message) {
   res.end();
 }
 
-module.exports = { handleImageGenMode, handleQrGenMode };
+module.exports = { handleImageGenMode, handleQrGenMode, generateAiImage };

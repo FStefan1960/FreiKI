@@ -22,6 +22,10 @@ const config = {
   IMAGE_GEN_API_KEY: process.env.IMAGE_GEN_API_KEY || '',
   IMAGE_GEN_MODEL: process.env.IMAGE_GEN_MODEL || 'black-forest-labs/FLUX-2-klein-4b',
 
+  // PPTX-Vorlagen-Export (siehe PptxTemplateService.js) - Kindprozess ruft python-pptx auf.
+  PYTHON_BIN: process.env.PYTHON_BIN || 'python3',
+  PPTX_TEMPLATE_PATH: process.env.PPTX_TEMPLATE_PATH || path.join(APP_ROOT, 'assets', 'pptx-templates', 'DiakonieKorkBasis.pptx'),
+
   SEARXNG_URL: process.env.SEARXNG_URL || 'http://searxng:8080',
   N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || '',
   N8N_DAILY_REPORT_WEBHOOK_URL: process.env.N8N_DAILY_REPORT_WEBHOOK_URL || '',

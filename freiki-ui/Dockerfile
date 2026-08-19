@@ -17,7 +17,17 @@ RUN apk add --no-cache \
     tesseract-ocr-data-deu \
     poppler-utils \
     ffmpeg \
-    imagemagick
+    imagemagick \
+    python3 \
+    py3-pip \
+    py3-lxml \
+    py3-pillow
+
+# python-pptx für den PPTX-Vorlagen-Export (siehe scripts/build_pptx_from_template.py) -
+# lxml/Pillow kommen als vorkompilierte Alpine-Pakete (apk, oben), --no-deps verhindert,
+# dass pip sie zusätzlich aus dem Quellcode für musl nachbaut (kein gcc/musl-dev im Image).
+RUN pip install --no-cache-dir --break-system-packages --no-deps \
+    python-pptx==1.0.2 XlsxWriter typing-extensions
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev

@@ -87,4 +87,15 @@ async function markdownToPptxBuffer(text) {
   return pptx.write({ outputType: 'nodebuffer' });
 }
 
-module.exports = { markdownToPptxBuffer, markdownToSlideData };
+// Kurzer, beschreibender Wunsch für ein einzelnes Titelbild fürs ganze Deck - wird an
+// generateAiImage() (MediaGenChatMode.js) übergeben, das den Wunsch selbst noch per LLM zu
+// einem detaillierten englischen Bild-Prompt anreichert. Kein eigener LLM-Aufruf nötig.
+function buildTitleImagePrompt(slides) {
+  const mainTitle = slides[0]?.title || '';
+  const otherTitles = slides.slice(1, 4).map(s => s.title).filter(Boolean);
+  let prompt = `Symbolisches, freundliches Titelbild für eine Präsentation zum Thema "${mainTitle}".`;
+  if (otherTitles.length) prompt += ` Weitere behandelte Themen: ${otherTitles.join(', ')}.`;
+  return prompt;
+}
+
+module.exports = { markdownToPptxBuffer, markdownToSlideData, buildTitleImagePrompt };

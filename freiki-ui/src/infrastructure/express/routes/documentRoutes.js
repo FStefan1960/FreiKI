@@ -1,5 +1,8 @@
 const express = require('express');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
 const { config } = require('../../../shared/config');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { normArea } = require('../../../shared/utils/text');
@@ -8,7 +11,9 @@ const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
 const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
-const { markdownToPptxBuffer } = require('../../../core/documents/PptxExportService');
+const { markdownToSlideData, buildTitleImagePrompt } = require('../../../core/documents/PptxExportService');
+const { buildPptxFromTemplate } = require('../../../core/documents/PptxTemplateService');
+const { generateAiImage } = require('../../../core/chat/MediaGenChatMode');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { safeEqual } = require('../../../shared/utils/security');
 
@@ -30,18 +35,37 @@ router.post('/api/export-docx', asyncHandler(async (req, res) => {
 }));
 
 // Wandelt eine Chat-Antwort (Markdown mit #/##-Ueberschriften als Folien) in eine
-// .pptx-Gliederung um - analog zu /api/export-docx.
+// .pptx um - nutzt die echte Diakonie-Kork-Vorlage (Logo/Verlauf/Layouts, siehe
+// PptxTemplateService.js) statt eines generischen Designs. Optional wird ein einzelnes
+// KI-Titelbild fürs Deck generiert (kostet auf DeepInfra-Instanzen echtes Geld pro Export,
+// daher per includeImage abschaltbar statt fest verdrahtet).
 router.post('/api/export-pptx', asyncHandler(async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Bitte neu anmelden.' });
-  const { text, filename } = req.body || {};
+  const { text, filename, includeImage = true } = req.body || {};
   if (!text || !String(text).trim()) return res.status(400).json({ error: 'Kein Text übergeben' });
 
-  const buffer = await markdownToPptxBuffer(text);
-  const safeName = (filename || 'gliederung').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'gliederung';
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.pptx`);
-  res.send(buffer);
+  const slides = markdownToSlideData(text);
+  let titleImagePath = null;
+  if (includeImage) {
+    try {
+      const { buffer: imgBuf, ext } = await generateAiImage(buildTitleImagePrompt(slides));
+      titleImagePath = path.join(os.tmpdir(), `${crypto.randomUUID()}-pptx-title.${ext}`);
+      fs.writeFileSync(titleImagePath, imgBuf);
+    } catch (e) {
+      console.warn('PPTX-Titelbild fehlgeschlagen, Export läuft ohne Bild weiter:', e.message);
+    }
+  }
+
+  try {
+    const buffer = buildPptxFromTemplate(slides, { titleImagePath });
+    const safeName = (filename || 'gliederung').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'gliederung';
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.pptx`);
+    res.send(buffer);
+  } finally {
+    if (titleImagePath) fs.rmSync(titleImagePath, { force: true });
+  }
 }));
 
 // Wissensbereiche aus Prompts-Dir auflisten (für n8n-Ingest-Workflows)
