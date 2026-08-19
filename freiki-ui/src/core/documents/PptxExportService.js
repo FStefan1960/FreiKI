@@ -25,6 +25,11 @@ function markdownToSlideData(text) {
     const line = rawLine.trimEnd();
     if (!line.trim()) continue;
 
+    // Horizontale Trennlinie (---/***/___) trennt Folien, wenn Antworten statt
+    // #/##-Ueberschriften diesen Stil fuer Folien-Gliederungen verwenden.
+    const hr = line.match(/^ {0,3}(-{3,}|\*{3,}|_{3,})\s*$/);
+    if (hr) { current = null; continue; }
+
     const heading = line.match(/^(#{1,2})\s+(.*)$/);
     if (heading) { newSlide(stripInline(heading[2])); continue; }
 
