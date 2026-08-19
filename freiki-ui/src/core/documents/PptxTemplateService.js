@@ -13,6 +13,7 @@ const BUILD_SCRIPT = path.join(config.APP_ROOT, 'scripts', 'build_pptx_from_temp
 // Instanz (KorKI/FrankKI) hier ihre eigene Vorlage unter demselben Key hinterlegen will.
 const TEMPLATES = {
   'diakonie-kork': { label: 'Diakonie Kork', path: config.PPTX_TEMPLATE_PATH },
+  'madison': { label: 'Madison', path: path.join(config.APP_ROOT, 'assets', 'pptx-templates', 'Madison.pptx') },
 };
 
 // Reine Bridge zum Python-Skript (python-pptx kann - anders als pptxgenjs - eine echte

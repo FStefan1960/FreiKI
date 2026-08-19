@@ -22,6 +22,7 @@ import json
 import sys
 
 from pptx import Presentation
+from pptx.enum.shapes import PP_PLACEHOLDER_TYPE as PP
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 from PIL import Image
@@ -30,25 +31,34 @@ from PIL import Image
 # Bullets müssen daher pro Absatz manuell gesetzt werden.
 IMAGE_MARGIN = 274638  # ~0.3in Abstand zwischen Text- und Bildspalte
 
+# Bewusst TITLE statt CENTER_TITLE und BODY/OBJECT statt SUBTITLE: eine Titelfolie
+# (CENTER_TITLE+SUBTITLE, meist grosses zentriertes Deckblatt-Design) ist strukturell von
+# einer normalen Bullet-Inhaltsfolie kaum zu unterscheiden (auch dort ist "Titel + breiter
+# Platzhalter" vorhanden) - ohne den Typ-Unterschied wuerde z.B. bei Standard-Office-Themes
+# wie "Madison" faelschlich die Deckblatt-Folie fuer jede Inhaltsfolie verwendet.
+BODY_TYPES = (PP.BODY, PP.OBJECT)
+
+
 # Layouts werden bewusst NICHT über den Namen gesucht: Der Kunde pflegt das Template
 # selbst in PowerPoint, und Layout-Namen/-Anzahl haben sich zwischen zwei Versionen
 # bereits ohne inhaltliche Absicht geändert (z.B. "Title, Content" -> "Titelfolie").
 # Stattdessen wird nach Platzhalter-Struktur gesucht, das bleibt über Rebuilds stabil.
 def find_content_layout(prs):
     for layout in prs.slide_layouts:
-        phs = {ph.placeholder_format.idx: ph for ph in layout.placeholders}
-        title, body = phs.get(0), phs.get(1)
-        if title is not None and body is not None and body.width >= prs.slide_width * 0.6:
-            return layout
-    raise ValueError('Kein Layout mit Titel + durchgehend breitem Textplatzhalter im Template gefunden')
+        title_ph = next((p for p in layout.placeholders if p.placeholder_format.type == PP.TITLE), None)
+        body_ph = next((p for p in layout.placeholders if p.placeholder_format.type in BODY_TYPES), None)
+        if title_ph is not None and body_ph is not None and body_ph.width >= prs.slide_width * 0.6:
+            return layout, title_ph.placeholder_format.idx, body_ph.placeholder_format.idx
+    raise ValueError('Kein Layout mit Titel + durchgehend breitem Text-/Objekt-Platzhalter im Template gefunden')
 
 
 def find_title_only_layout(prs):
     for layout in prs.slide_layouts:
-        phs = {ph.placeholder_format.idx: ph for ph in layout.placeholders}
-        if 0 in phs and 1 not in phs:
-            return layout
-    raise ValueError('Kein reines Titel-Layout (Titel ohne Textplatzhalter) im Template gefunden')
+        title_ph = next((p for p in layout.placeholders if p.placeholder_format.type == PP.TITLE), None)
+        has_body = any(p.placeholder_format.type in BODY_TYPES for p in layout.placeholders)
+        if title_ph is not None and not has_body:
+            return layout, title_ph.placeholder_format.idx
+    raise ValueError('Kein reines Titel-Layout (Titel ohne Text-/Objekt-Platzhalter) im Template gefunden')
 
 
 def set_bullet(paragraph, level, numbered):
@@ -123,17 +133,18 @@ def remove_existing_slides(prs):
 def build(data, out_path):
     prs = Presentation(data['templatePath'])
     remove_existing_slides(prs)
-    content_layout = find_content_layout(prs)
-    title_only_layout = find_title_only_layout(prs)
-    body_ph_def = next(ph for ph in content_layout.placeholders if ph.placeholder_format.idx == 1)
+    content_layout, content_title_idx, body_idx = find_content_layout(prs)
+    title_only_layout, title_only_idx = find_title_only_layout(prs)
+    body_ph_def = next(p for p in content_layout.placeholders if p.placeholder_format.idx == body_idx)
     BODY_FULL = (body_ph_def.left, body_ph_def.top, body_ph_def.width, body_ph_def.height)
 
     for slide_data in data['slides']:
         image_path = slide_data.get('image')
         has_body = bool(slide_data.get('body'))
         layout = content_layout if has_body else title_only_layout
+        title_idx = content_title_idx if has_body else title_only_idx
         slide = prs.slides.add_slide(layout)
-        title_ph = slide.placeholders[0]
+        title_ph = slide.placeholders[title_idx]
         title_ph.text_frame.text = slide_data.get('title') or ' '
         # Layout hinterlegt fuer den Titel nur 18pt (siehe Docstring oben) - die
         # eigentliche Titelgroesse ist im echten Template offenbar von Hand pro
@@ -143,7 +154,7 @@ def build(data, out_path):
         title_run.font.bold = True
 
         if has_body:
-            body_ph = slide.placeholders[1]
+            body_ph = slide.placeholders[body_idx]
             if image_path:
                 text_w = (BODY_FULL[2] - IMAGE_MARGIN) // 2
                 body_ph.left, body_ph.top = Emu(BODY_FULL[0]), Emu(BODY_FULL[1])
