@@ -11,8 +11,8 @@ const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
 const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
-const { markdownToSlideData, buildTitleImagePrompt } = require('../../../core/documents/PptxExportService');
-const { buildPptxFromTemplate } = require('../../../core/documents/PptxTemplateService');
+const { markdownToSlideData, buildTitleImagePrompt, markdownToPptxBuffer } = require('../../../core/documents/PptxExportService');
+const { buildPptxFromTemplate, TEMPLATES } = require('../../../core/documents/PptxTemplateService');
 const { generateAiImage } = require('../../../core/chat/MediaGenChatMode');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { safeEqual } = require('../../../shared/utils/security');
@@ -34,17 +34,27 @@ router.post('/api/export-docx', asyncHandler(async (req, res) => {
   res.send(buffer);
 }));
 
-// Wandelt eine Chat-Antwort (Markdown mit #/##-Ueberschriften als Folien) in eine
-// .pptx um - nutzt die echte Diakonie-Kork-Vorlage (Logo/Verlauf/Layouts, siehe
-// PptxTemplateService.js) statt eines generischen Designs. Optional wird ein einzelnes
-// KI-Titelbild fürs Deck generiert (kostet auf DeepInfra-Instanzen echtes Geld pro Export,
-// daher per includeImage abschaltbar statt fest verdrahtet).
+// Wandelt eine Chat-Antwort (Markdown mit #/##-Ueberschriften als Folien) in eine .pptx um.
+// "template" ist eine Whitelist statt eines freien Pfads vom Client (siehe TEMPLATES in
+// PptxTemplateService.js) - alles außer "generic" nutzt eine echte .pptx-Vorlage mit
+// Logo/Verlauf/Layouts, "generic" den alten pptxgenjs-Fallback ohne Branding und ohne
+// Bildunterstützung. Optional wird ein KI-Titelbild fürs Deck generiert (kostet auf
+// DeepInfra-Instanzen echtes Geld pro Export, daher per includeImage abschaltbar).
 router.post('/api/export-pptx', asyncHandler(async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Bitte neu anmelden.' });
-  const { text, filename, includeImage = true } = req.body || {};
+  const { text, filename, includeImage = true, template } = req.body || {};
   if (!text || !String(text).trim()) return res.status(400).json({ error: 'Kein Text übergeben' });
 
+  const safeName = (filename || 'gliederung').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'gliederung';
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.pptx`);
+
+  if (template === 'generic') {
+    return res.send(await markdownToPptxBuffer(text));
+  }
+
+  const templateEntry = TEMPLATES[template] || TEMPLATES['diakonie-kork'];
   const slides = markdownToSlideData(text);
   let titleImagePath = null;
   if (includeImage) {
@@ -58,10 +68,7 @@ router.post('/api/export-pptx', asyncHandler(async (req, res) => {
   }
 
   try {
-    const buffer = buildPptxFromTemplate(slides, { titleImagePath });
-    const safeName = (filename || 'gliederung').replace(/[^a-zA-Z0-9äöüÄÖÜß _-]/g, '').trim().slice(0, 80) || 'gliederung';
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName)}.pptx`);
+    const buffer = buildPptxFromTemplate(slides, { titleImagePath, templatePath: templateEntry.path });
     res.send(buffer);
   } finally {
     if (titleImagePath) fs.rmSync(titleImagePath, { force: true });

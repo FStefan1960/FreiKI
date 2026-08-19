@@ -436,7 +436,12 @@
 <div id="pptx-export-modal" class="modal-overlay" onclick="if(event.target===this)closePptxExportModal()">
   <div class="modal" style="max-width:360px;">
     <h3 data-i18n="pptx_export.title">📊 Als PowerPoint-Gliederung herunterladen</h3>
-    <input id="pptx-export-filename" type="text" placeholder="Dateiname" data-i18n-placeholder="word_export.filename_placeholder" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;" onkeydown="if(event.key==='Enter')submitPptxExport()">
+    <input id="pptx-export-filename" type="text" placeholder="Dateiname" data-i18n-placeholder="word_export.filename_placeholder" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;margin-bottom:10px;" onkeydown="if(event.key==='Enter')submitPptxExport()">
+    <label for="pptx-export-template" style="display:block;font-size:13px;color:var(--text-muted,#6b7280);margin-bottom:4px;" data-i18n="pptx_export.template_label">Vorlage</label>
+    <select id="pptx-export-template" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-family:inherit;font-size:14px;background:var(--input-bg);outline:none;">
+      <option value="diakonie-kork">Diakonie Kork</option>
+      <option value="generic" data-i18n="pptx_export.template_generic">Generisch (ohne Bild)</option>
+    </select>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closePptxExportModal()" data-i18n="common.cancel">Abbrechen</button>
       <button class="modal-submit" onclick="submitPptxExport()" data-i18n="word_export.download">Herunterladen</button>

@@ -89,6 +89,8 @@
   "lang_modal.placeholder": "e.g. English, italiano, français …",
   "word_export.title": "📄 Download as Word",
   "pptx_export.title": "📊 Download as PowerPoint outline",
+  "pptx_export.template_label": "Template",
+  "pptx_export.template_generic": "Generic (no image)",
   "word_export.filename_placeholder": "File name",
   "word_export.download": "Download",
   "symbols.title": "🧩 Choose Symbol",

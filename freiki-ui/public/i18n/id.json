@@ -89,6 +89,8 @@
   "lang_modal.placeholder": "mis. English, italiano, français …",
   "word_export.title": "📄 Unduh sebagai Word",
   "pptx_export.title": "📊 Unduh sebagai kerangka PowerPoint",
+  "pptx_export.template_label": "Templat",
+  "pptx_export.template_generic": "Umum (tanpa gambar)",
   "word_export.filename_placeholder": "Nama berkas",
   "word_export.download": "Unduh",
   "symbols.title": "🧩 Pilih Simbol",

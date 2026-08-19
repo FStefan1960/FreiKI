@@ -89,6 +89,8 @@
   "lang_modal.placeholder": "par ex. English, italiano, français …",
   "word_export.title": "📄 Télécharger au format Word",
   "pptx_export.title": "📊 Télécharger comme plan PowerPoint",
+  "pptx_export.template_label": "Modèle",
+  "pptx_export.template_generic": "Générique (sans image)",
   "word_export.filename_placeholder": "Nom du fichier",
   "word_export.download": "Télécharger",
   "symbols.title": "🧩 Choisir un symbole",

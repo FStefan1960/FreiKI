@@ -143,6 +143,7 @@ async function submitPptxExport() {
 
   let rawName = document.getElementById('pptx-export-filename').value.trim() || 'gliederung';
   rawName = rawName.replace(/\.pptx$/i, '');
+  const template = document.getElementById('pptx-export-template').value;
 
   closePptxExportModal();
   btn.innerHTML = '<span class="tts-spinner"></span> <span>…</span>';
@@ -152,7 +153,7 @@ async function submitPptxExport() {
     const res = await fetch('/api/export-pptx', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, filename: rawName })
+      body: JSON.stringify({ text, filename: rawName, template })
     });
     if (!res.ok) throw new Error('Export ' + res.status);
     const blob = await res.blob();

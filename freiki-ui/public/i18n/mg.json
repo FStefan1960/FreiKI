@@ -89,6 +89,8 @@
   "lang_modal.placeholder": "oh. English, italiano, français …",
   "word_export.title": "📄 Alaivo ho Word",
   "pptx_export.title": "📊 Alaivo ho drafitry PowerPoint",
+  "pptx_export.template_label": "Modely",
+  "pptx_export.template_generic": "Ankapobeny (tsy misy sary)",
   "word_export.filename_placeholder": "Anaran'ny rakitra",
   "word_export.download": "Alaivo",
   "symbols.title": "🧩 Misafidiana Marika",

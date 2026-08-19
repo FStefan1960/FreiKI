@@ -89,6 +89,8 @@
   "lang_modal.placeholder": "напр. English, italiano, français …",
   "word_export.title": "📄 Скачать как Word",
   "pptx_export.title": "📊 Скачать как структуру PowerPoint",
+  "pptx_export.template_label": "Шаблон",
+  "pptx_export.template_generic": "Универсальный (без изображения)",
   "word_export.filename_placeholder": "Имя файла",
   "word_export.download": "Скачать",
   "symbols.title": "🧩 Выбрать символ",
