@@ -19,6 +19,9 @@ const SYSTEM_USERS = ['n8n', 'system', 'webhook', 'test', 'unknown'];
 // gezählt werden, ohne usage-state.json rückwirkend anfassen zu müssen.
 const LEGACY_TOOL_TITLES = {
   'Bild (Experimentell)': 'Bilder generieren',
+  'Bild (Exp.)': 'Bilder generieren',
+  'Bild': 'Bilder generieren',
+  'Übersetzen nach ...': 'Übersetzen',
 };
 function normalizeToolLabel(label) {
   return LEGACY_TOOL_TITLES[label] || label;
