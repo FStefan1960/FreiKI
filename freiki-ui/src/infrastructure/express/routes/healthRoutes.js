@@ -117,4 +117,7 @@ router.get('/api/health/detail', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+// computeReadiness zusätzlich als benannte Property anhängen (router bleibt der Default-Export
+// für app.use()) - resourceHealthAlert.js braucht die Funktion direkt statt über HTTP.
+module.exports.computeReadiness = computeReadiness;
 module.exports.computeReadiness = computeReadiness;
