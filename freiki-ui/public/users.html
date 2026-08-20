@@ -266,9 +266,16 @@ function sortValue(u,key){
     case 'language': return (u.language||'de').toLowerCase();
     case 'role': return (u.role||'').toLowerCase();
     case 'status': return u.suspended?1:0;
+    case 'areas': return areaCount(u);
     default: return '';
   }
 }
+// Anzahl freigeschalteter Wissensbereiche: leere use-Liste bedeutet laut Backend-Logik
+// "kein Filter gesetzt" = Zugriff auf ALLE Bereiche (gilt für Admins genauso wie für
+// default/high_risk/manager ohne explizite Einschränkung), siehe /api/modes und
+// KBService.answerBotChat. Ohne die AREAS-Gesamtzahl (aus /api/admin/areas) wäre der
+// Unterschied zwischen "4 von 16" und "alle 16, weil nichts gesetzt" nicht erkennbar.
+function areaCount(u){ return (u.use && u.use.length) ? u.use.length : AREAS.length; }
 function renderRows(){
   const wrap=document.getElementById('table-wrap');
   const q=(document.getElementById('u-filter').value||'').toLowerCase().trim();
@@ -283,7 +290,7 @@ function renderRows(){
   }
   if(!list.length){ wrap.innerHTML='<p style="color:#9ca3af">Keine Treffer.</p>'; return; }
   const table=document.createElement('table'); table.className='utable';
-  const cols=[['Benutzer','username'],['Name','name'],['Funktion','funktion'],['Antwortsprache','language'],['Rolle','role'],['Status','status']];
+  const cols=[['Benutzer','username'],['Name','name'],['Funktion','funktion'],['Antwortsprache','language'],['Rolle','role'],['Wissen','areas'],['Status','status']];
   table.innerHTML='<thead><tr>'+cols.map(([label,key])=>{
     const arrow=sortKey===key?(sortDir===1?' ▲':' ▼'):'';
     return '<th data-sort="'+key+'" style="cursor:pointer;user-select:none;">'+label+arrow+'</th>';
@@ -298,9 +305,12 @@ function renderRows(){
   list.forEach(u=>{
     const tr=document.createElement('tr');
     const name=((u.first_name||'')+' '+(u.last_name||'')).trim()||'—';
+    const restricted=!!(u.use && u.use.length);
+    const areasTitle=restricted?(u.use.length+' von '+AREAS.length+' Bereichen freigeschaltet'):'Kein Filter gesetzt – alle '+AREAS.length+' Bereiche';
     tr.innerHTML='<td><span class="uname">'+esc(u.username)+'</span></td><td>'+esc(name)+'</td><td>'+esc(u.funktion||'—')+'</td>'
       +'<td>'+esc(u.language||'de')+'</td>'
       +'<td><span class="role-pill '+u.role+'">'+roleLabel(u.role)+'</span></td>'
+      +'<td title="'+esc(areasTitle)+'">'+areaCount(u)+'</td>'
       +'<td>'+(u.suspended?'<span class="badge susp">gesperrt</span>':'<span class="badge ok">aktiv</span>')+'</td>';
     tr.addEventListener('click',()=>openEdit(u));
     tb.appendChild(tr);
