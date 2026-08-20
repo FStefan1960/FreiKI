@@ -2,6 +2,7 @@ const State = {
   modes: {},
   currentMode: null,
   chatHistory: [],
+  currentConversationId: null, // aktive Unterhaltung in der History-Leiste, siehe chat-history.js
 
   threadIds: {}, // mode -> threadId for AnythingLLM
   getThreadId(mode) {

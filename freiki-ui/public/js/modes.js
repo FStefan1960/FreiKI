@@ -1,11 +1,12 @@
 // ── Load modes from server ──
 function switchTab(tab) {
-  ['werkzeuge','wissen','extras'].forEach(t => {
+  ['werkzeuge','wissen','extras','verlauf'].forEach(t => {
     const btn = document.getElementById('tab-' + t);
     const panel = document.getElementById('mode-buttons-' + t);
     if (btn) btn.classList.toggle('active', tab === t);
     if (panel) panel.style.display = tab === t ? '' : 'none';
   });
+  if (tab === 'verlauf') renderHistoryPanel();
 }
 
 const ICON_MAP = {
@@ -130,8 +131,15 @@ async function loadModes() {
       }
     } catch (e) { /* Extras nicht verfügbar – kein Problem */ }
 
-    const first = werkzeuge[0] || wissen[0];
-    if (first) setMode(first.key);
+    // Beim Laden zuletzt offene Unterhaltung wiederherstellen (Reload-Schutz), sonst
+    // normalen Standard-Modus starten - siehe chat-history.js für das History-Modell.
+    const resumable = getResumableConversation();
+    if (resumable && State.modes[resumable.mode]) {
+      loadConversation(resumable.id);
+    } else {
+      const first = werkzeuge[0] || wissen[0];
+      if (first) setMode(first.key);
+    }
   } catch (e) {
     console.error('Fehler beim Laden der Modes:', e);
   }

@@ -423,6 +423,16 @@ body {
   box-shadow: var(--fk-shadow-sm);
 }
 
+/* Icon statt Text (z.B. "Verlauf") - schmaler, sprachneutral; nimmt nur den nötigen
+   Platz statt gleichmäßig mitzuwachsen, damit die Text-Tabs daneben mehr Raum behalten. */
+.sidebar-tab-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 10px;
+}
+
 /* Nav list */
 .tab-panel {
   padding: 2px 12px;
@@ -533,6 +543,33 @@ body {
 }
 
 .sidebar-divider { height: 1px; background: var(--fk-border); margin: 10px 14px; }
+
+/* History-Leiste (Sidebar-Tab "Verlauf") */
+.history-row { padding-right: 34px; } /* Platz für den Löschen-Button rechts */
+.history-row-delete {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--fk-text-subtle);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.history-row:hover .history-row-delete,
+.history-row-delete:focus-visible { opacity: 1; }
+.history-row-delete:hover { background: var(--fk-tint); color: #dc2626; }
+.history-empty {
+  padding: 24px 14px;
+  text-align: center;
+  font-size: var(--fk-fs-caption);
+  color: var(--fk-text-subtle);
+}
 
 /* Sidebar footer (user row) */
 .sidebar-footer {

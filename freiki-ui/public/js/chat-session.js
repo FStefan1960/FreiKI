@@ -1,12 +1,14 @@
 // ── Mode ──
-function setMode(key) {
-  showChat();
+// Header/Icon/Paperless-Filter/Upload-Modus für einen Modus setzen, OHNE den Chat-Inhalt
+// anzufassen - gemeinsam genutzt von setMode() (startet frisch) und loadConversation()
+// (stellt eine gespeicherte Unterhaltung wieder her, siehe chat-history.js).
+function applyModeChrome(key) {
   State.currentMode = key;
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('btn-' + key);
   if (btn) btn.classList.add('active');
   const m = State.modes[key];
-  if (!m) return;
+  if (!m) return null;
   setHeaderIcon(m.icon, m.key);
   document.getElementById('header-title').textContent = m.title;
   document.getElementById('header-desc').textContent = m.desc || '';
@@ -23,14 +25,16 @@ function setMode(key) {
   const fi = document.getElementById('file-input');
   if (isMulti) { fi.setAttribute('multiple', ''); } else { fi.removeAttribute('multiple'); }
   removeFile();
+  return m;
+}
 
-  // Gespeicherten Tagesverlauf laden oder frischen Chat starten
-  const saved = loadHistory(key);
-  if (saved.length > 0) {
-    restoreChat(key, saved);
-  } else {
-    newChat();
-  }
+function setMode(key) {
+  showChat();
+  const m = applyModeChrome(key);
+  if (!m) return;
+  // Jeder Moduswechsel startet einen frischen Chat - die vorherige Unterhaltung bleibt
+  // über die History-Leiste (Tab "Verlauf") erreichbar, siehe chat-history.js.
+  newChat();
   closeSidebar();
 }
 
@@ -38,7 +42,7 @@ function setMode(key) {
 function newChat() {
   State.chatHistory = [];
   if (State.currentMode) State.resetThreadId(State.currentMode);
-  if (State.currentMode) saveHistory(State.currentMode); // leert den gespeicherten Verlauf
+  endCurrentConversation(); // vorherige Unterhaltung bleibt als History-Eintrag erhalten
   State.selectedFile = null;
   State.multidocTaskChoice = 'zusammenfassen';
   document.getElementById('file-preview').classList.remove('show');

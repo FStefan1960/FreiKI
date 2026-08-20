@@ -84,7 +84,7 @@ async function sendMessage() {
     fullText = fullText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
     State.chatHistory.push({ role: 'assistant', content: fullText });
-    saveHistory(State.currentMode);
+    upsertCurrentConversation(State.currentMode);
     if (fullText) {
       const msgId = bubble.id;
       bubble.innerHTML = safeMarked(fullText);
