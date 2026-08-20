@@ -106,7 +106,11 @@ async function runRagSync() {
       const ingestRes = await fetch(`${FREIKI_URL}/api/kb-ingest-text`, {
         method: 'POST',
         headers: { 'X-API-Key': KB_INGEST_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bereich, text: doc.content || '', source: doc.title, source_url }),
+        // replace:true räumt eine ältere Kopie desselben Dokuments weg (z.B. ein alter
+        // Direkt-Upload ohne source_url oder ein vorheriger Sync-Lauf) - kb-ingest-text
+        // matcht den Dokumentnamen dabei normalisiert (ohne Endung/Groß-Kleinschreibung),
+        // siehe deleteBySource() in KBService.js.
+        body: JSON.stringify({ bereich, text: doc.content || '', source: doc.title, source_url, replace: true }),
       });
       if (!ingestRes.ok) throw new Error(`kb-ingest-text -> ${ingestRes.status} ${await ingestRes.text()}`);
 

@@ -72,13 +72,22 @@ async function clearTable(table) {
   await pool.query('DELETE FROM ' + table);
 }
 
+// Normalisiert einen Dokumentnamen für den Dubletten-Abgleich: Groß/Kleinschreibung und
+// Dateiendung raus. Nötig, weil derselbe Titel je nach Ingest-Pfad unterschiedlich ankommt -
+// z.B. "Datei.PDF" bei einem alten Direkt-Upload vs. "Datei" (Paperless-Titel ohne Endung)
+// beim paperless-sync-Re-Ingest. Ohne Normalisierung bleibt bei jedem Re-Sync die alte,
+// unverlinkte Kopie neben der neuen liegen (siehe KorKI kb_allgemein-Altlast, 2026-08-20).
+function normalizeSourceName(source) {
+  return (source || '').toLowerCase().trim().replace(/\.(pdf|docx?|pptx?)$/i, '');
+}
+
 async function deleteBySource(bereich, source) {
   const table = kbAreas.getTable((bereich || '').toLowerCase().trim());
   if (!table) throw Object.assign(new Error('Unbekannter Bereich: ' + bereich), { status: 400 });
   if (!source) return { deleted: 0 };
   const result = await pool.query(
-    `DELETE FROM ${table} WHERE metadata->>'source' = $1`,
-    [source]
+    `DELETE FROM ${table} WHERE regexp_replace(lower(metadata->>'source'), '\\.(pdf|docx?|pptx?)$', '') = $1`,
+    [normalizeSourceName(source)]
   );
   return { deleted: result.rowCount || 0 };
 }
