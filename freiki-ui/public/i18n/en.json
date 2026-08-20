@@ -38,7 +38,6 @@
   "account_menu.security": "Security: 2FA / Passkeys",
   "account_menu.change_response_language": "Change response language",
   "header.admin_stats_title": "Requests today / users today / GPU cache (peak) — Click: open usage dashboard",
-  "header.dms_title": "Document archive (Paperless)",
   "header.teamchat_title": "Team chat (Mattermost)",
   "header.chat_label": "Chat",
   "header.help_label": "Help",

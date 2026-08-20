@@ -38,7 +38,6 @@
   "account_menu.security": "Keamanan: 2FA / Kunci akses",
   "account_menu.change_response_language": "Ubah bahasa jawaban",
   "header.admin_stats_title": "Permintaan hari ini / pengguna hari ini / cache GPU (puncak) — Klik: buka dasbor penggunaan",
-  "header.dms_title": "Arsip dokumen (Paperless)",
   "header.teamchat_title": "Obrolan tim (Mattermost)",
   "header.chat_label": "Obrolan",
   "header.help_label": "Bantuan",

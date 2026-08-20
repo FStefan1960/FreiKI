@@ -38,7 +38,6 @@
   "account_menu.security": "Seguridad: 2FA / claves de acceso",
   "account_menu.change_response_language": "Cambiar idioma de respuesta",
   "header.admin_stats_title": "Solicitudes hoy / usuarios hoy / caché de GPU (pico) — Clic: abrir el panel de uso",
-  "header.dms_title": "Archivo de documentos (Paperless)",
   "header.teamchat_title": "Chat de equipo (Mattermost)",
   "header.chat_label": "Chat",
   "header.help_label": "Ayuda",

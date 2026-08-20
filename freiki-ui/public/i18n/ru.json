@@ -38,7 +38,6 @@
   "account_menu.security": "Безопасность: 2FA / ключи доступа",
   "account_menu.change_response_language": "Изменить язык ответов",
   "header.admin_stats_title": "Запросов сегодня / пользователей сегодня / GPU-кэш (пик) — Клик: открыть панель статистики",
-  "header.dms_title": "Архив документов (Paperless)",
   "header.teamchat_title": "Командный чат (Mattermost)",
   "header.chat_label": "Чат",
   "header.help_label": "Помощь",
