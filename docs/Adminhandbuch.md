@@ -390,6 +390,30 @@ curl -X POST https://assi.diakonie-kork-ki.de/api/kb-upload \
 
 `clear=true` leert die Tabelle vor dem Upload.
 
+### 6.5 Dokumente aktualisieren oder löschen
+
+Ein per Direkt-Upload (`/kb-upload`) eingelesenes Dokument wird bei erneutem Hochladen **nicht** automatisch ersetzt – auch nicht bei identischem Dateinamen. Die neuen Abschnitte kommen einfach zusätzlich in die Tabelle, die alte Fassung bleibt liegen. Nur der Weg über Paperless (`paperless-sync`, siehe Abschnitt 8) räumt beim erneuten Einlesen automatisch die alte Version weg – und zwar **nur, wenn der Dokumenttitel identisch bleibt** (Abgleich über den normalisierten Dateinamen, siehe `deleteBySource()` in `KBService.js`).
+
+**Deshalb bei einem Update:**
+- **Titel/Dateiname unverändert lassen.** Kein `dokument_ver2.pdf`, `dokument_neu.pdf` o. Ä. – das legt eine zusätzliche Kopie an statt die alte zu ersetzen, und beide Versionen bleiben nebeneinander durchsuchbar (die KI kann dann veraltete Angaben aus der alten Fassung zitieren).
+- Läuft der Import über Paperless: neue Fassung mit demselben Titel hochladen/scannen – die alte Version wird beim nächsten Sync automatisch entfernt.
+- Läuft der Import über Direkt-Upload (`/kb-upload`): zuerst die alte Fassung manuell löschen (siehe unten), danach die neue Datei hochladen.
+
+**Einzelnes Dokument löschen (Admin-UI):**
+Auf `/kb-upload` erscheint unterhalb des gewählten Wissensbereichs die Liste „Vorhandene Dokumente" (Name, Anzahl Abschnitte, ggf. Link zum Original in Paperless). Über den Löschen-Button lässt sich ein einzelnes Dokument gezielt entfernen, ohne den ganzen Bereich zu leeren wie bei „Bereich vorher leeren".
+
+Serverseitig (Admin/Manager-Session nötig, Manager nur für zugewiesene Bereiche):
+```bash
+# Liste
+curl https://<domain>/api/kb-documents?bereich=<bereich> --cookie "<session-cookie>"
+
+# Löschen
+curl -X DELETE https://<domain>/api/kb-documents \
+  -H "Content-Type: application/json" \
+  --cookie "<session-cookie>" \
+  -d '{"bereich":"<bereich>","source":"<dokumentname>"}'
+```
+
 ---
 
 ## 7. Mailserver

@@ -118,6 +118,36 @@
     }
     .file-item .remove-btn:hover { color: #ef4444; }
 
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .doc-item .doc-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1f2937; }
+    .doc-item .doc-chunks { color: #9ca3af; font-size: 12px; white-space: nowrap; }
+    .doc-item .doc-link { color: #3b82f6; font-size: 12px; text-decoration: none; white-space: nowrap; }
+    .doc-item .doc-link:hover { text-decoration: underline; }
+    .doc-item .doc-delete-btn {
+      background: none;
+      border: 1px solid #fecaca;
+      color: #ef4444;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .doc-item .doc-delete-btn:hover { background: #fef2f2; }
+    .doc-item .doc-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .docs-empty, .docs-loading { color: #9ca3af; font-size: 13px; padding: 8px 2px; }
+
     .options-row {
       display: flex;
       align-items: center;
@@ -325,6 +355,15 @@
     <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
     <div id="log-entries"></div>
   </div>
+
+  <div class="card" id="docs-card" style="display:none">
+    <h2>Vorhandene Dokumente <span id="docs-count" style="font-weight:400;color:#9ca3af;"></span></h2>
+    <div style="font-size:12px;color:#9ca3af;margin:-10px 0 14px;">
+      Ein aktualisiertes Dokument mit exakt gleichem Namen ersetzt hier <strong>nicht</strong> automatisch die alte Version –
+      erst das alte Dokument unten löschen, dann die neue Fassung hochladen. So bleiben keine Karteileichen (z. B. „xxx_ver2.pdf“ neben „xxx.pdf“) liegen.
+    </div>
+    <div id="docs-list"></div>
+  </div>
 </div>
 
 <script>
@@ -386,7 +425,77 @@
         opt.textContent = a.title;
         select.appendChild(opt);
       });
+      select.addEventListener('change', () => loadDocuments(select.value));
     } catch (e) { console.error('Bereiche laden fehlgeschlagen:', e.message); }
+  }
+
+  // ── Vorhandene Dokumente (Auflisten/Löschen) ────────────────────
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  async function loadDocuments(bereich) {
+    const card = document.getElementById('docs-card');
+    const list = document.getElementById('docs-list');
+    const count = document.getElementById('docs-count');
+    if (!bereich) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    count.textContent = '';
+    list.innerHTML = '<div class="docs-loading">Lade…</div>';
+    try {
+      const r = await fetch('/api/kb-documents?bereich=' + encodeURIComponent(bereich));
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || r.statusText);
+      renderDocuments(bereich, d.documents || []);
+    } catch (e) {
+      list.innerHTML = '<div class="docs-empty">Konnte Dokumentliste nicht laden: ' + escapeHtml(e.message) + '</div>';
+    }
+  }
+
+  function renderDocuments(bereich, docs) {
+    const list = document.getElementById('docs-list');
+    const count = document.getElementById('docs-count');
+    count.textContent = docs.length ? '(' + docs.length + ')' : '';
+    if (!docs.length) {
+      list.innerHTML = '<div class="docs-empty">Noch keine Dokumente in diesem Bereich.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const doc of docs) {
+      const item = document.createElement('div');
+      item.className = 'doc-item';
+      const name = doc.source || '(ohne Namen)';
+      item.innerHTML = `<span class="doc-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+        <span class="doc-chunks">${doc.chunks} Abschnitt${doc.chunks === 1 ? '' : 'e'}</span>
+        ${doc.source_url ? `<a class="doc-link" href="${escapeHtml(doc.source_url)}" target="_blank" rel="noopener">Original ↗</a>` : ''}
+        <button class="doc-delete-btn">Löschen</button>`;
+      item.querySelector('.doc-delete-btn').addEventListener('click', () => deleteDocument(bereich, name, item));
+      list.appendChild(item);
+    }
+  }
+
+  async function deleteDocument(bereich, source, itemEl) {
+    if (!confirm('„' + source + '" wirklich aus der Wissensdatenbank löschen?\n\nAlle zugehörigen Abschnitte werden entfernt und stehen der KI danach nicht mehr zur Verfügung.')) return;
+    const btn = itemEl.querySelector('.doc-delete-btn');
+    btn.disabled = true;
+    btn.textContent = 'Lösche…';
+    try {
+      const r = await fetch('/api/kb-documents', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bereich, source })
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || r.statusText);
+      itemEl.remove();
+      const remaining = document.querySelectorAll('#docs-list .doc-item').length;
+      document.getElementById('docs-count').textContent = remaining ? '(' + remaining + ')' : '';
+      if (!remaining) document.getElementById('docs-list').innerHTML = '<div class="docs-empty">Noch keine Dokumente in diesem Bereich.</div>';
+    } catch (e) {
+      alert('Löschen fehlgeschlagen: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = 'Löschen';
+    }
   }
 
   // ── Dateiauswahl ──────────────────────────────────────────────
@@ -504,6 +613,7 @@
             progressBar.style.width = '100%';
             selectedFiles = [];
             renderFileList();
+            loadDocuments(bereich);
           }
         }
       }

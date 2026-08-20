@@ -92,6 +92,22 @@ async function deleteBySource(bereich, source) {
   return { deleted: result.rowCount || 0 };
 }
 
+// Für die Admin-UI: alle in einem Bereich abgelegten Dokumente (nach "source" gruppiert),
+// damit einzelne Dokumente gezielt gelöscht werden können statt nur den ganzen Bereich zu leeren.
+async function listSources(bereich) {
+  const table = kbAreas.getTable((bereich || '').toLowerCase().trim());
+  if (!table) throw Object.assign(new Error('Unbekannter Bereich: ' + bereich), { status: 400 });
+  const { rows } = await pool.query(
+    `SELECT metadata->>'source' AS source,
+            max(metadata->>'source_url') AS source_url,
+            count(*)::int AS chunks
+     FROM ${table}
+     GROUP BY metadata->>'source'
+     ORDER BY lower(metadata->>'source')`
+  );
+  return rows;
+}
+
 async function ingestText(bereich, text, source, sourceUrl, opts = {}) {
   const table = kbAreas.getTable((bereich || '').toLowerCase().trim());
   if (!table) throw Object.assign(new Error('Unbekannter Bereich: ' + bereich), { status: 400 });
@@ -396,6 +412,6 @@ async function answerBotChat(message, username) {
 }
 
 module.exports = {
-  chunkText, insertChunks, clearTable, deleteBySource, ingestText,
+  chunkText, insertChunks, clearTable, deleteBySource, listSources, ingestText,
   retrieveWissenChunks, retrieveWissenChunksMulti, answerHilfeChat, answerBotChat,
 };

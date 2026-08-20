@@ -981,6 +981,21 @@ html[data-theme="dark"] .messages {
   margin: 0;
 }
 
+/* Quellen-Links im Wissen-Modus (WissenChatMode.js haengt echte <a>-Tags an) waren ohne
+   eigene Regel nur ueber den Browser-Default sichtbar - im Dark Mode auf dunklem Bubble-
+   Hintergrund kaum von normalem Fliesstext zu unterscheiden. --fk-primary-text ist genau
+   fuer diesen Fall gedacht (Markenfarbe auf getintem/dunklem Untergrund, siehe Definition
+   oben in :root/html[data-theme="dark"]). */
+.message-bubble a {
+  color: var(--fk-primary-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.message-bubble a:hover {
+  color: var(--fk-primary-hover);
+}
+
 .mermaid-diagram {
   position: relative;
   background: #fff;

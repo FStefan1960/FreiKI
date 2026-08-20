@@ -113,6 +113,51 @@ router.post('/api/kb-ingest-text', asyncHandler(async (req, res) => {
   }
 }));
 
+// Prüft, ob die aktuelle Session einen Bereich per kb-upload/kb-documents verwalten darf
+// (Admin: alles; Manager: nur die in session.manage gelisteten Bereiche).
+function assertKbWriteAccess(req, res, bereich) {
+  const session = getSession(req);
+  if (!session || !['admin', 'manager'].includes(session.role)) {
+    res.status(403).json({ error: 'Keine Berechtigung. Nur Admins und Manager können Dokumente verwalten.' });
+    return null;
+  }
+  if (session.role === 'manager' && session.manage && session.manage.length) {
+    const allowed = session.manage.map(normArea);
+    if (!allowed.includes(normArea(bereich))) {
+      res.status(403).json({ error: 'Kein Schreibrecht für diesen Bereich.' });
+      return null;
+    }
+  }
+  return session;
+}
+
+// Admin-UI: vorhandene Dokumente eines Bereichs auflisten (für gezieltes Löschen statt
+// "Bereich leeren"; verhindert stillschweigend liegenbleibende Altversionen, siehe kb-documents-Delete).
+router.get('/api/kb-documents', asyncHandler(async (req, res) => {
+  const bereich = (req.query.bereich || '').toLowerCase().trim();
+  if (!assertKbWriteAccess(req, res, bereich)) return;
+  try {
+    const docs = await kb.listSources(bereich);
+    res.json({ documents: docs });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Laden fehlgeschlagen: ' + e.message });
+  }
+}));
+
+// Admin-UI: einzelnes Dokument (alle Chunks mit diesem "source"-Namen) aus einem Bereich löschen
+router.delete('/api/kb-documents', asyncHandler(async (req, res) => {
+  const { bereich, source } = req.body || {};
+  const b = (bereich || '').toLowerCase().trim();
+  if (!assertKbWriteAccess(req, res, b)) return;
+  if (!source) return res.status(400).json({ error: 'Kein Dokument angegeben' });
+  try {
+    const result = await kb.deleteBySource(b, source);
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Löschen fehlgeschlagen: ' + e.message });
+  }
+}));
+
 router.post('/api/kb-upload', uploadKB.array('files', 20), asyncHandler(async (req, res) => {
   const session = getSession(req);
   if (!session || !['admin', 'manager'].includes(session.role)) {
