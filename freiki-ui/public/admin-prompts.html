@@ -197,6 +197,7 @@ async function openEditor(key) {
         ${flagCheckbox('multifile', 'Mehrere Dateien', m.multifile === 'true')}
         ${flagCheckbox('paperless', 'Paperless-Suche', m.paperless === 'true')}
         ${flagCheckbox('imagegen', 'Bildgenerierung', m.imagegen === 'true')}
+        ${flagCheckbox('musicgen', 'Musikgenerierung', m.musicgen === 'true')}
         ${flagCheckbox('qrgen', 'QR-Code', m.qrgen === 'true')}
         ${flagCheckbox('hidden', 'Versteckt (nicht im Menü)', m.hidden === 'true')}
       </div>
@@ -245,6 +246,7 @@ async function saveCurrent(key) {
       multifile: document.getElementById('f-multifile').checked,
       paperless: document.getElementById('f-paperless').checked,
       imagegen: document.getElementById('f-imagegen').checked,
+      musicgen: document.getElementById('f-musicgen').checked,
       qrgen: document.getElementById('f-qrgen').checked,
       hidden: document.getElementById('f-hidden').checked,
     };

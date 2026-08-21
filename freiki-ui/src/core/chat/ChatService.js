@@ -8,7 +8,7 @@ const documents = require('../documents/DocumentService');
 const users = require('../auth/UserRepository');
 const { webSearch } = require('../integrations/SearXNGService');
 const { recordChatEvent } = require('../../jobs/usageStatsReport');
-const { handleImageGenMode, handleQrGenMode } = require('./MediaGenChatMode');
+const { handleImageGenMode, handleMusicGenMode, handleQrGenMode } = require('./MediaGenChatMode');
 const { handlePaperlessMode } = require('./PaperlessChatMode');
 const { handleWissenMode } = require('./WissenChatMode');
 const { handleDirectMode } = require('./DirectChatMode');
@@ -60,6 +60,7 @@ async function handleChat(req, res) {
     const useWebSearch = modeConf?.websearch || false;
     const isPaperless  = modeConf?.paperless || false;
     const isImageGen   = modeConf?.imagegen || false;
+    const isMusicGen   = modeConf?.musicgen || false;
     const isQrGen      = modeConf?.qrgen || false;
     const wissenKey    = mode.startsWith('w_') ? mode.slice(2) : mode;
     const isWissen     = modeConf?.workspace === 'wissen';
@@ -156,6 +157,8 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
       await handlePaperlessMode(res, message);
     } else if (isImageGen) {
       await handleImageGenMode(res, message);
+    } else if (isMusicGen) {
+      await handleMusicGenMode(res, message);
     } else if (isQrGen) {
       await handleQrGenMode(res, message);
     } else if (isWissen) {

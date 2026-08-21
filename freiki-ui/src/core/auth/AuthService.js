@@ -4,7 +4,7 @@ const { signToken, signPendingToken, verifyPendingToken } = require('./AuthMiddl
 const totp = require('./TotpService');
 const webauthn = require('./WebauthnService');
 const webauthnCreds = require('./WebauthnCredentialRepository');
-const { sendWelcomeMail, sendRegistrationNotificationMail } = require('../integrations/EmailService');
+const { sendWelcomeMail, sendBgtWelcomeMail, sendRegistrationNotificationMail } = require('../integrations/EmailService');
 const { generatePassword, fetchWithTimeout } = require('../../shared/utils/text');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { config } = require('../../shared/config');
@@ -182,6 +182,13 @@ async function createUser(fields) {
       console.error('Willkommensmail fehlgeschlagen:', mailErr.message);
     }
   }
+  if (fields.role === 'high_risk' && fields.email) {
+    try {
+      await sendBgtWelcomeMail(fields.email.trim(), fields.first_name || '', fields.last_name || '');
+    } catch (mailErr) {
+      console.error('BGT-Zusatzmail fehlgeschlagen:', mailErr.message);
+    }
+  }
   return { id, mailSent };
 }
 
@@ -325,6 +332,13 @@ async function approveRegistration(id, adminFields) {
     suspended: false, pending_approval: false,
   });
   const result = await resendWelcome(id);
+  if (adminFields.role === 'high_risk' && before.email) {
+    try {
+      await sendBgtWelcomeMail(before.email, before.first_name || '', before.last_name || '');
+    } catch (mailErr) {
+      console.error('BGT-Zusatzmail fehlgeschlagen:', mailErr.message);
+    }
+  }
   return { ok: true, mailSent: !result.error };
 }
 

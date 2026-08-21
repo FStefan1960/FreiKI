@@ -139,6 +139,17 @@ async function handleImageGenMode(res, message) {
   res.end();
 }
 
+// Musikgenerierung läuft auf KorKI über einen lokalen GPU-Service (ACE-Step, siehe
+// music-gen/server.py) und hat kein DeepInfra-Äquivalent, auf das FreiKI ausweichen könnte.
+// Der Modus ist daher hier bewusst nur als UI-Vorschau vorhanden: keine Prompt-Anreicherung,
+// kein Backend-Call, nur der Hinweis. Bei Bedarf ist der echte Ablauf 1:1 aus KorKIs
+// generateAiMusic()/handleMusicGenMode() übernehmbar (config.MUSIC_GEN_URL ergänzen).
+async function handleMusicGenMode(res, message) {
+  res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '🎵 In dieser Demo nicht verfügbar.' } }] })}\n\n`);
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
 // QR-Codes sind deterministisch codierte Nutzereingaben, keine KI-generierten Inhalte -
 // bekommen bewusst KEIN applyAiLabel()-Badge (anders als handleImageGenMode).
 async function handleQrGenMode(res, message) {
@@ -165,4 +176,4 @@ async function handleQrGenMode(res, message) {
   res.end();
 }
 
-module.exports = { handleImageGenMode, handleQrGenMode, generateAiImage };
+module.exports = { handleImageGenMode, handleMusicGenMode, handleQrGenMode, generateAiImage };

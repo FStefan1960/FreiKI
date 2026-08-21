@@ -66,6 +66,7 @@ function loadPrompts() {
         hidden:     meta.hidden     === 'true',
         paperless:  meta.paperless  === 'true',
         imagegen:   meta.imagegen   === 'true',
+        musicgen:   meta.musicgen   === 'true',
         qrgen:      meta.qrgen      === 'true',
         examples:   meta.examples ? meta.examples.split('|').map(s => s.trim()).filter(Boolean) : [],
         // Menüreihenfolge: standardmäßig alphabetisch (Dateiname), per "order:" im Frontmatter

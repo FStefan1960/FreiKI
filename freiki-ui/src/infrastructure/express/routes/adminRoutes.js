@@ -269,8 +269,8 @@ router.get('/api/admin/areas', (req, res) => {
 // (title_en, hint_fr, ...) bleiben beim Speichern unangetastet, da sie beim Merge mit dem
 // vorher eingelesenen existingMeta erhalten bleiben. reloadPrompts() macht Änderungen sofort
 // live, ohne Container-Neustart (siehe PromptService.js).
-const PROMPT_META_FIELDS = ['icon', 'title', 'desc', 'welcome', 'hint', 'workspace', 'order', 'websearch', 'multifile', 'hidden', 'paperless', 'imagegen', 'qrgen', 'examples'];
-const PROMPT_BOOL_FIELDS = ['websearch', 'multifile', 'hidden', 'paperless', 'imagegen', 'qrgen'];
+const PROMPT_META_FIELDS = ['icon', 'title', 'desc', 'welcome', 'hint', 'workspace', 'order', 'websearch', 'multifile', 'hidden', 'paperless', 'imagegen', 'musicgen', 'qrgen', 'examples'];
+const PROMPT_BOOL_FIELDS = ['websearch', 'multifile', 'hidden', 'paperless', 'imagegen', 'musicgen', 'qrgen'];
 
 function promptFilePath(key) {
   if (!/^[a-zA-Z0-9_]+$/.test(key || '')) return null;

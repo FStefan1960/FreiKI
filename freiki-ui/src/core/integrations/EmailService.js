@@ -28,6 +28,30 @@ function renderWelcomeText(username, password, firstName = '', lastName = '') {
     .replace(/\{\{LAST_NAME\}\}/g, lastName);
 }
 
+function renderBgtWelcomeText(firstName = '', lastName = '') {
+  const brand = getBrandConfig();
+  const template = fs.readFileSync(path.join(config.APP_ROOT, 'bgt-welcome.md'), 'utf8');
+  return template
+    .replace(/\{\{APP_NAME\}\}/g, brand.name)
+    .replace(/\{\{APP_URL\}\}/g, config.APP_URL)
+    .replace(/\{\{FIRST_NAME\}\}/g, firstName)
+    .replace(/\{\{LAST_NAME\}\}/g, lastName);
+}
+
+// Separat von der Willkommensmail, da sie unabhängig von Zugangsdaten (auch bei manuell
+// gesetztem Passwort) verschickt wird, sobald die Rolle "high_risk" (BGT) vergeben wird.
+async function sendBgtWelcomeMail(to, firstName = '', lastName = '') {
+  if (!to || !config.SMTP_HOST) return;
+  const brand = getBrandConfig();
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `${brand.name} <${config.SMTP_FROM}>`,
+    to,
+    subject: `${brand.name}: Zwei-Faktor-Pflicht für Ihren BGT-Zugang`,
+    text: renderBgtWelcomeText(firstName, lastName)
+  });
+}
+
 async function sendWelcomeMail(to, username, password, firstName = '', lastName = '') {
   if (!to || !config.SMTP_HOST) return;
   const brand = getBrandConfig();
@@ -172,4 +196,4 @@ async function sendReportMail(to, subject, { text, html } = {}) {
   });
 }
 
-module.exports = { sendWelcomeMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail };
+module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail };
