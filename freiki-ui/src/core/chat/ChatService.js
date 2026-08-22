@@ -8,7 +8,7 @@ const documents = require('../documents/DocumentService');
 const users = require('../auth/UserRepository');
 const { webSearch } = require('../integrations/SearXNGService');
 const { recordChatEvent } = require('../../jobs/usageStatsReport');
-const { handleImageGenMode, handleMusicGenMode, handleQrGenMode } = require('./MediaGenChatMode');
+const { handleImageGenMode, handleMusicGenMode, handleQrGenMode, waitWhileImageGenerating, GPU_CHAT_WAIT_HINT } = require('./MediaGenChatMode');
 const { handlePaperlessMode } = require('./PaperlessChatMode');
 const { handleWissenMode } = require('./WissenChatMode');
 const { handleDirectMode } = require('./DirectChatMode');
@@ -151,6 +151,13 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
     if (isOcr && fileContent) {
       const ocrBlock = `**Erkannter Text (OCR):**\n\`\`\`\n${fileContent}\n\`\`\`\n\n---\n\n`;
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: ocrBlock } }] })}\n\n`);
+    }
+
+    const usesVllm = !isImageGen && !isMusicGen && !isQrGen;
+    if (usesVllm) {
+      await waitWhileImageGenerating(() => {
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: GPU_CHAT_WAIT_HINT } }] })}\n\n`);
+      });
     }
 
     if (isPaperless) {

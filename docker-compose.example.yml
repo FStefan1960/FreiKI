@@ -36,6 +36,10 @@ volumes:
   beszel_data:
   beszel_socket:
   beszel_agent_data:
+  # Nur bei eigener GPU (z. B. KorKI): image-gen / music-gen
+  # imagegen_cache:
+  # musicgen_cache:
+  # gpu_lock:
 
 services:
 
@@ -156,6 +160,12 @@ services:
       - VLLM_MODEL=${VLLM_MODEL}
       - VLLM_API_KEY=${VLLM_API_KEY}
       - VLLM_EMBED_URL=${VLLM_EMBED_URL}
+      - IMAGE_GEN_URL=${IMAGE_GEN_URL:-https://api.deepinfra.com/v1/openai/images/generations}
+      - IMAGE_GEN_MODEL=${IMAGE_GEN_MODEL:-black-forest-labs/FLUX-2-klein-9b}
+      - IMAGE_GEN_API_KEY=${IMAGE_GEN_API_KEY}
+      - MUSIC_GEN_URL=${MUSIC_GEN_URL:-}
+      - MUSIC_GEN_MODEL=${MUSIC_GEN_MODEL:-}
+      - MUSIC_GEN_API_KEY=${MUSIC_GEN_API_KEY}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       - N8N_DAILY_REPORT_WEBHOOK_URL=${N8N_DAILY_REPORT_WEBHOOK_URL}
       - HILFE_KB_TABLE=${HILFE_KB_TABLE}

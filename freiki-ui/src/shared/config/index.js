@@ -27,6 +27,14 @@ const config = {
   IMAGE_GEN_API_KEY: process.env.IMAGE_GEN_API_KEY || '',
   IMAGE_GEN_MODEL: process.env.IMAGE_GEN_MODEL || 'black-forest-labs/FLUX-2-klein-4b',
 
+  MUSIC_GEN_URL: process.env.MUSIC_GEN_URL || '',
+  MUSIC_GEN_API_KEY: process.env.MUSIC_GEN_API_KEY || '',
+  MUSIC_GEN_MODEL: process.env.MUSIC_GEN_MODEL || 'ACE-Step/acestep-v15-xl-turbo-diffusers',
+
+  // Nur relevant, wenn IMAGE_GEN_URL auf lokalen image-gen zeigt (KorKI). DeepInfra: no-op.
+  GPU_SERIALIZE_CHAT: process.env.GPU_SERIALIZE_CHAT !== 'false',
+  GPU_CHAT_WAIT_MS: parseInt(process.env.GPU_CHAT_WAIT_MS || '90000', 10),
+
   // PPTX-Vorlagen-Export (siehe PptxTemplateService.js) - Kindprozess ruft python-pptx auf.
   PYTHON_BIN: process.env.PYTHON_BIN || 'python3',
   PPTX_TEMPLATE_PATH: process.env.PPTX_TEMPLATE_PATH || path.join(APP_ROOT, 'assets', 'pptx-templates', 'DiakonieKorkBasis.pptx'),

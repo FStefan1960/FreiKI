@@ -88,26 +88,132 @@ function applyAiLabel(buf, ext) {
   }
 }
 
+const GPU_QUEUE_HINT = '⏳ Die GPU ist gerade beschäftigt. Ihre Anfrage steht in der Warteschlange und wird als Nächstes abgearbeitet.\n\n';
+const GPU_START_HINT = '▶️ Die GPU ist frei – Erzeugung läuft jetzt.\n\n';
+const GPU_CHAT_WAIT_HINT = '⏳ Die GPU erzeugt gerade ein Bild. Ihre Anfrage wartet kurz, damit Chat und Bildgenerierung nicht gleichzeitig die GPU belasten.\n\n';
+const GPU_TIMEOUT_HINT = '⚠️ Die GPU war länger als erwartet belegt. Bitte versuchen Sie es in einer Minute erneut.';
+
+function writeSseText(res, text) {
+  res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+}
+
+function writeQueueHint(res) {
+  writeSseText(res, GPU_QUEUE_HINT);
+}
+
+function writeStartHint(res) {
+  writeSseText(res, GPU_START_HINT);
+}
+
+function isLocalGpuService(url) {
+  try {
+    const host = new URL(url).hostname;
+    return host === 'image-gen' || host === 'music-gen';
+  } catch {
+    return false;
+  }
+}
+
+function gpuLockStatusUrl(generateUrl) {
+  if (!isLocalGpuService(generateUrl)) return '';
+  try {
+    const u = new URL(generateUrl);
+    u.pathname = u.pathname.replace(/\/generate\/?$/, '/gpu-lock');
+    return u.toString();
+  } catch {
+    return '';
+  }
+}
+
+async function fetchGpuLockStatus(generateUrl) {
+  const statusUrl = gpuLockStatusUrl(generateUrl);
+  if (!statusUrl) return { busy: false, generating: false };
+  try {
+    const r = await fetchWithTimeout(statusUrl, {}, 2000);
+    if (!r.ok) return { busy: false, generating: false };
+    const d = await r.json();
+    return { busy: !!d.busy, generating: !!d.generating };
+  } catch {
+    return { busy: false, generating: false };
+  }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Best-effort: nur bei lokalem image-gen/music-gen (KorKI). DeepInfra (FreiKI) wird nicht angefragt.
+async function notifyIfGpuQueued(onQueued) {
+  const busy = (await Promise.all([
+    fetchGpuLockStatus(config.IMAGE_GEN_URL),
+    fetchGpuLockStatus(config.MUSIC_GEN_URL),
+  ])).some(st => st.busy);
+  if (busy && onQueued) await onQueued();
+  return busy;
+}
+
+async function watchGeneratingStart(generateUrl, onStarted, isDone) {
+  if (!onStarted || !isLocalGpuService(generateUrl)) return;
+  const first = await fetchGpuLockStatus(generateUrl);
+  let sawIdle = !first.generating;
+  const deadline = Date.now() + 180_000;
+  while (Date.now() < deadline && !isDone()) {
+    const st = await fetchGpuLockStatus(generateUrl);
+    if (isDone()) return;
+    if (!st.generating) sawIdle = true;
+    else if (sawIdle) {
+      await onStarted();
+      return;
+    }
+    await sleep(400);
+  }
+}
+
+async function waitWhileImageGenerating(onWaitHint) {
+  if (!config.GPU_SERIALIZE_CHAT || !isLocalGpuService(config.IMAGE_GEN_URL)) return;
+  const deadline = Date.now() + (config.GPU_CHAT_WAIT_MS || 90_000);
+  let hinted = false;
+  while (Date.now() < deadline) {
+    const st = await fetchGpuLockStatus(config.IMAGE_GEN_URL);
+    if (!st.generating) return;
+    if (!hinted && onWaitHint) {
+      hinted = true;
+      await onWaitHint();
+    }
+    await sleep(500);
+  }
+  console.warn('Chat wartet nicht länger auf Image-Gen (Timeout) – fahre fort');
+}
+
 // Antwortformat folgt DeepInfras OpenAI-kompatibler Images-API (data[0].b64_json) - KorKIs
 // lokaler image-gen-Service spiegelt dasselbe Format, damit dieser Code auf allen drei
 // Instanzen identisch ist (nur IMAGE_GEN_URL/-KEY/-MODEL unterscheiden sich). Wird sowohl vom
 // Chat-Bildgen-Modus als auch vom PPTX-Titelbild (PptxExportService.js) genutzt.
-async function generateAiImage(prompt) {
+async function generateAiImage(prompt, { onQueued, onStarted } = {}) {
   const genPrompt = await enhanceImagePrompt(prompt);
-  const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
-    body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 }),
-  });
-  if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
-  const { data } = await r.json();
-  const image_base64 = data?.[0]?.b64_json;
-  if (!image_base64) throw new Error('Keine Bilddaten erhalten');
-  const buf = Buffer.from(image_base64, 'base64');
-  // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
-  // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
-  const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
-  return { buffer: applyAiLabel(buf, ext), ext };
+  const queued = await notifyIfGpuQueued(onQueued);
+  let done = false;
+  const watch = queued ? watchGeneratingStart(config.IMAGE_GEN_URL, onStarted, () => done) : Promise.resolve();
+  try {
+    const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
+      body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 }),
+    }, 300_000);
+    if (r.status === 503) throw new Error('GPU_TIMEOUT');
+    if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
+    const { data } = await r.json();
+    const image_base64 = data?.[0]?.b64_json;
+    if (!image_base64) throw new Error('Keine Bilddaten erhalten');
+    const buf = Buffer.from(image_base64, 'base64');
+    // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
+    // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
+    const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
+    return { buffer: applyAiLabel(buf, ext), ext };
+  } finally {
+    done = true;
+    await watch.catch(() => {});
+  }
 }
 
 // Generierte Bilder als Datei statt Base64 im Chatverlauf: Base64-Inline-Bilder blähen die
@@ -123,7 +229,10 @@ async function handleImageGenMode(res, message) {
     return res.end();
   }
   try {
-    const { buffer: labeledBuf, ext } = await generateAiImage(prompt);
+    const { buffer: labeledBuf, ext } = await generateAiImage(prompt, {
+      onQueued: () => writeQueueHint(res),
+      onStarted: () => writeStartHint(res),
+    });
     const filename = `${crypto.randomUUID()}.${ext}`;
     fs.writeFileSync(path.join(GENERATED_IMAGES_DIR, filename), labeledBuf);
     const url = `/api/generated-images/${filename}`;
@@ -133,7 +242,8 @@ async function handleImageGenMode(res, message) {
     res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: md } }] })}\n\n`);
   } catch (e) {
     console.error('Bildgenerierung Fehler:', e.message);
-    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '⚠️ Bildgenerierung nicht erreichbar.' } }] })}\n\n`);
+    const msg = e.message === 'GPU_TIMEOUT' ? GPU_TIMEOUT_HINT : '⚠️ Bildgenerierung nicht erreichbar.';
+    writeSseText(res, msg);
   }
   res.write('data: [DONE]\n\n');
   res.end();
@@ -176,4 +286,11 @@ async function handleQrGenMode(res, message) {
   res.end();
 }
 
-module.exports = { handleImageGenMode, handleMusicGenMode, handleQrGenMode, generateAiImage };
+module.exports = {
+  handleImageGenMode,
+  handleMusicGenMode,
+  handleQrGenMode,
+  generateAiImage,
+  waitWhileImageGenerating,
+  GPU_CHAT_WAIT_HINT,
+};
