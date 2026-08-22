@@ -25,6 +25,8 @@ Das Backup enthält:
 
 Format: `.tar.zst` (zstd-komprimiert, nicht `.tar.gz`/gzip). Transport: `rsync` für Up-/Download (deutlich schneller als SFTP, siehe Geschwindigkeitsvergleich unten), `sftp` fürs Auflisten/Löschen alter Backups (HiDrives SSH-Zugang erlaubt keine Shell-Befehle, nur die rsync/sftp-Subsysteme).
 
+**Verschlüsselung (seit 2026-07-10, FreiKI + KorKI, noch nicht FrankKI):** Bevor das Backup zu HiDrive hochgeladen wird, verschlüsselt `backup.sh` es per GPG (Public-Key-Verfahren, Fingerprint `9B4AB2A2C197D9BC91D6DF20DDE18F512C53F91B`). Auf HiDrive liegen daher nur `.tar.zst.gpg`-Dateien, nie Klartext. Der private Schlüssel liegt NIE auf einem Server, sondern ausschließlich lokal bei Frank Stefan unter `~/Desktop/gpg-backup-key-PRIVAT-SICHERN/freiki-backup-PRIVATE-KEY.asc` — ohne diese Datei (per `gpg --import` in den Keyring einspielen) ist kein Restore möglich. **Diese Datei existiert nur an diesem einen Ort — unbedingt zusätzlich extern sichern (z. B. USB-Stick, Passwort-Manager), sonst sind bei Festplattenausfall alle Backups unwiederbringlich unentschlüsselbar.**
+
 ---
 
 ## Szenario 1: Einzelnen Dienst wiederherstellen
@@ -34,7 +36,10 @@ Wenn nur ein Dienst defekt ist (z. B. n8n-Daten weg):
 ```bash
 # Backup von HiDrive holen (Beispiel FreiKI; HIDRIVE_DIR je Instanz anpassen)
 rsync -e "ssh -i ~/.ssh/hidrive_backup_key -o IdentitiesOnly=yes" \
-  freiki-admin@rsync.hidrive.ionos.com:users/freiki-admin/backups/freiki/freiki-backup-DATUM.tar.zst /tmp/
+  freiki-admin@rsync.hidrive.ionos.com:users/freiki-admin/backups/freiki/freiki-backup-DATUM.tar.zst.gpg /tmp/
+
+# Entschlüsseln (privaten Schlüssel vorher per "gpg --import" einspielen, siehe Übersicht)
+gpg --batch --yes --output /tmp/freiki-backup-DATUM.tar.zst --decrypt /tmp/freiki-backup-DATUM.tar.zst.gpg
 
 zstd -d /tmp/freiki-backup-DATUM.tar.zst -o /tmp/freiki-backup-DATUM.tar
 tar xf /tmp/freiki-backup-DATUM.tar -C /tmp/
@@ -63,27 +68,23 @@ docker compose start n8n
 
 - Neuer Server mit Ubuntu 22.04+, Docker + Docker Compose installiert
 - SSH-Key `~/.ssh/hidrive_backup_key` vorhanden (bei komplettem Serververlust: neuen Key generieren und im HiDrive-Panel unter "SSH Schlüssel hinterlegen" nachtragen — der alte Key ist mit dem alten Server verloren)
-- `zstd`, `rsync`, `sftp`, `python3` installiert (Standard bei Ubuntu, ggf. `apt install zstd`)
+- `zstd`, `rsync`, `sftp`, `python3`, `gpg` installiert (Standard bei Ubuntu, ggf. `apt install zstd gnupg`)
+- Privater GPG-Schlüssel importiert (FreiKI/KorKI, nicht FrankKI): `gpg --import freiki-backup-PRIVATE-KEY.asc` — die Datei liegt nur lokal bei Frank Stefan (siehe Übersicht), muss also von dort mitgebracht werden
 
-### Schritt 1: Repo klonen
+### Schritt 1: Restore-Script holen und ausführen
 
-```bash
-git clone git@github.com:FStefan1960/FreiKI.git ~/freiki-package
-```
-
-### Schritt 2: Restore-Script ausführen
+**Kein GitHub nötig.** Das Backup selbst enthält bereits eine vollständige Kopie des Stack-Verzeichnisses (`docker-compose.yml`, Dockerfiles, `.env`, `src/`, Prompts — alles außer `node_modules`/`.git`, siehe `backup.sh`). `restore.sh` erkennt einen leeren `~/freiki-package` und legt ihn direkt aus dem Backup an; Docker baut die Images beim ersten Start selbst neu. Das Script selbst braucht also nur eine Kopie von sich selbst auf dem neuen Server, z. B. per `scp` von einem anderen laufenden FreiKI/KorKI/FrankKI-Server oder von deinem Mac (`freiki-package/setup/restore.sh` bzw. `korki-repo/setup/restore.sh`) — GitHub-Zugriff ist für den Restore selbst nicht erforderlich.
 
 ```bash
-bash ~/freiki-package/setup/restore.sh
+bash ~/restore.sh
 ```
 
 Das Script:
 1. Listet verfügbare Backups auf HiDrive auf (per SFTP)
-2. Lädt das gewählte Backup per `rsync` herunter (schnell) und entpackt es (`zstd` + `tar`)
-3. Stoppt den Stack
-4. Fragt ob Configs übernommen werden sollen
-5. Spielt alle Volumes zurück (roher Volume-Restore, **nicht** der SQL-Dump — der liegt nur als manueller Fallback im Backup, siehe unten)
-6. Startet den Stack
+2. Lädt das gewählte Backup per `rsync` herunter, entschlüsselt es (`gpg`) und entpackt es (`zstd` + `tar`)
+3. Legt `~/freiki-package` aus dem Backup an, falls es noch nicht existiert (frischer Server) — sonst wie gehabt: Stack stoppen, Configs zur Prüfung in `~/freiki-package-restore` legen, auf Bestätigung übernehmen
+4. Spielt alle Volumes zurück (roher Volume-Restore, **nicht** der SQL-Dump — der liegt nur als manueller Fallback im Backup, siehe unten)
+5. Baut die Images neu und startet den Stack (`docker compose up -d --build`)
 
 ### Schritt 3: Nach dem Restore prüfen
 
@@ -137,8 +138,9 @@ cd users/freiki-admin/backups/freiki
 ls -la
 EOF
 
-# Prüfsumme verifizieren (liegt als .sha256 neben jedem Backup)
-sha256sum -c freiki-backup-DATUM.tar.zst.sha256
+# Prüfsumme verifizieren (liegt als .sha256 neben jedem Backup, bezieht sich auf die
+# verschlüsselte .gpg-Datei, da die Prüfsumme nach der GPG-Verschlüsselung berechnet wird)
+sha256sum -c freiki-backup-DATUM.tar.zst.gpg.sha256
 ```
 
 ---
