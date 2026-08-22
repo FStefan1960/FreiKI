@@ -968,6 +968,7 @@ html[data-theme="dark"] .messages {
   display: flex;
   gap: 8px;
   max-width: 85%;
+  min-width: 0;
   animation: fadeIn 0.2s ease;
 }
 
@@ -992,7 +993,7 @@ html[data-theme="dark"] .messages {
 .message.user .message-avatar { background: var(--fk-primary); color: #fff; font-weight: 700; font-size: 11px; }
 .message.ai .message-avatar  { background: var(--fk-primary); color: #fff; font-weight: 700; font-size: 15px; }
 
-.message-wrapper { position: relative; }
+.message-wrapper { position: relative; min-width: 0; }
 
 .message-bubble {
   position: relative;
@@ -1016,6 +1017,19 @@ html[data-theme="dark"] .messages {
 }
 .message-bubble li p {
   margin: 0;
+}
+/* Code-Bloecke und Tabellen aus dem Markdown-Rendering brechen (anders als Fliesstext,
+   siehe word-break oben) nicht automatisch um - ohne eigenen Scroll-Container sprengen
+   lange Zeilen/breite Tabellen die Bubble-Breite und damit auf schmalen Screens die
+   ganze Seite (siehe overflow-x:hidden auf .messages). */
+.message-bubble pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.message-bubble table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 /* Quellen-Links im Wissen-Modus (WissenChatMode.js haengt echte <a>-Tags an) waren ohne
@@ -1152,7 +1166,7 @@ html[data-theme="dark"] .messages {
 /* Copy button */
 .msg-actions {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 8px;
@@ -1399,7 +1413,7 @@ html[data-theme="dark"] .messages {
   .input-area { padding: 10px 10px 12px; }
   .new-chat-btn { padding: 8px 14px; font-size: 12px; }
   .chat-header { padding: 10px 16px; gap: 10px; }
-  .message-bubble { font-size: var(--fk-fs-sub); }
+  .message-bubble { font-size: var(--fk-fs-sub); padding: 14px 16px; }
   #message-input { font-size: 16px; }
 }
 
