@@ -134,23 +134,10 @@ function getHistoricalStats(days = 30) {
   };
 }
 
-async function run() {
-  const state = loadState();
-  const heute = new Date().toISOString().slice(0, 10);
-  const gestern = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-
-  const chatsHeute = state.chats.filter(c =>
-    c.timestamp && (c.timestamp.startsWith(gestern) || c.timestamp.startsWith(heute)) &&
-    !SYSTEM_USERS.includes((c.user || '').toLowerCase())
-  );
-  const chatsGesamt = state.chatsGesamt.filter(c => !SYSTEM_USERS.includes((c.user || '').toLowerCase()));
-
-  // Nur gestrige Chats aus dem Tagespuffer entfernen, chatsGesamt bleibt für immer.
-  state.chats = state.chats.filter(c => !c.timestamp || !c.timestamp.startsWith(gestern));
-  saveState(state);
-
-  if (!chatsHeute.length) return; // nichts zu berichten
-
+// Baut die Tagesbericht-Mail aus bereits gefilterten Daten - von run() (echter Versand, danach
+// Tagespuffer geprunt) UND buildDailyReportPreview() (read-only, für die Admin-Vorschau) genutzt,
+// damit beide exakt dasselbe Layout erzeugen und nicht auseinanderlaufen.
+function buildReportHtml(chatsHeute, chatsGesamt) {
   const nutzerSet = [...new Set(chatsHeute.map(c => c.user))];
   const werkzeuge = {};
   chatsHeute.forEach(c => { const label = normalizeToolLabel(c.title || c.mode); werkzeuge[label] = (werkzeuge[label] || 0) + 1; });
@@ -168,14 +155,48 @@ async function run() {
     ${h2('Heute – Benutzer &amp; Werkzeug')}
     ${buildMatrixHtml(buildUserWorkspace(chatsHeute))}
     ${h2('Gesamt – Benutzer &amp; Werkzeug')}
-    ${buildMatrixHtml(buildUserWorkspace(chatsGesamt))}
+    <div id="matrix-gesamt">${buildMatrixHtml(buildUserWorkspace(chatsGesamt))}</div>
   </div>
   <div style="background:#f8fafc;padding:12px 28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;font-size:11px;color:#9ca3af;text-align:center;">${appName} · Automatisch generiert</div>
 </div>`;
 
-  const recipients = await users.listAdminEmails();
-  if (!recipients.length) return;
-  await sendReportMail(recipients, `${appName} Nutzungs-Statistik – ${datum}`, { html });
+  return { html, subject: `${appName} Nutzungs-Statistik – ${datum}` };
 }
 
-module.exports = { recordChatEvent, run, getHistoricalStats };
+function splitTodayBuffers(state) {
+  const heute = new Date().toISOString().slice(0, 10);
+  const gestern = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const chatsHeute = state.chats.filter(c =>
+    c.timestamp && (c.timestamp.startsWith(gestern) || c.timestamp.startsWith(heute)) &&
+    !SYSTEM_USERS.includes((c.user || '').toLowerCase())
+  );
+  const chatsGesamt = state.chatsGesamt.filter(c => !SYSTEM_USERS.includes((c.user || '').toLowerCase()));
+  return { gestern, chatsHeute, chatsGesamt };
+}
+
+async function run() {
+  const state = loadState();
+  const { gestern, chatsHeute, chatsGesamt } = splitTodayBuffers(state);
+
+  // Nur gestrige Chats aus dem Tagespuffer entfernen, chatsGesamt bleibt für immer.
+  state.chats = state.chats.filter(c => !c.timestamp || !c.timestamp.startsWith(gestern));
+  saveState(state);
+
+  if (!chatsHeute.length) return; // nichts zu berichten
+
+  const { html, subject } = buildReportHtml(chatsHeute, chatsGesamt);
+  const recipients = await users.listAdminEmails();
+  if (!recipients.length) return;
+  await sendReportMail(recipients, subject, { html });
+}
+
+// Admin-Vorschau (siehe adminRoutes.js) - rein lesend: im Gegensatz zu run() wird der
+// Tagespuffer NICHT geprunt und keine Mail verschickt, sonst würde ein Vorschau-Klick echte
+// Daten aus dem nächsten automatischen Bericht entfernen.
+function buildDailyReportPreview() {
+  const state = loadState();
+  const { chatsHeute, chatsGesamt } = splitTodayBuffers(state);
+  return buildReportHtml(chatsHeute, chatsGesamt);
+}
+
+module.exports = { recordChatEvent, run, getHistoricalStats, buildDailyReportPreview };

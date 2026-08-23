@@ -617,6 +617,70 @@ router.get('/api/admin/sensitive-query-log', asyncHandler(async (req, res) => {
   } catch (e) { console.error('admin/sensitive-query-log:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
 }));
 
+// Rendert die Tagesbericht-Mail (nur den Nutzungsstatistik-Teil, siehe usageStatsReport.js) als
+// HTML-Seite statt sie zu verschicken (Vorschau-Button im Dashboard) - liest denselben Stand wie
+// ein echter Lauf, prunt aber nichts und verschickt nichts, siehe buildDailyReportPreview().
+//
+// Die Sortierbarkeit ist bewusst nur hier im Preview-Wrapper (Vanilla-JS per <script>) statt in
+// buildReportHtml() selbst, da dieselbe HTML-Ausgabe auch die echte Mail ist - E-Mail-Clients
+// fuehren kein JS aus, ein Klick-Handler dort waere toter Code. Sortiert wird analog zur
+// Nutzungsstatistik-Tabelle im Dashboard (renderTable() in admin-dashboard.html): Klick auf
+// Spaltenkopf sortiert, nochmaliger Klick kehrt um, Pfeil zeigt die aktive Sortierung, die
+// Gesamt-Summenzeile bleibt fixiert am Tabellenende statt mitsortiert zu werden.
+const DAILY_REPORT_PREVIEW_SORT_SCRIPT = `<script>
+(function () {
+  var table = document.querySelector('#matrix-gesamt table');
+  if (!table) return;
+  var ths = Array.from(table.querySelectorAll('thead th'));
+  var tbody = table.querySelector('tbody');
+  var sortKey = null, sortDir = 1;
+  function cellValue(tr, idx) {
+    var text = tr.children[idx].textContent.trim();
+    if (idx === 0) return text.toLowerCase();
+    if (text === '–') return 0;
+    var n = parseFloat(text.replace(/[^0-9.,-]/g, '').replace(',', '.'));
+    return isNaN(n) ? 0 : n;
+  }
+  function render() {
+    var rows = Array.from(tbody.querySelectorAll('tr'));
+    var sumRow = rows.pop();
+    if (sortKey !== null) {
+      rows.sort(function (a, b) {
+        var va = cellValue(a, sortKey), vb = cellValue(b, sortKey);
+        if (va < vb) return -1 * sortDir;
+        if (va > vb) return 1 * sortDir;
+        return 0;
+      });
+    }
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    tbody.appendChild(sumRow);
+    ths.forEach(function (th, i) {
+      th.innerHTML = th.innerHTML.replace(/ (▲|▼)$/, '');
+      if (i === sortKey) th.innerHTML += sortDir === 1 ? ' ▲' : ' ▼';
+    });
+  }
+  ths.forEach(function (th, i) {
+    th.style.cursor = 'pointer';
+    th.style.userSelect = 'none';
+    th.addEventListener('click', function () {
+      if (sortKey === i) sortDir *= -1; else { sortKey = i; sortDir = 1; }
+      render();
+    });
+  });
+})();
+</script>`;
+
+router.get('/api/admin/daily-report-preview', (req, res) => {
+  try {
+    const { html, subject } = usageStatsReport.buildDailyReportPreview();
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>${subject}</title></head>
+<body style="background:#f1f5f9;margin:0;padding:24px 16px">${html}${DAILY_REPORT_PREVIEW_SORT_SCRIPT}</body></html>`);
+  } catch (e) {
+    res.status(500).send('Vorschau konnte nicht erzeugt werden: ' + e.message);
+  }
+});
+
 // Vorher: Weiterleitung an einen n8n-Webhook. Jetzt drei unabhängige native Flows direkt
 // aufgerufen (siehe jobs/feedbackReport.js, usageStatsReport.js, gpuMetricsReport.js) -
 // jeder meldet für sich, ob er wegen fehlender Daten stillbleibt.

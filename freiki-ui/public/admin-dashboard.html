@@ -95,6 +95,7 @@
           <button class="btn btn-ghost" onclick="window.parent.openToolPanel ? window.parent.openToolPanel('/admin-pptx-templates.html') : (window.top.location.href='/admin-pptx-templates.html')">📊 PPT-Vorlagen verwalten</button>
         </div>
         <div class="report-buttons" id="report-buttons">
+          <a class="btn btn-ghost" href="/api/admin/daily-report-preview" target="_blank" rel="noopener">👁️ Tagesbericht-Vorschau</a>
           <button class="btn btn-ghost" id="send-report-btn" data-url="/api/admin/trigger-daily-report" data-label="Tagesbericht">📧 Tagesbericht jetzt per Mail senden</button>
           <button class="btn btn-ghost" id="send-egress-btn" data-url="/api/admin/trigger-egress-report" data-label="Datenabfluss-Bericht" style="display:none">🔒 Datenabfluss-Bericht senden</button>
           <button class="btn btn-ghost" id="send-gpu-btn" data-url="/api/admin/jobs/gpuMetricsReport/run" data-label="GPU/LLM-Statistik">📊 GPU/LLM-Statistik senden</button>
