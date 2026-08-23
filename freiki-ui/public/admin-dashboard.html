@@ -233,20 +233,36 @@ function renderToolList(byTool) {
   ).join('');
 }
 
+let tableSortKey = null, tableSortDir = 1;
+function sortTableRows(rows) {
+  if (!tableSortKey) return rows;
+  const value = u => tableSortKey === 'user' ? u.user.toLowerCase()
+    : tableSortKey === 'total' ? u.total
+    : (u.byTool[tableSortKey] || 0);
+  return rows.slice().sort((a, b) => {
+    const va = value(a), vb = value(b);
+    if (va < vb) return -1 * tableSortDir;
+    if (va > vb) return 1 * tableSortDir;
+    return 0;
+  });
+}
+
 function renderTable(byUser, filter) {
   const wrap = document.getElementById('table-wrap');
   const f = (filter || '').trim().toLowerCase();
-  const rows = byUser.filter(u => !f || u.user.toLowerCase().includes(f));
+  const rows = sortTableRows(byUser.filter(u => !f || u.user.toLowerCase().includes(f)));
   if (!rows.length) { wrap.innerHTML = '<p class="empty">Keine Treffer.</p>'; return; }
   const tools = [...new Set(byUser.flatMap(u => Object.keys(u.byTool)))].sort();
-  const th = tools.map(t => `<th>${t}</th>`).join('');
+  const arrow = key => tableSortKey === key ? (tableSortDir === 1 ? ' ▲' : ' ▼') : '';
+  const sortableTh = (label, key) => `<th data-sort="${key}" style="cursor:pointer;user-select:none;">${label}${arrow(key)}</th>`;
+  const th = tools.map(t => sortableTh(t, t)).join('');
   const trs = rows.map(u => {
     const cells = tools.map(t => `<td class="num">${u.byTool[t] ? u.byTool[t] : '–'}</td>`).join('');
     return `<tr><td>${u.user}</td>${cells}<td class="num"><strong>${u.total}</strong></td></tr>`;
   }).join('');
   const sumCells = tools.map(t => rows.reduce((s, u) => s + (u.byTool[t] || 0), 0)).map(v => `<td class="num">${v}</td>`).join('');
   const sumTotal = rows.reduce((s, u) => s + u.total, 0);
-  wrap.innerHTML = `<table><thead><tr><th>Benutzer</th>${th}<th>Gesamt</th></tr></thead><tbody>${trs}
+  wrap.innerHTML = `<table><thead><tr>${sortableTh('Benutzer', 'user')}${th}${sortableTh('Gesamt', 'total')}</tr></thead><tbody>${trs}
     <tr class="total-row"><td>Gesamt</td>${sumCells}<td class="num">${sumTotal}</td></tr>
   </tbody></table>`;
 }
@@ -291,6 +307,13 @@ document.getElementById('range-picker').addEventListener('click', (e) => {
   loadDashboard(parseInt(btn.dataset.days, 10));
 });
 document.getElementById('u-filter').addEventListener('input', (e) => renderTable(currentByUser, e.target.value));
+document.getElementById('table-wrap').addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-sort]');
+  if (!th) return;
+  const key = th.dataset.sort;
+  if (tableSortKey === key) tableSortDir *= -1; else { tableSortKey = key; tableSortDir = 1; }
+  renderTable(currentByUser, document.getElementById('u-filter').value);
+});
 
 // Ein Handler für alle Berichts-Trigger-Buttons (Tagesbericht/GPU/Datenabfluss) statt
 // dreifacher Kopie derselben Fetch-/Status-Logik - Unterschied ist nur URL+Label (data-Attribute).
