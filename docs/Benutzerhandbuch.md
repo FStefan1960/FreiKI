@@ -1,18 +1,12 @@
 # FreiKI – Benutzerhandbuch
 
 > **Hinweis:** Das Erscheinungsbild (Logo, Farben, Name) kann je nach Einsatzort an das Corporate Design Ihrer Organisation angepasst sein. Welche Menüpunkte, Werkzeuge, Wissensbereiche, Extras und Konto-Einträge Sie sehen, hängt von der **Freigabe Ihres Kontos** und der **Einrichtung der jeweiligen Instanz** ab. Was in diesem Handbuch beschrieben ist, muss in Ihrer App nicht alle sichtbar sein – das ist kein Fehler.
->
-> **Stand:** Version 0.7.8 (August 2026)
 
 ---
 
 ## 1. Was ist FreiKI?
 
-FreiKI ist Ihr interner KI-Assistent. Er läuft als selbst gehostete Anwendung auf einem Server Ihrer Organisation. Ihre Eingaben werden nicht zum Training der KI verwendet.
-
-In einer **produktiven Installation** bleiben Chat, Wissen, Archiv und Sprachverarbeitung auf der eigenen Infrastruktur. Ausnahmen sind bewusst gekennzeichnet (Web-Recherche, Bildgenerierung, Piktogramme, optionales Weiterbearbeiten von Diagrammen in draw.io).
-
-Auf der **öffentlichen Demo** erscheint vor dem Login ein Hinweis: Dort läuft ein Online-Sprachmodell eines externen Anbieters. Geben Sie dort keine echten, vertraulichen oder personenbezogenen Daten ein.
+FreiKI ist Ihr interner KI-Assistent. Er läuft vollständig auf einem dedizierten Server Ihrer Organisation (lokales Sprachmodell auf eigener GPU). Ihre Eingaben werden nicht zum Training der KI verwendet. Kein externer Anbieter erhält Zugriff auf Chat, Wissen, Archiv oder Sprache – außer bei den bewusst gekennzeichneten Ausnahmen (Web-Recherche, Piktogramme, optionales Weiterbearbeiten von Diagrammen in draw.io, ggf. Bildgenerierung).
 
 FreiKI ist ein Hilfsinstrument. Alle Ergebnisse müssen geprüft werden. Die Verantwortung liegt bei Ihnen.
 
@@ -82,7 +76,7 @@ Die Auswahl erfolgt über den Tab **Werkzeuge** in der Seitenleiste. Welche Eint
 
 ### 4.1 Chat
 
-Freies Gespräch mit dem Sprachmodell. Geeignet für Formulieren, Kürzen, Rechnen, Checklisten, Flowcharts, erste Orientierung.
+Freies Gespräch mit dem lokalen Sprachmodell. Geeignet für Formulieren, Kürzen, Rechnen, Checklisten, Flowcharts, erste Orientierung.
 
 **Datei hochladen:** FreiKI liest PDF, Word, Text und Bilder (inkl. OCR) und bezieht den Inhalt in die Antwort ein.
 
@@ -152,7 +146,7 @@ Macht aus Text oder einer URL einen herunterladbaren QR-Code. Geeignet für Link
 
 Im Tab **Wissen** erscheinen nur Bereiche, die Ihre Administration für Sie freigegeben hat (z. B. interne Richtlinien, Fachrecht, Hilfetexte). FreiKI antwortet auf Basis der hinterlegten Dokumente und nennt die Quelle.
 
-Beispiel: „Was muss ich tun, wenn …?“ → Handlungsschritte aus den hinterlegten Unterlagen mit Angabe des Dokuments.
+Beispiel: „Was muss ich tun, wenn ein Bewohner stürzt?“ → Handlungsschritte aus den hinterlegten Unterlagen mit Angabe des Dokuments.
 
 Manager können in freigegebene Bereiche Dokumente hochladen (über die von der Administration vorgesehene Upload-Seite). Sichtbarkeit und Reihenfolge der Bereiche legt die Administration fest.
 
@@ -192,16 +186,15 @@ Kurzes Diktieren in den Chat geht über das Mikrofon in der Eingabezeile, nicht 
 
 ## 7. Extras
 
-Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt hat. Typisch auf FreiKI:
+Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt hat. Je nach Instanz zum Beispiel:
 
 | Extra | Inhalt |
 |---|---|
 | **Tageslosung** | Losung, Lehrtext und Gedanke des Tages |
-| **IT-Sicherheitslage** | aktuelle Bedrohungshinweise |
-| **Medienspiegel** | tägliche Presseschau |
-| **Gesellschaftstrends** | Trends und Sozialpolitik |
-| **Piktogramme** | Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über FreiKI ausgeliefert. |
+| **Piktogramme** | Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über FreiKI ausgeliefert. |
 | **Tagesplan** | druckbarer Tagesplan mit Symbolen |
+| **IT-Sicherheitslage** | aktuelle Bedrohungshinweise (sofern eingerichtet) |
+| **Medienspiegel / Gesellschaftstrends** | tägliche Presseschau bzw. Trends (sofern eingerichtet) |
 
 Manche Extras sind auf bestimmte Rollen beschränkt.
 
@@ -282,7 +275,7 @@ Zweck ist die Rechenschaft nach DSGVO und interner Dienstanweisung, **nicht** Le
 
 | Vorgang | Wohin |
 |---|---|
-| Chat, Wissen, Archiv, OCR, TTS, Transkription, Formulare | eigene Infrastruktur (produktive Instanz) |
+| Chat, Wissen, Archiv, OCR, TTS, Transkription, Formulare | eigene Infrastruktur (dieser Server) |
 | Web-Recherche | Internetsuche (Anfragetext verlässt das Haus) |
 | Piktogramme | Abfrage der ARASAAC-Bibliothek, Anzeige über FreiKI |
 | Bilder generieren | je nach Instanz eigener oder externer Bilddienst |
@@ -305,7 +298,7 @@ Nur wenn Ihre Instanz die Selbstregistrierung anbietet. Dann ist das ein Antrag 
 Ja. Der Chat versteht und antwortet in vielen Sprachen. Zusätzlich: Oberflächensprache auf der Anmeldeseite, feste Antwortsprache im Konto-Menü.
 
 **Was passiert mit einer Audiodatei?**  
-Lange Dateien: lokale Transkription, Versand per E-Mail. Kurzes Diktat: direkt in die Eingabezeile. Beides verlässt bei einer produktiven Instanz nicht Ihre Infrastruktur.
+Lange Dateien: lokale Transkription, Versand per E-Mail. Kurzes Diktat: direkt in die Eingabezeile. Beides verlässt Ihre Infrastruktur nicht.
 
 **Ist die Archivsuche dasselbe wie das Archiv-System?**  
 Nein. FreiKI zeigt Treffer und Text. Verwalten der Dokumente bleibt im Archiv (Paperless).

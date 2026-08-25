@@ -32,7 +32,7 @@ JOBS = [
         "runtime": REPO / "freiki-ui" / "FreiKI_Benutzerhandbuch.pdf",
         "alias": ROOT / "Benutzerhandbuch.pdf",
         "subtitle": "Benutzerhandbuch",
-        "cover_note": "Stand Version 0.7.8 · August 2026",
+        "cover_note": "Stand Version 0.8.1 · August 2026",
     },
     {
         "src": ROOT / "KorKI-Benutzerhandbuch.md",
@@ -44,7 +44,7 @@ JOBS = [
         "runtime": REPO / "freiki-ui" / "KorKI_Benutzerhandbuch.pdf",
         "alias": None,
         "subtitle": "Benutzerhandbuch",
-        "cover_note": "Stand Version 0.7.8 · August 2026 · Diakonie Kork",
+        "cover_note": "Stand Version 0.8.1 · August 2026 · Diakonie Kork",
     },
 ]
 
