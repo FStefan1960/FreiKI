@@ -124,22 +124,32 @@ function renderWissenMenu(container, wissen) {
   // "group" (aus areas.json) verweist auf den unpräfixten Area-Key (z.B. "oh"), der Mode-Key
   // trägt aber das "w_"-Präfix (z.B. "w_oh") - für den Gruppen-Abgleich muss das Präfix runter.
   const bareKey = (k) => k.replace(/^w_/, '');
-  const groupRootKeys = new Set(wissen.filter(m => m.group).map(m => m.group));
+  // Nur Bereiche, die der Nutzer aktuell auch sieht (use_areas), zählen als "vorhandener Root" -
+  // sonst würde eine Unterkategorie ohne freigeschalteten Eltern-Bereich (z.B. nur AWS, nicht OH)
+  // beim fehlenden Root stillschweigend verschwinden, obwohl der Server sie korrekt freigegeben hat.
+  const presentKeys = new Set(wissen.map(m => bareKey(m.key)));
   const rendered = new Set();
   wissen.forEach(m => {
-    if (rendered.has(m.key) || m.group) return;
+    if (rendered.has(m.key)) return;
+    if (m.group && !presentKeys.has(m.group)) {
+      container.appendChild(makeModeBtn(m));
+      rendered.add(m.key);
+      return;
+    }
+    if (m.group) return; // wird gleich beim zugehörigen Root mitgerendert
     const btn = makeModeBtn(m);
     rendered.add(m.key);
-    if (groupRootKeys.has(bareKey(m.key))) {
+    const children = wissen.filter(x => x.group === bareKey(m.key));
+    if (children.length) {
       btn.classList.add('mode-btn-group-head');
       container.appendChild(btn);
-      const children = document.createElement('div');
-      children.className = 'mode-group-children';
-      wissen.filter(x => x.group === bareKey(m.key)).forEach(child => {
-        children.appendChild(makeModeBtn(child));
+      const childrenWrap = document.createElement('div');
+      childrenWrap.className = 'mode-group-children';
+      children.forEach(child => {
+        childrenWrap.appendChild(makeModeBtn(child));
         rendered.add(child.key);
       });
-      container.appendChild(children);
+      container.appendChild(childrenWrap);
     } else {
       container.appendChild(btn);
     }

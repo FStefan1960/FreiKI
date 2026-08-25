@@ -343,7 +343,8 @@ async function answerBotChat(message, username) {
     );
     const u = userRows[0];
     if (u && (u.role === 'default' || u.role === 'high_risk' || u.role === 'manager') && u.use_areas && u.use_areas.length) {
-      allowedAreaKeys = u.use_areas.map(normArea);
+      // Kind -> Eltern (z.B. RWS -> WV allgemein) automatisch mit freischalten, aber nicht umgekehrt.
+      allowedAreaKeys = kbAreas.expandWithParents(u.use_areas.map(normArea));
     }
   }
   const areaEntries = kbAreas.entries().filter(

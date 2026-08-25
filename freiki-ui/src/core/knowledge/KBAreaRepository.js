@@ -57,4 +57,17 @@ function entries() {
   return Object.entries(KB_TABLES);
 }
 
-module.exports = { KB_TABLES, KB_LABELS, KB_GROUPS, getTable, getLabel, getGroup, entries, isValidKbTable };
+// Zugriffsrechte: wer eine Unterkategorie sieht (z.B. "rws"), soll automatisch auch die
+// allgemeine Elternkategorie sehen ("wv") - aber NICHT umgekehrt: die Elternkategorie allein
+// gibt keinen Zugriff auf die übrigen Unterkategorien. Einseitige Ableitung Kind -> Eltern,
+// keine echte Vererbung.
+function expandWithParents(areaKeys) {
+  const result = new Set(areaKeys);
+  for (const key of areaKeys) {
+    const group = KB_GROUPS[key];
+    if (group) result.add(group);
+  }
+  return [...result];
+}
+
+module.exports = { KB_TABLES, KB_LABELS, KB_GROUPS, getTable, getLabel, getGroup, entries, isValidKbTable, expandWithParents };

@@ -56,7 +56,8 @@ router.get('/api/modes', asyncHandler(async (req, res) => {
     } catch { /* Fallback auf Token */ }
   }
 
-  const userAreas = liveUse.map(normArea);
+  // Kind -> Eltern (z.B. RWS -> WV allgemein) automatisch mit freischalten, aber nicht umgekehrt.
+  const userAreas = kbAreas.expandWithParents(liveUse.map(normArea));
   const hasPaperless = isAdmin || livePaperless;
 
   const visible = prompts.modesConfig

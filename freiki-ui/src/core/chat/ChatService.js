@@ -1,6 +1,7 @@
 const fs = require('fs');
 const { config } = require('../../shared/config');
 const { normArea } = require('../../shared/utils/text');
+const kbAreas = require('../knowledge/KBAreaRepository');
 const prompts = require('./PromptService');
 const chatRepo = require('./ChatRepository');
 const sensitiveLog = require('../audit/SensitiveQueryLog');
@@ -80,7 +81,8 @@ async function handleChat(req, res) {
         liveRow = await users.findLiveAreasById(req.session.uid);
         const liveUse = liveRow?.use_areas || [];
         if ((req.session.role === 'default' || req.session.role === 'high_risk' || req.session.role === 'manager') && liveUse.length) {
-          allowedAreaKeys = liveUse.map(normArea);
+          // Kind -> Eltern (z.B. RWS -> WV allgemein) automatisch mit freischalten, aber nicht umgekehrt.
+          allowedAreaKeys = kbAreas.expandWithParents(liveUse.map(normArea));
         }
       } catch (e) {
         console.warn('use_areas konnten nicht geladen werden:', e.message);
