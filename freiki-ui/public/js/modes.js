@@ -67,6 +67,47 @@ function setHeaderIcon(icon, key) {
   }
 }
 
+// Tooltip-Bubble für abgeschnittene Menü-Titel/-Untertitel (Sidebar). Delegiert
+// auf document, weil die Buttons in loadModes() bei jedem Reload neu erzeugt werden.
+(function initModeNavTooltip() {
+  let bubble = null;
+  function ensureBubble() {
+    if (!bubble) {
+      bubble = document.createElement('div');
+      bubble.className = 'mode-nav-tooltip';
+      document.body.appendChild(bubble);
+    }
+    return bubble;
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('.mode-nav-title, .mode-nav-sub');
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    const b = ensureBubble();
+    b.textContent = el.textContent;
+    b.classList.remove('visible');
+    b.style.left = '0px';
+    b.style.top = '0px';
+    const r = el.getBoundingClientRect();
+    const bw = b.offsetWidth, bh = b.offsetHeight;
+    let left = Math.min(Math.max(8, r.left), window.innerWidth - bw - 8);
+    let top = r.top - bh - 8;
+    let arrowDown = true;
+    if (top < 8) { top = r.bottom + 8; arrowDown = false; }
+    b.style.setProperty('--arrow-left', Math.min(Math.max(12, r.left + r.width / 2 - left), bw - 12) + 'px');
+    b.style.left = left + 'px';
+    b.style.top = top + 'px';
+    b.classList.toggle('arrow-down', arrowDown);
+    b.classList.toggle('arrow-up', !arrowDown);
+    b.classList.add('visible');
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (!bubble || !e.target.closest('.mode-nav-title, .mode-nav-sub')) return;
+    bubble.classList.remove('visible');
+  });
+})();
+
 function makeModeBtn(m) {
   const btn = document.createElement('button');
   btn.className = 'mode-btn' + (m.websearch ? ' mode-btn-web' : '');
