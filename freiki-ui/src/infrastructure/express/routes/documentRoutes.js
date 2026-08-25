@@ -11,7 +11,8 @@ const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const kb = require('../../../core/knowledge/KBService');
 const documents = require('../../../core/documents/DocumentService');
 const { textToDocxBuffer } = require('../../../core/documents/DocxExportService');
-const { markdownToSlideData, buildTitleImagePrompt, markdownToPptxBuffer } = require('../../../core/documents/PptxExportService');
+const { markdownToSlideData, buildTitleImagePrompt, markdownToPptxBuffer, buildClosingSlide } = require('../../../core/documents/PptxExportService');
+const userRepo = require('../../../core/auth/UserRepository');
 const { buildPptxFromTemplate, resolveTemplateEntry, listAllTemplates } = require('../../../core/documents/PptxTemplateService');
 const { generateAiImage } = require('../../../core/chat/MediaGenChatMode');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
@@ -64,7 +65,12 @@ router.post('/api/export-pptx', asyncHandler(async (req, res) => {
     return res.send(await markdownToPptxBuffer(text));
   }
 
-  const templateEntry = (await resolveTemplateEntry(template)) || (await resolveTemplateEntry('diakonie-kork'));
+  // "diakonie-kork-standard" (Admin-Upload) ist der eigentliche Standard - "diakonie-kork"
+  // bleibt als letzter Rueckfall, falls die hochgeladene Vorlage mal geloescht wird (die
+  // fest einprogrammierte existiert immer, siehe TEMPLATES in PptxTemplateService.js).
+  const templateEntry = (await resolveTemplateEntry(template))
+    || (await resolveTemplateEntry('diakonie-kork-standard'))
+    || (await resolveTemplateEntry('diakonie-kork'));
   const slides = markdownToSlideData(text);
   let titleImagePath = null;
   if (includeImage) {
@@ -76,6 +82,10 @@ router.post('/api/export-pptx', asyncHandler(async (req, res) => {
       console.warn('PPTX-Titelbild fehlgeschlagen, Export läuft ohne Bild weiter:', e.message);
     }
   }
+
+  const profile = await userRepo.findProfileById(session.uid);
+  const authorName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || session.username;
+  slides.push(buildClosingSlide(authorName));
 
   try {
     const buffer = buildPptxFromTemplate(slides, { titleImagePath, templatePath: templateEntry.path });

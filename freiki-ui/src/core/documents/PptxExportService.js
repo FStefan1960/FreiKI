@@ -1,4 +1,5 @@
 const pptxgen = require('pptxgenjs');
+const { getBrandConfig } = require('../../shared/config/BrandConfig');
 
 // Entfernt **fett** und `code`-Markierungen statt sie umzusetzen (anders als beim
 // Word-Export): pptxgenjs' Text-Run-Array mit gemischter Formatierung pro Zeile ist
@@ -7,12 +8,26 @@ function stripInline(s) {
   return s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1');
 }
 
+// Signaturzeile, die 0chat.md (siehe prompts/0chat.md) jeder Chat-Antwort ans Ende haengt -
+// im PPTX-Export soll sie nicht als gewoehnlicher Bulletpoint auf der letzten Inhaltsfolie
+// landen, sondern ausschliesslich auf der Abschlussfolie (buildClosingSlide). Der Markenname
+// kommt aus BrandConfig statt fest codiert zu sein, da dieselbe Datei auf FreiKI/KorKI/
+// FrankKI läuft und die Prompts pro Instanz einen anderen Namen anhängen.
+function brandSignature() {
+  return `Mit freundlicher Unterstützung von ${getBrandConfig().name}`;
+}
+
 // Wandelt Markdown (wie es die Chat-Antworten liefern: #/##-Ueberschriften pro Folie,
 // ###+ als hervorgehobene Zwischenzeile, -/* und nummerierte Listen als Bulletpoints,
 // Fliesstext als normale Zeile) in eine Folienstruktur um. Kein vollstaendiger
 // Markdown-Parser, deckt aber ab, was fuer eine PPT-Gliederung gebraucht wird.
 function markdownToSlideData(text) {
   const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  let lastContentIdx = lines.length - 1;
+  while (lastContentIdx >= 0 && !lines[lastContentIdx].trim()) lastContentIdx--;
+  if (lastContentIdx >= 0 && stripInline(lines[lastContentIdx].trim()).toLowerCase() === brandSignature().toLowerCase()) {
+    lines.splice(lastContentIdx, 1);
+  }
   const slides = [];
   let current = null;
 
@@ -58,7 +73,17 @@ function markdownToSlideData(text) {
     else current.body.push({ text: stripInline(line) });
   }
 
-  return slides.length ? slides : [{ title: '', body: [] }];
+  if (!slides.length) return [{ title: '', body: [] }];
+
+  // Folie 1 ist immer die Titelfolie (siehe find_title_only_layout() im PPTX-Template-
+  // Export) - Inhalt, den die erste Ueberschrift direkt mitbringt, geht dabei nicht
+  // verloren, sondern wandert (mit derselben Ueberschrift) als eigene Folie direkt dahinter.
+  if (slides[0].body.length) {
+    slides.splice(1, 0, { title: slides[0].title, body: slides[0].body });
+    slides[0] = { title: slides[0].title, body: [] };
+  }
+
+  return slides;
 }
 
 async function markdownToPptxBuffer(text) {
@@ -103,4 +128,17 @@ function buildTitleImagePrompt(slides) {
   return prompt;
 }
 
-module.exports = { markdownToPptxBuffer, markdownToSlideData, buildTitleImagePrompt };
+// Autor/Datum/Markenhinweis als letzte Folie - "closing" markiert sie fuer den Python-Export
+// (siehe find_closing_layout() in build_pptx_from_template.py), damit sie nicht als normale
+// Inhaltsfolie ins content_layout, sondern (falls vorhanden) ins eigene "Abschluss"-Layout
+// der Vorlage rutscht.
+function buildClosingSlide(authorName) {
+  const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const body = [];
+  if (authorName) body.push({ text: `Autor: ${authorName}` });
+  body.push({ text: `Datum: ${today}` });
+  body.push({ text: brandSignature(), bold: true });
+  return { title: '', body, closing: true };
+}
+
+module.exports = { markdownToPptxBuffer, markdownToSlideData, buildTitleImagePrompt, buildClosingSlide };

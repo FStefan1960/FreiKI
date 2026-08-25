@@ -61,6 +61,23 @@ def find_title_only_layout(prs):
     raise ValueError('Kein reines Titel-Layout (Titel ohne Text-/Objekt-Platzhalter) im Template gefunden')
 
 
+# Einzige bewusste Ausnahme von "nach Struktur statt Name suchen" (siehe Kommentar oben):
+# Fuer die Abschlussfolie (Autor/Datum/Markenhinweis) gibt es keine strukturelle
+# Unterscheidung von einer normalen Inhaltsfolie - beide sind Titel + breiter Body. Ein
+# vom Kunden absichtlich so benanntes "Abschluss"-Layout wird deshalb per Name gesucht;
+# Vorlagen ohne ein so benanntes Layout (z.B. die default-Vorlage) fallen auf das normale
+# content_layout zurueck, statt den Export fehlschlagen zu lassen.
+def find_closing_layout(prs, fallback):
+    for layout in prs.slide_layouts:
+        if layout.name.strip().lower() != 'abschluss':
+            continue
+        title_ph = next((p for p in layout.placeholders if p.placeholder_format.type == PP.TITLE), None)
+        body_ph = next((p for p in layout.placeholders if p.placeholder_format.type in BODY_TYPES), None)
+        if title_ph is not None and body_ph is not None:
+            return layout, title_ph.placeholder_format.idx, body_ph.placeholder_format.idx
+    return fallback
+
+
 def set_bullet(paragraph, level, numbered):
     """pptxgenjs/python-pptx haben keine High-Level-Bullet-API; das Template
     setzt buNone auf Layout-Ebene (freies Design ohne Bullets als Default),
@@ -135,14 +152,20 @@ def build(data, out_path):
     remove_existing_slides(prs)
     content_layout, content_title_idx, body_idx = find_content_layout(prs)
     title_only_layout, title_only_idx = find_title_only_layout(prs)
+    closing_layout, closing_title_idx, closing_body_idx = find_closing_layout(
+        prs, (content_layout, content_title_idx, body_idx))
     body_ph_def = next(p for p in content_layout.placeholders if p.placeholder_format.idx == body_idx)
     BODY_FULL = (body_ph_def.left, body_ph_def.top, body_ph_def.width, body_ph_def.height)
 
     for slide_data in data['slides']:
         image_path = slide_data.get('image')
         has_body = bool(slide_data.get('body'))
-        layout = content_layout if has_body else title_only_layout
-        title_idx = content_title_idx if has_body else title_only_idx
+        if slide_data.get('closing'):
+            layout, title_idx, this_body_idx = closing_layout, closing_title_idx, closing_body_idx
+        elif has_body:
+            layout, title_idx, this_body_idx = content_layout, content_title_idx, body_idx
+        else:
+            layout, title_idx, this_body_idx = title_only_layout, title_only_idx, None
         slide = prs.slides.add_slide(layout)
         title_ph = slide.placeholders[title_idx]
         title_ph.text_frame.text = slide_data.get('title') or ' '
@@ -154,7 +177,7 @@ def build(data, out_path):
         title_run.font.bold = True
 
         if has_body:
-            body_ph = slide.placeholders[body_idx]
+            body_ph = slide.placeholders[this_body_idx]
             if image_path:
                 text_w = (BODY_FULL[2] - IMAGE_MARGIN) // 2
                 body_ph.left, body_ph.top = Emu(BODY_FULL[0]), Emu(BODY_FULL[1])

@@ -135,7 +135,11 @@ async function loadPptxTemplateOptions() {
     genericOpt.value = 'generic';
     genericOpt.textContent = t('pptx_export.template_generic', 'Generisch (ohne Bild)');
     select.appendChild(genericOpt);
-    if ([...select.options].some(o => o.value === previous)) select.value = previous;
+    if ([...select.options].some(o => o.value === previous)) {
+      select.value = previous;
+    } else if ([...select.options].some(o => o.value === 'diakonie-kork-standard')) {
+      select.value = 'diakonie-kork-standard';
+    }
   } catch (e) {
     console.warn('Vorlagenliste konnte nicht geladen werden, nutze Standardauswahl:', e.message);
   }
