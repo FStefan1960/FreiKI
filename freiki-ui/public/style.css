@@ -338,12 +338,20 @@ body {
 }
 
 .login-register-link {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
   text-align: center;
-  font-size: var(--fk-fs-caption);
-  color: var(--fk-text-muted);
+  padding: 12px;
+  background: var(--fk-success-text);
+  color: #fff;
+  border-radius: var(--fk-radius);
+  font-size: var(--fk-fs-body);
+  font-weight: 600;
   text-decoration: none;
+  transition: background 0.15s;
 }
-.login-register-link:hover { text-decoration: underline; color: var(--fk-primary); }
+.login-register-link:hover { background: color-mix(in srgb, var(--fk-success-text) 85%, black); color: #fff; text-decoration: none; }
 
 .login-disclaimer {
   background: #fef9c3;
