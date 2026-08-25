@@ -10,7 +10,10 @@ const { sendReportMail } = require('../core/integrations/EmailService');
 const { getBrandConfig } = require('../shared/config/BrandConfig');
 
 const STATE_PATH = path.join(config.APP_ROOT, 'usage-state.json');
-const SYSTEM_USERS = ['n8n', 'system', 'webhook', 'test', 'unknown'];
+const SYSTEM_USERS = ['n8n', 'system', 'webhook', 'test', 'unknown', 'healthcheck'];
+function isSystemUser(name) {
+  return SYSTEM_USERS.includes((name || '').toLowerCase());
+}
 
 // Historische Einträge tragen den Werkzeug-Titel, der zum Zeitpunkt der Anfrage galt (siehe
 // recordChatEvent) - bei einer Umbenennung/Zusammenlegung von Modi taucht ein Werkzeug sonst
@@ -92,7 +95,7 @@ function buildUserWorkspace(chats) {
 // JSON-Parsing pro Request unkritisch.
 function getHistoricalStats(days = 30) {
   const state = loadState();
-  const allTime = state.chatsGesamt.filter(c => !SYSTEM_USERS.includes((c.user || '').toLowerCase()));
+  const allTime = state.chatsGesamt.filter(c => !isSystemUser(c.user));
   const cutoff = Date.now() - days * 86400000;
   const inRange = allTime.filter(c => c.timestamp && new Date(c.timestamp).getTime() >= cutoff);
 
@@ -168,9 +171,9 @@ function splitTodayBuffers(state) {
   const gestern = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   const chatsHeute = state.chats.filter(c =>
     c.timestamp && (c.timestamp.startsWith(gestern) || c.timestamp.startsWith(heute)) &&
-    !SYSTEM_USERS.includes((c.user || '').toLowerCase())
+    !isSystemUser(c.user)
   );
-  const chatsGesamt = state.chatsGesamt.filter(c => !SYSTEM_USERS.includes((c.user || '').toLowerCase()));
+  const chatsGesamt = state.chatsGesamt.filter(c => !isSystemUser(c.user));
   return { gestern, chatsHeute, chatsGesamt };
 }
 
@@ -199,4 +202,4 @@ function buildDailyReportPreview() {
   return buildReportHtml(chatsHeute, chatsGesamt);
 }
 
-module.exports = { recordChatEvent, run, getHistoricalStats, buildDailyReportPreview };
+module.exports = { recordChatEvent, run, getHistoricalStats, buildDailyReportPreview, isSystemUser };

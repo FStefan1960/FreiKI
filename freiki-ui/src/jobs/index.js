@@ -27,7 +27,10 @@ function startJobs() {
   scheduleDaily('sicherheitslage-mittags', 12, 30, sicherheitslage.run);
   scheduleHourly('ninaWarnungen', 0, ninaWarnungen.run);
   scheduleEvery('resourceHealthAlert', 30, resourceHealthAlert.run);
-  scheduleEvery('syntheticHealthCheck', 15, syntheticHealthCheck.run);
+  // FreiKI-spezifisch auf 60 statt 15 Minuten: hier läuft echte externe LLM-Inferenz
+  // (DeepInfra) statt wie auf KorKI gegen lokales, kostenfreies vLLM - siehe
+  // syntheticHealthCheck.js (testLLM + testLoginAndRag sind reale Token-Roundtrips).
+  scheduleEvery('syntheticHealthCheck', 60, syntheticHealthCheck.run);
   scheduleDaily('statusReport', 7, 0, statusReport.run);
   scheduleEvery('vllmSignalMonitor', 5, vllmSignalMonitor.checkStatus);
   scheduleDaily('vllmHeartbeat-morgens', 7, 30, vllmSignalMonitor.sendHeartbeat);

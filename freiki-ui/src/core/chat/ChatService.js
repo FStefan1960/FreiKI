@@ -7,7 +7,7 @@ const sensitiveLog = require('../audit/SensitiveQueryLog');
 const documents = require('../documents/DocumentService');
 const users = require('../auth/UserRepository');
 const { webSearch } = require('../integrations/SearXNGService');
-const { recordChatEvent } = require('../../jobs/usageStatsReport');
+const { recordChatEvent, isSystemUser } = require('../../jobs/usageStatsReport');
 const { handleImageGenMode, handleMusicGenMode, handleQrGenMode, waitWhileImageGenerating, GPU_CHAT_WAIT_HINT } = require('./MediaGenChatMode');
 const { handlePaperlessMode } = require('./PaperlessChatMode');
 const { handleWissenMode } = require('./WissenChatMode');
@@ -21,7 +21,11 @@ async function handleChat(req, res) {
   const files = req.files?.['files'] || [];
 
   console.log(`Chat request - mode: ${mode}, file: ${file ? file.originalname : 'none'}, files: ${files.length}, task: ${multidoc_task || 'none'}`);
-  chatRepo.trackChatRequest(req.session?.uid);
+  // Session-Username ist die Quelle der Wahrheit (JWT). req.body.username ist nur Fallback
+  // für alte Clients: der 15-Minuten-Health-Check sendet JSON ohne username-Feld und
+  // landete sonst als "unknown" – genau die Werte, die der Nutzungsbericht herausfiltert.
+  const username = req.session?.username || req.body.username || 'unknown';
+  if (!isSystemUser(username)) chatRepo.trackChatRequest(req.session?.uid);
 
   try {
     let fileContent = '';
@@ -64,10 +68,6 @@ async function handleChat(req, res) {
     const isQrGen      = modeConf?.qrgen || false;
     const wissenKey    = mode.startsWith('w_') ? mode.slice(2) : mode;
     const isWissen     = modeConf?.workspace === 'wissen';
-    // Session-Username ist die Quelle der Wahrheit (JWT). req.body.username ist nur Fallback
-    // für alte Clients: der 15-Minuten-Health-Check sendet JSON ohne username-Feld und
-    // landete sonst als "unknown" – genau die Werte, die der Nutzungsbericht herausfiltert.
-    const username = req.session?.username || req.body.username || 'unknown';
 
     // Bereiche, auf die der Nutzer laut use_areas Zugriff hat (null = uneingeschränkt/admin).
     // Live aus der DB gelesen (nicht aus dem JWT), da use_areas sich seit dem Login geändert
