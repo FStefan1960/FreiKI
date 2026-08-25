@@ -60,6 +60,12 @@
     .ms-opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;cursor:pointer}
     .ms-opt:hover{background:#f3f4f6}
     .ms-opt input{width:auto}
+    .ms-group{border-top:1px solid #f0f1f3;margin-top:4px;padding-top:4px}
+    .ms-group:first-child{border-top:none;margin-top:0;padding-top:0}
+    .ms-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b7280}
+    .ms-group-all{border:none;background:none;color:#2B9CD8;font-size:11px;font-weight:700;cursor:pointer;padding:2px 4px}
+    .ms-group-all:hover{text-decoration:underline}
+    .ms-group .ms-opt{padding-left:20px}
     .row-actions{display:flex;gap:6px;flex-wrap:wrap}
     .new-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;align-items:end}
     td input.cell{width:100%;padding:6px 8px;font-size:12px;border:1px solid #d1d5db;border-radius:6px;font-family:inherit}
@@ -196,7 +202,33 @@ let USE_METACOM = false;
 
 function statusMsg(type, txt){ const s=document.getElementById('status'); s.className='status-msg '+type; s.textContent=txt; if(type==='ok') setTimeout(()=>{ s.className='status-msg'; s.textContent=''; },3000); }
 
+// "group" (aus /api/admin/areas) verweist auf den unpräfixten Area-Key (z.B. "oh"), a.key
+// trägt aber das "w_"-Präfix (z.B. "w_oh") - für den Gruppen-Abgleich muss das Präfix runter.
+function bareAreaKey(k){ return k.replace(/^w_/, ''); }
+
+// Baut <option>-Elemente für einen Bereichs-Select, gruppiert per <optgroup> nach "group"
+// (aus /api/admin/areas, z.B. AWS/AD/ID/Rufbereitschaft → OH). Bereiche ohne group landen
+// ungruppiert direkt im Select, wie bisher.
+function appendAreaOptions(selectEl, selectedKey){
+  const groupRootKeys = new Set(AREAS.filter(a=>a.group).map(a=>a.group));
+  const rendered = new Set();
+  const addOpt=(container,a)=>{ const o=document.createElement('option'); o.value=a.key; o.textContent=a.title; if(selectedKey===a.key) o.selected=true; container.appendChild(o); };
+  AREAS.forEach(a=>{
+    if(rendered.has(a.key) || a.group) return;
+    if(groupRootKeys.has(bareAreaKey(a.key))){
+      const og=document.createElement('optgroup'); og.label=a.groupLabel || a.title;
+      [a, ...AREAS.filter(x=>x.group===bareAreaKey(a.key))].forEach(m=>{ addOpt(og, m); rendered.add(m.key); });
+      selectEl.appendChild(og);
+    } else {
+      addOpt(selectEl, a); rendered.add(a.key);
+    }
+  });
+}
+
 // ── Multiselect-Dropdown ──
+// Bereiche mit "group" (aus /api/admin/areas, z.B. AWS/AD/ID/Rufbereitschaft → OH) werden
+// unter einer Gruppen-Überschrift mit "Alle"-Sammel-Checkbox eingerückt dargestellt.
+// Bereiche ohne group bleiben unverändert eine flache Liste.
 function makeMultiSelect(host, selected, onChange){
   host.innerHTML='';
   const wrap=document.createElement('div'); wrap.className='ms';
@@ -210,14 +242,39 @@ function makeMultiSelect(host, selected, onChange){
     const n=sel.size;
     lbl.textContent = n===0 ? 'Alle' : (n===AREAS.length ? 'Alle' : n+' gewählt');
   }
-  AREAS.forEach(a=>{
+  function values(){ return AREAS.map(a=>a.key).filter(k=>sel.has(k.toLowerCase())); }
+  function addOption(container, a){
     const opt=document.createElement('label'); opt.className='ms-opt';
     const cb=document.createElement('input'); cb.type='checkbox'; cb.value=a.key; cb.checked=sel.has(a.key.toLowerCase());
     cb.addEventListener('change',()=>{ if(cb.checked) sel.add(a.key.toLowerCase()); else sel.delete(a.key.toLowerCase()); refresh(); onChange(values()); });
     opt.appendChild(cb); opt.appendChild(document.createTextNode(' '+a.title));
-    panel.appendChild(opt);
+    container.appendChild(opt);
+    return cb;
+  }
+  const groupRootKeys = new Set(AREAS.filter(a=>a.group).map(a=>a.group));
+  const rendered = new Set();
+  AREAS.forEach(a=>{
+    if(rendered.has(a.key) || a.group) return;
+    if(groupRootKeys.has(bareAreaKey(a.key))){
+      const groupWrap=document.createElement('div'); groupWrap.className='ms-group';
+      const head=document.createElement('div'); head.className='ms-group-head';
+      head.appendChild(document.createTextNode(a.groupLabel || a.title));
+      const allBtn=document.createElement('button'); allBtn.type='button'; allBtn.className='ms-group-all'; allBtn.textContent='Alle';
+      head.appendChild(allBtn);
+      groupWrap.appendChild(head);
+      const members=[a, ...AREAS.filter(x=>x.group===bareAreaKey(a.key))];
+      const cbs=members.map(m=>{ const cb=addOption(groupWrap, m); rendered.add(m.key); return cb; });
+      allBtn.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        const check = !cbs.every(cb=>cb.checked);
+        cbs.forEach(cb=>{ cb.checked=check; if(check) sel.add(cb.value.toLowerCase()); else sel.delete(cb.value.toLowerCase()); });
+        refresh(); onChange(values());
+      });
+      panel.appendChild(groupWrap);
+    } else {
+      addOption(panel, a); rendered.add(a.key);
+    }
   });
-  function values(){ return AREAS.map(a=>a.key).filter(k=>sel.has(k.toLowerCase())); }
   btn.addEventListener('click',(e)=>{ e.stopPropagation(); document.querySelectorAll('.ms.open').forEach(o=>{if(o!==wrap)o.classList.remove('open')}); wrap.classList.toggle('open'); });
   wrap.appendChild(btn); wrap.appendChild(panel); host.appendChild(wrap);
   refresh();
@@ -238,7 +295,7 @@ async function load(){
     const nManageEl=document.getElementById('n-manage'); nManageEl.innerHTML='';
     const nManageSel=document.createElement('select');
     const nManageEmpty=document.createElement('option'); nManageEmpty.value=''; nManageEmpty.textContent='– bitte wählen –'; nManageSel.appendChild(nManageEmpty);
-    AREAS.forEach(a=>{ const o=document.createElement('option'); o.value=a.key; o.textContent=a.title; nManageSel.appendChild(o); });
+    appendAreaOptions(nManageSel);
     nManageSel._values=()=>nManageSel.value?[nManageSel.value]:[];
     nManageEl.appendChild(nManageSel);
     const nRole=document.getElementById('n-role');
@@ -411,7 +468,7 @@ function buildApproveCard(reg){
     if(state.role==='manager'){
       const sel=document.createElement('select');
       const empty=document.createElement('option'); empty.value=''; empty.textContent='– bitte wählen –'; sel.appendChild(empty);
-      AREAS.forEach(a=>{ const o=document.createElement('option'); o.value=a.key; o.textContent=a.title; sel.appendChild(o); });
+      appendAreaOptions(sel);
       sel.addEventListener('change',()=>{ state.manage=sel.value?[sel.value]:[]; });
       manHost.innerHTML=''; manHost.appendChild(sel);
     } else { manHost.innerHTML = state.role==='admin' ? '<span class="muted">alle</span>' : '<span class="muted">–</span>'; }
@@ -487,7 +544,7 @@ function buildEditCard(u){
       if(state.role==='manager'){
         const sel=document.createElement('select');
         const empty=document.createElement('option'); empty.value=''; empty.textContent='– bitte wählen –'; sel.appendChild(empty);
-        AREAS.forEach(a=>{ const o=document.createElement('option'); o.value=a.key; o.textContent=a.title; if(state.manage[0]===a.key) o.selected=true; sel.appendChild(o); });
+        appendAreaOptions(sel, state.manage[0]);
         sel.addEventListener('change',()=>{ state.manage=sel.value?[sel.value]:[]; markDirty(); });
         manHost.innerHTML=''; manHost.appendChild(sel);
       } else { manHost.innerHTML = state.role==='admin' ? '<span class="muted">alle</span>' : '<span class="muted">–</span>'; }

@@ -483,6 +483,24 @@ body {
   background: var(--fk-primary);
 }
 
+/* Wissen-Kategorie mit Unterkategorien (z.B. OH → AWS/AD/ID/Rufbereitschaft): der Button der
+   übergeordneten Kategorie wirkt als Gruppen-Überschrift, die Kind-Bereiche werden darunter
+   eingerückt gerendert (siehe renderWissenMenu() in modes.js). */
+.mode-btn-group-head .mode-nav-title {
+  text-transform: uppercase;
+  font-size: var(--fk-fs-caption);
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  color: var(--fk-text-subtle);
+}
+.mode-group-children {
+  margin: 0 0 4px 18px;
+  padding-left: 10px;
+  border-left: 2px solid var(--fk-tint);
+}
+.mode-group-children .mode-btn { min-height: 38px; }
+.mode-group-children .mode-icon { width: 30px; height: 30px; }
+
 /* Web-Search mode — keep distinct */
 .mode-btn-web:hover { background: #fed7aa; color: #7c2d12; }
 .mode-btn-web.active { background: #fed7aa; color: #7c2d12; }

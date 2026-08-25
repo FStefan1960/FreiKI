@@ -419,11 +419,29 @@
       const r = await fetch('/api/admin/areas');
       const areas = await r.json();
       const select = document.getElementById('bereich');
-      areas.forEach(a => {
+      // group/groupLabel (aus areas.json, z.B. AWS/AD/ID/Rufbereitschaft → OH) gruppieren die
+      // Bereichsauswahl per <optgroup>. Bereiche ohne group bleiben ungruppiert wie bisher.
+      // "group" verweist auf den unpräfixten Area-Key (z.B. "oh"), a.key trägt aber das
+      // "w_"-Präfix (z.B. "w_oh") - für den Gruppen-Abgleich muss das Präfix runter.
+      const bareKey = (k) => k.replace(/^w_/, '');
+      const groupRootKeys = new Set(areas.filter(a => a.group).map(a => a.group));
+      const rendered = new Set();
+      const addOpt = (container, a) => {
         const opt = document.createElement('option');
-        opt.value = a.key.replace(/^w_/, '');
+        opt.value = bareKey(a.key);
         opt.textContent = a.title;
-        select.appendChild(opt);
+        container.appendChild(opt);
+      };
+      areas.forEach(a => {
+        if (rendered.has(a.key) || a.group) return;
+        if (groupRootKeys.has(bareKey(a.key))) {
+          const og = document.createElement('optgroup');
+          og.label = a.groupLabel || a.title;
+          [a, ...areas.filter(x => x.group === bareKey(a.key))].forEach(m => { addOpt(og, m); rendered.add(m.key); });
+          select.appendChild(og);
+        } else {
+          addOpt(select, a); rendered.add(a.key);
+        }
       });
       select.addEventListener('change', () => loadDocuments(select.value));
     } catch (e) { console.error('Bereiche laden fehlgeschlagen:', e.message); }

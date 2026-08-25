@@ -117,6 +117,35 @@ function makeModeBtn(m) {
   return btn;
 }
 
+// Rendert die Wissen-Buttons gruppiert: Bereiche mit "group" (aus areas.json, z.B. AWS/AD/ID/
+// Rufbereitschaft → OH) erscheinen eingerückt unter dem Button ihrer übergeordneten Kategorie.
+// Bereiche ohne group (die meisten) bleiben unverändert eine flache Liste.
+function renderWissenMenu(container, wissen) {
+  // "group" (aus areas.json) verweist auf den unpräfixten Area-Key (z.B. "oh"), der Mode-Key
+  // trägt aber das "w_"-Präfix (z.B. "w_oh") - für den Gruppen-Abgleich muss das Präfix runter.
+  const bareKey = (k) => k.replace(/^w_/, '');
+  const groupRootKeys = new Set(wissen.filter(m => m.group).map(m => m.group));
+  const rendered = new Set();
+  wissen.forEach(m => {
+    if (rendered.has(m.key) || m.group) return;
+    const btn = makeModeBtn(m);
+    rendered.add(m.key);
+    if (groupRootKeys.has(bareKey(m.key))) {
+      btn.classList.add('mode-btn-group-head');
+      container.appendChild(btn);
+      const children = document.createElement('div');
+      children.className = 'mode-group-children';
+      wissen.filter(x => x.group === bareKey(m.key)).forEach(child => {
+        children.appendChild(makeModeBtn(child));
+        rendered.add(child.key);
+      });
+      container.appendChild(children);
+    } else {
+      container.appendChild(btn);
+    }
+  });
+}
+
 async function loadModes() {
   try {
     const res = await fetch('/api/modes?lang=' + encodeURIComponent(fkGetUiLang()), { cache: 'no-store' });
@@ -152,7 +181,7 @@ async function loadModes() {
       b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc}</div></div>`;
       cw.appendChild(b);
     });
-    wissen.forEach(m => ck.appendChild(makeModeBtn(m)));
+    renderWissenMenu(ck, wissen);
 
     // Kundenspezifische Extras aus public/extras/*.json
     try {

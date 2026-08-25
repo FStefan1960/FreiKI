@@ -9,6 +9,7 @@ const prompts = require('../../../core/chat/PromptService');
 const { chatUpload } = require('../../../core/chat/ChatValidator');
 const ChatService = require('../../../core/chat/ChatService');
 const kb = require('../../../core/knowledge/KBService');
+const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const users = require('../../../core/auth/UserRepository');
 const { recordFeedback } = require('../../../jobs/feedbackReport');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
@@ -63,7 +64,14 @@ router.get('/api/modes', asyncHandler(async (req, res) => {
     .filter(m => !m.paperless || hasPaperless);
 
   const lang = prompts.UI_LANGS.includes(req.query.lang) ? req.query.lang : 'de';
-  const localize = (list) => list.map(m => prompts.localizeMode(m, lang));
+  // Wissen-Modes bekommen optional group/groupLabel aus areas.json beigemischt, damit das
+  // Menü Unterkategorien (z.B. OH → AWS/AD/ID/Rufbereitschaft) gruppiert darstellen kann.
+  const withGroup = (m) => {
+    if (!prompts.isWissenMode(m)) return m;
+    const group = kbAreas.getGroup(normArea(m.key));
+    return group ? { ...m, group, groupLabel: kbAreas.getLabel(group) } : m;
+  };
+  const localize = (list) => list.map(m => prompts.localizeMode(withGroup(m), lang));
 
   // 'default'-, 'high_risk'- und 'manager'-Nutzer mit gesetzten use-Bereichen werden eingeschränkt.
   if (session && (session.role === 'default' || session.role === 'high_risk' || session.role === 'manager') && liveUse.length) {

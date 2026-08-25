@@ -13,8 +13,9 @@ const { translateAllLangs } = require('../../../core/chat/PromptTranslator');
 const chatRepo = require('../../../core/chat/ChatRepository');
 const auditLog = require('../../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
+const kbAreas = require('../../../core/knowledge/KBAreaRepository');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
-const { parseFrontmatter, slugifyForFilename } = require('../../../shared/utils/text');
+const { parseFrontmatter, slugifyForFilename, normArea } = require('../../../shared/utils/text');
 const jobsScheduler = require('../../../jobs/scheduler');
 const feedbackReport = require('../../../jobs/feedbackReport');
 const usageStatsReport = require('../../../jobs/usageStatsReport');
@@ -24,7 +25,7 @@ const pptxTemplateRepo = require('../../../core/documents/PptxTemplateRepository
 const pptxTemplateService = require('../../../core/documents/PptxTemplateService');
 
 const router = express.Router();
-router.use(express.json({ limit: '256kb' }));
+router.use(['/admin', '/api/admin'], express.json({ limit: '256kb' }));
 
 // ── Admin: editierbare Konfigurations-Seite ──────────────────
 // Die Seite selbst (GET) bleibt öffentlich erreichbar, rendert aber KEINE
@@ -261,7 +262,15 @@ router.post('/admin/config', asyncHandler(async (req, res) => {
 }));
 
 router.get('/api/admin/areas', (req, res) => {
-  res.json(prompts.modesConfig.filter(prompts.isWissenMode).map(m => ({ key: m.key, title: m.title })));
+  // group/groupLabel (aus areas.json) sind optional - nur gesetzt, wenn der Bereich einer
+  // übergeordneten Kategorie zugeordnet ist (z.B. AWS/AD/ID/Rufbereitschaft → OH). Erlaubt
+  // der Rechte-/Upload-UI, Unterkategorien gruppiert darzustellen.
+  res.json(prompts.modesConfig.filter(prompts.isWissenMode).map(m => {
+    const group = kbAreas.getGroup(normArea(m.key));
+    return group
+      ? { key: m.key, title: m.title, group, groupLabel: kbAreas.getLabel(group) }
+      : { key: m.key, title: m.title };
+  }));
 });
 
 // ── Prompt-Editor: Werkzeug-Prompts (prompts/*.md) direkt in der App bearbeiten statt per
