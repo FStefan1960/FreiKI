@@ -40,7 +40,8 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS enter_to_send BOOLEAN NOT NULL DEFAULT true,
       ADD COLUMN IF NOT EXISTS use_metacom BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS pending_approval BOOLEAN NOT NULL DEFAULT false,
-      ADD COLUMN IF NOT EXISTS dienststelle TEXT NOT NULL DEFAULT ''
+      ADD COLUMN IF NOT EXISTS dienststelle TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS news_ack_version INTEGER NOT NULL DEFAULT 0
   `);
 }
 
@@ -202,6 +203,22 @@ async function completeTraining(id) {
   await pool.query('UPDATE freiki_users SET training_completed=true, training_completed_at=now() WHERE id=$1', [id]);
 }
 
+// Nutzer lehnt die Kenntnisnahme am Ende der Pflichtschulung ab -> Konto wird gesperrt
+// (training_completed bleibt bewusst false, damit ihm nach einer Admin-Entsperrung die
+// Schulung beim naechsten Login erneut angezeigt wird).
+async function declineTraining(id) {
+  await pool.query('UPDATE freiki_users SET suspended=true WHERE id=$1', [id]);
+}
+
+// ── Breaking News (Login-Hinweis, siehe BrandConfig.breakingNewsVersion) ──
+// Speichert die zuletzt quittierte Version statt eines reinen Booleans: eine neue
+// Nachricht erhöht global breakingNewsVersion, wodurch das Modal automatisch wieder für
+// alle User erscheint (news_ack_version < breakingNewsVersion), ohne dass diese Tabelle
+// dafür angefasst werden muss.
+async function ackBreakingNews(id, version) {
+  await pool.query('UPDATE freiki_users SET news_ack_version=$1 WHERE id=$2', [version, id]);
+}
+
 const isValidUsername = (s) => typeof s === 'string' && s.trim().length >= 3 && s.trim().length <= 64 && /^[a-zA-Z0-9._\-äöüÄÖÜß]+$/.test(s.trim());
 const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
@@ -209,6 +226,6 @@ module.exports = {
   VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById,
   listAll, listPending, create, update, updatePasswordHash, updateLanguage, updateEnterToSend, remove, listAdminEmails,
   generateUniqueUsername,
-  setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes, completeTraining,
+  setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes, completeTraining, declineTraining, ackBreakingNews,
   isValidUsername, isValidEmail, cleanAreas,
 };

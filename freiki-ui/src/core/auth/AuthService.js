@@ -19,6 +19,19 @@ function trainingDue(u) {
   return getBrandConfig().mandatoryTraining && !u.training_completed;
 }
 
+// Breaking-News-Hinweis: fällig, wenn eine Nachricht aktiv ist (Text nicht leer) und der
+// Nutzer die aktuelle Version noch nicht quittiert hat (siehe news_ack_version).
+function breakingNewsDue(u) {
+  const b = getBrandConfig();
+  return !!b.breakingNewsText && (u.news_ack_version || 0) < (b.breakingNewsVersion || 0);
+}
+
+function breakingNewsPayload(u) {
+  if (!breakingNewsDue(u)) return null;
+  const b = getBrandConfig();
+  return { text: b.breakingNewsText, version: b.breakingNewsVersion };
+}
+
 async function login(username, password) {
   const u = await users.findByUsername(username);
   if (!u || u.suspended) return { error: 'invalid' };
@@ -36,6 +49,7 @@ async function login(username, password) {
   // Einrichten), Frontend muss den Setup-Dialog erzwingen, bevor der Nutzer weiterarbeitet.
   if (totp.requires2FA(u.role)) result.mustSetup2fa = true;
   if (trainingDue(u)) result.mustCompleteTraining = true;
+  result.breakingNews = breakingNewsPayload(u);
   return result;
 }
 
@@ -52,6 +66,7 @@ async function verifyTwoFactor(pendingToken, code) {
     return {
       token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
       mustCompleteTraining: trainingDue(u),
+      breakingNews: breakingNewsPayload(u),
     };
   }
 
@@ -63,6 +78,7 @@ async function verifyTwoFactor(pendingToken, code) {
       token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
       backupCodeUsed: true, backupCodesRemaining: remaining.length,
       mustCompleteTraining: trainingDue(u),
+      breakingNews: breakingNewsPayload(u),
     };
   }
   return { error: 'invalid-code' };
@@ -232,6 +248,7 @@ async function verifyPasskeyLogin(pendingToken, response) {
   return {
     token, role: u.role, user: { username: u.username }, useAreas: u.use_areas, manageAreas: u.manage_areas,
     mustCompleteTraining: trainingDue(u),
+    breakingNews: breakingNewsPayload(u),
   };
 }
 

@@ -95,9 +95,16 @@ const config = {
   HEALTHCHECK_PASSWORD: process.env.HEALTHCHECK_PASSWORD || '',
 
   MAX_CONTEXT_CHARS: parseInt(process.env.MAX_CONTEXT_CHARS || '40000'),
-  MAX_VLLM_CHARS: parseInt(process.env.MAX_VLLM_CHARS || '20000'),
+  // Harte Obergrenze fürs LLM-Request-Budget (System-Prompt + Text + Verlauf zusammen,
+  // siehe DirectChatMode.js). Bei --max-model-len 32768 und hartcodierten max_tokens:8192
+  // bleiben ~24576 Token Input-Budget; bei ~2,3-2,8 Zeichen/Token (siehe Vorfall vom
+  // 2026-08-26) bleibt bei 45000 Zeichen ausreichend Sicherheitsmarge. MULTI bewusst auf
+  // denselben Wert gesetzt wie Single - der bisherige Wert von 80000 lag bereits über der
+  // physikalisch möglichen Kontextgrenze (Multi läuft über denselben vLLM-Endpoint, kein
+  // separates Kontextbudget).
+  MAX_VLLM_CHARS: parseInt(process.env.MAX_VLLM_CHARS || '45000'),
   MAX_CONTEXT_CHARS_MULTI: parseInt(process.env.MAX_CONTEXT_CHARS_MULTI || '90000'),
-  MAX_VLLM_CHARS_MULTI: parseInt(process.env.MAX_VLLM_CHARS_MULTI || '80000'),
+  MAX_VLLM_CHARS_MULTI: parseInt(process.env.MAX_VLLM_CHARS_MULTI || '45000'),
   SEARXNG_RESULTS: 5,
 
   JWT_SECRET: process.env.JWT_SECRET || '',

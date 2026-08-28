@@ -2,10 +2,12 @@ const express = require('express');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
 const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
+const auditLog = require('../../../core/audit/AdminAuditRepository');
 const { loginLimiter } = require('../middlewares/security');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { secondsUntilMidnightBerlin } = require('../../../shared/utils/text');
 const { config } = require('../../../shared/config');
+const { getBrandConfig } = require('../../../shared/config/BrandConfig');
 
 const router = express.Router();
 router.use(express.json({ limit: '100kb' }));
@@ -215,6 +217,33 @@ router.post('/api/training/complete', asyncHandler(async (req, res) => {
     const result = await AuthService.completeTraining(s.uid);
     res.json(result);
   } catch (e) { console.error('training/complete:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
+// Nutzer lehnt die Kenntnisnahme der Pflichtschulung ab -> Konto sofort sperren. Der Audit-
+// Log-Eintrag ist bewusst nicht optional (anders als bei anderen Selbstbedienungs-Aktionen in
+// dieser Datei), da eine Sperrung fuer Admins in der Nutzerverwaltung sonst nicht von einer
+// manuellen Sperrung zu unterscheiden waere.
+router.post('/api/training/decline', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    await users.declineTraining(s.uid);
+    auditLog.log(s, 'training.declined', { id: s.uid, username: s.username });
+    res.json({ ok: true });
+  } catch (e) { console.error('training/decline:', e.message); res.status(500).json({ error: 'Fehler' }); }
+}));
+
+// Quittiert die aktuell aktive Breaking-News-Version für den eingeloggten Nutzer (siehe
+// breakingNewsDue() in AuthService.js) - die Version wird bewusst serverseitig aus der
+// aktuellen Config gelesen statt vom Client übergeben, damit ein Client keine beliebige
+// Version quittieren kann.
+router.post('/api/news/ack', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
+  try {
+    await users.ackBreakingNews(s.uid, getBrandConfig().breakingNewsVersion);
+    res.json({ ok: true });
+  } catch (e) { console.error('news/ack:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
 
 router.post('/api/change-enter-to-send', asyncHandler(async (req, res) => {

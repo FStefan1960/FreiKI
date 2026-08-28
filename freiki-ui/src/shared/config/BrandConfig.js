@@ -59,6 +59,8 @@ async function loadBrandConfig() {
       mandatoryTraining: BRAND_DEFAULTS.mandatoryTraining, // nur aus .env steuerbar
       selfRegistration:  BRAND_DEFAULTS.selfRegistration,  // nur aus .env steuerbar
       useMetacom:        BRAND_DEFAULTS.useMetacom,        // nur aus .env steuerbar
+      breakingNewsText:    db.breakingNewsText ?? '',
+      breakingNewsVersion: parseInt(db.breakingNewsVersion, 10) || 0,
     };
   } catch (e) {
     console.error('loadBrandConfig Fehler:', e.message);
@@ -76,4 +78,32 @@ async function updateBrandConfig(fields) {
   await loadBrandConfig();
 }
 
-module.exports = { getBrandConfig, loadBrandConfig, updateBrandConfig, BRAND_DEFAULTS, ALLOWED_FIELDS };
+async function setConfigValue(key, val) {
+  await pool.query(
+    'INSERT INTO app_config(key,value) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value',
+    [key, val]
+  );
+}
+
+// Erhöht breakingNewsVersion bei jeder neuen Nachricht - das allein setzt die Kenntnisnahme
+// aller Nutzer zurück (siehe news_ack_version in UserRepository.js), ohne die Nutzertabelle
+// anzufassen.
+async function publishBreakingNews(text) {
+  const nextVersion = (brandConfig.breakingNewsVersion || 0) + 1;
+  await setConfigValue('breakingNewsText', (text || '').trim());
+  await setConfigValue('breakingNewsVersion', String(nextVersion));
+  await loadBrandConfig();
+}
+
+// Zieht die Nachricht zurück, ohne die Version zu erhöhen - das Modal verschwindet sofort für
+// alle (Bedingung ist breakingNewsText nicht leer), eine künftige neue Nachricht setzt aber
+// weiterhin bei allen zurück, unabhängig davon, ob dazwischen zurückgezogen wurde.
+async function clearBreakingNews() {
+  await setConfigValue('breakingNewsText', '');
+  await loadBrandConfig();
+}
+
+module.exports = {
+  getBrandConfig, loadBrandConfig, updateBrandConfig, BRAND_DEFAULTS, ALLOWED_FIELDS,
+  publishBreakingNews, clearBreakingNews,
+};

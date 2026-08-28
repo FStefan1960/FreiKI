@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const fetch = require('node-fetch');
 const { config } = require('../../../shared/config');
-const { getBrandConfig, updateBrandConfig, ALLOWED_FIELDS } = require('../../../shared/config/BrandConfig');
+const { getBrandConfig, updateBrandConfig, ALLOWED_FIELDS, publishBreakingNews, clearBreakingNews } = require('../../../shared/config/BrandConfig');
 const { adminSession } = require('../../../core/auth/AuthMiddleware');
 const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
@@ -116,6 +116,17 @@ a.back:hover{color:#1f54c0}
       <div id="save-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
       <button type="submit" class="btn-save" id="save-btn">Speichern</button>
     </div>
+    <div class="card" id="bn-card" style="margin-top:20px">
+      <h2>Breaking News (Login-Hinweis)</h2>
+      <p style="font-size:12px;color:#5a6b82;margin:0 0 14px">Wird allen Nutzer:innen beim nächsten Login einmalig als Hinweis-Modal angezeigt. Beim Veröffentlichen einer neuen Nachricht wird die Kenntnisnahme aller Nutzer zurückgesetzt.</p>
+      <div id="bn-current" style="font-size:12px;color:#5a6b82;margin-bottom:8px"></div>
+      <textarea id="bn-text" rows="4" style="width:100%;padding:9px 12px;border:1px solid #d8e0ec;border-radius:8px;font-size:14px;color:#15294a;font-family:inherit;resize:vertical"></textarea>
+      <div id="bn-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button type="button" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px" onclick="publishBreakingNews()">Veröffentlichen</button>
+        <button type="button" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px;background:#8a94a6" onclick="clearBreakingNews()">Zurückziehen</button>
+      </div>
+    </div>
   </form>
 
   <div class="preview-box">
@@ -186,12 +197,57 @@ async function load() {
     document.getElementById('config-wrap').style.display = '';
     document.title = (b.name || 'Instanz') + ' – Konfiguration';
     preview();
+    loadBreakingNews();
   } catch (e) {
     errEl.textContent = 'Verbindungsfehler: ' + e.message;
     errEl.style.display = 'block';
   }
 }
 load();
+
+async function loadBreakingNews() {
+  try {
+    const res = await fetch('/api/admin/breaking-news');
+    if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('bn-text').value = d.text || '';
+    document.getElementById('bn-current').textContent = d.text
+      ? 'Aktuell aktiv (Version ' + d.version + ').'
+      : 'Aktuell keine aktive Nachricht.';
+  } catch (e) { /* Karte bleibt leer, kein Blocker fuer den Rest der Seite */ }
+}
+
+async function publishBreakingNews() {
+  const errEl = document.getElementById('bn-error');
+  errEl.style.display = 'none';
+  const text = document.getElementById('bn-text').value.trim();
+  if (!text) { errEl.textContent = 'Bitte einen Text eingeben.'; errEl.style.display = 'block'; return; }
+  try {
+    const res = await fetch('/api/admin/breaking-news', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (res.ok) {
+      loadBreakingNews();
+    } else {
+      const d = await res.json().catch(() => ({}));
+      errEl.textContent = 'Fehler: ' + (d.error || res.status);
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Verbindungsfehler: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function clearBreakingNews() {
+  if (!confirm('Aktuelle Breaking-News-Nachricht zurückziehen?')) return;
+  try {
+    await fetch('/api/admin/breaking-news', { method: 'DELETE' });
+    loadBreakingNews();
+  } catch (e) { /* Karte zeigt beim naechsten Laden ohnehin den echten Stand */ }
+}
 
 // Formular postet als fetch() statt eines nativen <form method="POST">, damit ein Fehler
 // (z. B. 403 bei fehlender Admin-Rolle) im Formular angezeigt werden kann statt auf eine
@@ -258,6 +314,36 @@ router.post('/admin/config', asyncHandler(async (req, res) => {
   } catch (e) {
     console.error('Fehler beim Speichern der Konfiguration:', e.message);
     res.status(500).json({ error: 'Fehler beim Speichern' });
+  }
+}));
+
+// ── Breaking News (Login-Hinweis, siehe BrandConfig.publishBreakingNews) ──
+router.get('/api/admin/breaking-news', (req, res) => {
+  const b = getBrandConfig();
+  res.json({ text: b.breakingNewsText || '', version: b.breakingNewsVersion || 0 });
+});
+
+router.post('/api/admin/breaking-news', asyncHandler(async (req, res) => {
+  const text = (req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Text erforderlich' });
+  try {
+    await publishBreakingNews(text);
+    auditLog.log(req.admin, 'breaking_news.publish', { version: getBrandConfig().breakingNewsVersion });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('breaking-news publish:', e.message);
+    res.status(500).json({ error: 'Fehler beim Veröffentlichen' });
+  }
+}));
+
+router.delete('/api/admin/breaking-news', asyncHandler(async (req, res) => {
+  try {
+    await clearBreakingNews();
+    auditLog.log(req.admin, 'breaking_news.clear', {});
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('breaking-news clear:', e.message);
+    res.status(500).json({ error: 'Fehler beim Zurückziehen' });
   }
 }));
 

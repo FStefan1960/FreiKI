@@ -7,6 +7,9 @@
 node_modules/
 npm-debug.log*
 
+# Python
+__pycache__/
+
 # Piper Stimmmodelle (große Binärdateien, separat herunterladen)
 piper/voices/*.onnx
 piper/voices/*.json

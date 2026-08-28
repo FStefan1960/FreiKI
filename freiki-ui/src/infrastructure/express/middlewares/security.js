@@ -68,7 +68,7 @@ const TWO_FA_SETUP_ALLOWLIST = new Set([
   '/api/webauthn/login/options', '/api/webauthn/login/verify',
   '/api/logout', '/api/me',
   '/api/2fa/setup', '/api/2fa/confirm', '/api/2fa/reinit',
-  '/api/training/complete',
+  '/api/training/complete', '/api/training/decline',
 ]);
 
 function require2FASetupComplete(req, res, next) {

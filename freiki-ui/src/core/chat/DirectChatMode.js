@@ -24,9 +24,14 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
   const chatHistory = parseHistory(history).slice(-4);
 
   const vllmLimit = isMulti ? config.MAX_VLLM_CHARS_MULTI : config.MAX_VLLM_CHARS;
-  if (userMessage.length > vllmLimit) {
-    console.log(`Nachricht gekürzt von ${userMessage.length} auf ${vllmLimit} Zeichen`);
-    userMessage = userMessage.substring(0, vllmLimit) + `\n\n[... Text gekürzt ...]`;
+  // Budget fürs Nutzer-/Dateitext-Feld muss den System-Prompt abziehen, sonst kann
+  // systemPrompt.length + vllmLimit das Gesamtbudget reißen, obwohl userMessage allein
+  // innerhalb von vllmLimit liegt - die History-Trim-Schleife unten rettet das dann nicht
+  // mehr, weil sie userMessage selbst nie kürzt (nur Historie entfernen).
+  const maxUserMessageChars = Math.max(0, vllmLimit - systemPrompt.length);
+  if (userMessage.length > maxUserMessageChars) {
+    console.log(`Nachricht gekürzt von ${userMessage.length} auf ${maxUserMessageChars} Zeichen`);
+    userMessage = userMessage.substring(0, maxUserMessageChars) + `\n\n[... Text gekürzt ...]`;
   }
 
   let trimmedHistory = [...chatHistory];

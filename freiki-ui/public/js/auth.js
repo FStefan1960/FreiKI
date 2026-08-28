@@ -29,15 +29,17 @@ function completeLogin(data, username) {
   if (tcBtn && tcBtn.dataset.url) tcBtn.style.display = '';
   loadModes();
   loadTips();
+  pendingBreakingNews = data.breakingNews || null;
   if (data.mustCompleteTraining) startTraining(role, !!data.mustSetup2fa);
   else if (data.mustSetup2fa) startSetup2FA();
   else if (role === 'high_risk') showHighRiskModal();
+  else maybeShowBreakingNews();
 }
 
 // ── Pflichtschulung beim ersten Login ──
 let trainingTrack = 'default';
 let trainingSlide = 1;
-let trainingTotal = 8;
+let trainingTotal = 10;
 let trainingRole = 'default';
 let trainingThenSetup2fa = false;
 
@@ -45,17 +47,29 @@ function startTraining(role, thenSetup2fa) {
   trainingRole = role;
   trainingThenSetup2fa = thenSetup2fa;
   trainingTrack = role === 'high_risk' ? 'bgt' : 'default';
-  trainingTotal = trainingTrack === 'bgt' ? 9 : 8;
+  trainingTotal = 10; // beide Tracks zeigen seit 2026-08-26 denselben, einheitlichen Foliensatz
   trainingSlide = 1;
   renderTrainingSlide();
   document.getElementById('training-modal').classList.remove('hide');
 }
 
 function renderTrainingSlide() {
+  const onLastSlide = trainingSlide === trainingTotal;
   document.getElementById('training-slide-img').src = `/training/${trainingTrack}/slide-${trainingSlide}.jpg`;
   document.getElementById('training-progress').textContent = t('training.progress', 'Folie {i} / {n}').replace('{i}', trainingSlide).replace('{n}', trainingTotal);
   document.getElementById('training-prev-btn').style.visibility = trainingSlide === 1 ? 'hidden' : 'visible';
-  document.getElementById('training-next-btn').textContent = trainingSlide === trainingTotal ? t('training.finish', 'Abschließen') : t('training.next', 'Weiter');
+  document.getElementById('training-next-btn').textContent = onLastSlide ? t('training.finish', 'Abschließen') : t('training.next', 'Weiter');
+  // Kenntnisnahme (Checkbox) + Abbrechen-Option nur auf der letzten Folie - bei jedem
+  // Betreten der letzten Folie neu (unangehakt), damit ein Hin-/Herblaettern nicht versehentlich
+  // eine bereits gesetzte Bestaetigung "mitnimmt".
+  document.getElementById('training-ack-row').style.display = onLastSlide ? 'flex' : 'none';
+  document.getElementById('training-decline-btn').style.display = onLastSlide ? '' : 'none';
+  document.getElementById('training-ack-checkbox').checked = false;
+  document.getElementById('training-next-btn').disabled = onLastSlide;
+}
+
+function onTrainingAckChange() {
+  document.getElementById('training-next-btn').disabled = !document.getElementById('training-ack-checkbox').checked;
 }
 
 function prevTrainingSlide() {
@@ -64,12 +78,25 @@ function prevTrainingSlide() {
 
 async function nextTrainingSlide() {
   if (trainingSlide < trainingTotal) { trainingSlide++; renderTrainingSlide(); return; }
+  if (!document.getElementById('training-ack-checkbox').checked) return; // Next-Button ist eigentlich disabled, defensiv trotzdem prüfen
   try {
     await fetch('/api/training/complete', { method: 'POST' });
   } catch (e) { /* Abschluss beim nächsten Login erneut versucht */ }
   document.getElementById('training-modal').classList.add('hide');
   if (trainingThenSetup2fa) startSetup2FA();
   else if (trainingRole === 'high_risk') showHighRiskModal();
+  else maybeShowBreakingNews();
+}
+
+// Nutzer lehnt die Kenntnisnahme ab -> Konto wird gesperrt, FreiKI-Nutzung endet sofort.
+async function declineTraining() {
+  if (!confirm(t('training.decline_confirm', 'Ihr FreiKI-Zugang wird gesperrt, bis eine Administratorin/ein Administrator ihn wieder freischaltet. Wirklich abbrechen?'))) return;
+  try {
+    await fetch('/api/training/decline', { method: 'POST' });
+  } catch (e) { /* Konto ist serverseitig ohnehin gesperrt, Meldung bleibt informativ */ }
+  document.getElementById('training-modal').classList.add('hide');
+  alert(t('training.declined_notice', 'Ihr FreiKI-Zugang wurde gesperrt. Bitte wenden Sie sich an die/den Datenschutzbeauftragte:n oder Ihre Administratorin/Ihren Administrator.'));
+  forceLogout();
 }
 
 async function login() {
@@ -320,6 +347,7 @@ async function confirmSetup2FA() {
 function closeSetup2FAModal() {
   document.getElementById('setup2fa-modal').classList.add('hide');
   if (State.currentRole === 'high_risk') showHighRiskModal();
+  else maybeShowBreakingNews();
 }
 
 // ── Hinweis für BGT-Nutzer (Berufsgeheimnisträger) ──
@@ -328,6 +356,21 @@ function showHighRiskModal() {
 }
 function closeHighRiskModal() {
   document.getElementById('highrisk-modal').classList.add('hide');
+  maybeShowBreakingNews();
+}
+
+// ── Breaking News: einmaliger Login-Hinweis, immer als letzter Schritt der Modal-Kette
+// (nach Pflichtschulung/2FA-Setup/BGT-Hinweis), damit er nicht mit deren Sperrlogik kollidiert.
+let pendingBreakingNews = null;
+function maybeShowBreakingNews() {
+  if (!pendingBreakingNews) return;
+  document.getElementById('breakingnews-text').textContent = pendingBreakingNews.text;
+  document.getElementById('breakingnews-modal').classList.remove('hide');
+}
+async function closeBreakingNewsModal() {
+  pendingBreakingNews = null;
+  document.getElementById('breakingnews-modal').classList.add('hide');
+  try { await fetch('/api/news/ack', { method: 'POST' }); } catch (e) { /* wird beim naechsten Login erneut angezeigt */ }
 }
 
 function logout() {

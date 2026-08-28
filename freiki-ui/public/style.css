@@ -263,6 +263,8 @@ body {
   transition: background 0.15s;
 }
 .demo-modal-btn:hover { background: #b45f04; }
+.demo-modal-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.demo-modal-btn:disabled:hover { background: #d97706; }
 
 .login-card {
   background: var(--fk-surface);
@@ -386,7 +388,7 @@ body {
 
 /* ── Sidebar ── */
 .sidebar {
-  width: 266px;
+  width: var(--fk-sidebar-w, 266px);
   background: var(--fk-surface);
   border-right: 1px solid var(--fk-border);
   display: flex;
@@ -395,6 +397,28 @@ body {
   transition: transform 0.25s ease;
   overflow-y: auto;
 }
+
+/* Ziehbarer Breiten-Griff (Desktop) */
+.sidebar-resize-handle {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+}
+.sidebar-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 2px;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle.dragging::after {
+  background: var(--fk-primary);
+}
+body.sidebar-resizing { cursor: col-resize; user-select: none; }
 
 .sidebar-logo {
   padding: 20px 18px 14px;
@@ -1460,6 +1484,7 @@ html[data-theme="dark"] .messages {
   }
   .sidebar.open { transform: translateX(0); }
   .sidebar-overlay.show { display: block; }
+  .sidebar-resize-handle { display: none; }
   .menu-btn { display: flex; }
   .message { max-width: 92%; }
   .chat-header-desc { display: none; }

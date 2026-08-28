@@ -13,6 +13,49 @@ function closeSidebar() {
   if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
 }
 
+// ── Sidebar-Breite ziehbar (Desktop) ──
+(function () {
+  const MIN_WIDTH = 200;
+  const MAX_WIDTH = 480;
+  const STORAGE_KEY = 'fk_sidebar_width';
+
+  const sidebar = document.getElementById('sidebar');
+  const handle = document.getElementById('sidebar-resize-handle');
+  if (!sidebar || !handle) return;
+
+  const saved = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+  if (saved >= MIN_WIDTH && saved <= MAX_WIDTH) {
+    sidebar.style.setProperty('--fk-sidebar-w', saved + 'px');
+  }
+
+  let startX = 0;
+  let startWidth = 0;
+
+  function onPointerMove(e) {
+    const width = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (e.clientX - startX)));
+    sidebar.style.setProperty('--fk-sidebar-w', width + 'px');
+  }
+
+  function onPointerUp() {
+    handle.classList.remove('dragging');
+    document.body.classList.remove('sidebar-resizing');
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    localStorage.setItem(STORAGE_KEY, parseInt(sidebar.getBoundingClientRect().width, 10));
+  }
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (window.innerWidth <= 640) return; // mobil: Sidebar ist Overlay, kein Resize
+    e.preventDefault();
+    startX = e.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    document.body.classList.add('sidebar-resizing');
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  });
+})();
+
 function toggleAccountMenu(e) {
   e.stopPropagation();
   const menu = document.getElementById('account-menu');
