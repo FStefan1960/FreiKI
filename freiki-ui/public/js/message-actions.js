@@ -16,19 +16,16 @@ function retryMessage(msgId) {
   sendMessage();
 }
 
-// Wie retryMessage(), aber hakt vorher die Checkbox "Weitere Wissensbereiche mit durchsuchen"
-// an - erscheint nur als Button, wenn der Server im gewählten Bereich keinen Treffer fand
-// (searchAllAreasSuggested, siehe WissenChatMode.js finishWissen()). Checkbox bleibt danach
-// angehakt, damit Folgefragen in derselben Unterhaltung ebenfalls bereichsübergreifend suchen.
+// Wie retryMessage(), aber erzwingt für diesen einen Retry die bereichsübergreifende Suche
+// (siehe sendMessage()' forceSearchAllAreas-Parameter) - gilt nur für diese eine Anfrage,
+// kein dauerhafter UI-Zustand mehr.
 function retryMessageSearchAllAreas(msgId) {
   const bubble = document.getElementById(msgId);
   const promptText = bubble?.dataset.promptText;
   if (!promptText) return;
-  const checkbox = document.getElementById('search-all-areas');
-  if (checkbox) checkbox.checked = true;
   const input = document.getElementById('message-input');
   input.value = promptText;
-  sendMessage();
+  sendMessage(true);
 }
 
 function copyMessage(msgId, btn) {
@@ -426,8 +423,8 @@ function addMessageActions(bubble, msgId, skipTtsAndCopy, suggestSearchAllAreas)
   // chat-send.js).
   if (suggestSearchAllAreas) {
     const searchAll = document.createElement('button');
-    searchAll.className = 'copy-btn';
-    searchAll.innerHTML = SEARCH_ICON + ' <span>' + t('chat.search_all_areas_retry', 'Auch andere Bereiche durchsuchen') + '</span>';
+    searchAll.className = 'copy-btn search-all-btn';
+    searchAll.innerHTML = SEARCH_ICON + ' <span>' + t('chat.search_all_areas_retry', 'Auch andere Bereiche durchsuchen (langsamer)') + '</span>';
     searchAll.onclick = function() { retryMessageSearchAllAreas(msgId); };
     row.appendChild(searchAll);
   }

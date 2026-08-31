@@ -209,11 +209,10 @@
   "account_menu.enter_to_send_off": "Enter behavior: New paragraph",
   "account_menu.dark_mode_on": "Dark mode: On",
   "account_menu.dark_mode_off": "Dark mode: Off",
-  "input.search_all_areas": "Also search other knowledge areas",
   "sensitive_save.title": "🔒 Answer will not be saved",
   "sensitive_save.body": "This answer may contain particularly sensitive content ({category}) and will therefore not be saved in the chat history.",
   "sensitive_save.override": "Save anyway",
   "sensitive_save.confirm": "Don't save",
   "history.redacted": "[Answer not saved – may have contained sensitive content]",
-  "chat.search_all_areas_retry": "Also search other areas"
+  "chat.search_all_areas_retry": "Also search other areas (slower)"
 }

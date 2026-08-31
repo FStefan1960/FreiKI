@@ -1298,6 +1298,11 @@ html[data-theme="dark"] .messages {
 .symbols-btn:hover { background: #c2410c !important; }
 .symbols-btn:disabled { opacity: 0.8; cursor: default; }
 
+/* Markenfarbe statt neutralem .copy-btn-Grau - "Auch andere Bereiche durchsuchen" soll als
+   bewusste, eigene Aktion auffallen statt zwischen Kopieren/Vorlesen unterzugehen. */
+.search-all-btn { background: var(--fk-primary) !important; color: #fff !important; }
+.search-all-btn:hover { background: var(--fk-primary-hover) !important; }
+
 .symbols-view {
   margin-top: 10px;
   padding-top: 10px;
@@ -1398,18 +1403,6 @@ html[data-theme="dark"] .messages {
 .file-preview.show { display: flex; }
 .file-remove { margin-left: auto; cursor: pointer; opacity: 0.6; }
 .file-remove:hover { opacity: 1; }
-
-.wissen-search-all-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: var(--fk-fs-caption);
-  color: var(--fk-text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-.wissen-search-all-row input[type="checkbox"] { cursor: pointer; }
 
 .input-box {
   display: flex;

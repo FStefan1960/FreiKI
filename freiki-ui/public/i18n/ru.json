@@ -209,11 +209,10 @@
   "account_menu.enter_to_send_off": "Клавиша Enter: новый абзац",
   "account_menu.dark_mode_on": "Тёмная тема: вкл.",
   "account_menu.dark_mode_off": "Тёмная тема: выкл.",
-  "input.search_all_areas": "Также искать в других разделах базы знаний",
   "sensitive_save.title": "🔒 Ответ не будет сохранён",
   "sensitive_save.body": "Этот ответ может содержать особо чувствительные данные ({category}), поэтому он не будет сохранён в истории чата.",
   "sensitive_save.override": "Сохранить всё равно",
   "sensitive_save.confirm": "Не сохранять",
   "history.redacted": "[Ответ не сохранён – мог содержать конфиденциальные данные]",
-  "chat.search_all_areas_retry": "Также искать в других разделах"
+  "chat.search_all_areas_retry": "Также искать в других разделах (медленнее)"
 }

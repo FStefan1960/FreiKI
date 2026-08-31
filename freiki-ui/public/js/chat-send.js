@@ -1,5 +1,8 @@
 // ── Send ──
-async function sendMessage() {
+// forceSearchAllAreas: nur von retryMessageSearchAllAreas() gesetzt (Button "Auch andere
+// Bereiche durchsuchen" unter einer Wissen-Antwort, siehe message-actions.js) - kein
+// dauerhafter UI-Zustand mehr, gilt nur für genau diesen einen Retry.
+async function sendMessage(forceSearchAllAreas = false) {
   const input = document.getElementById('message-input');
   const text = input.value.trim();
   const isMulti = !!(State.modes[State.currentMode]?.multifile);
@@ -26,7 +29,7 @@ async function sendMessage() {
     formData.append('mode', State.currentMode);
     formData.append('username', State.currentUsername);
     formData.append('history', JSON.stringify(State.chatHistory.slice(-4)));
-    const usedSearchAllAreas = !!document.getElementById('search-all-areas')?.checked;
+    const usedSearchAllAreas = !!forceSearchAllAreas;
     if (usedSearchAllAreas) formData.append('searchAllAreas', '1');
     if (isMulti) {
       State.selectedFiles.forEach(f => formData.append('files', f));

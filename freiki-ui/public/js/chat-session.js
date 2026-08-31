@@ -25,15 +25,6 @@ function applyModeChrome(key) {
   const fi = document.getElementById('file-input');
   if (isMulti) { fi.setAttribute('multiple', ''); } else { fi.removeAttribute('multiple'); }
   removeFile();
-
-  // "Weitere Wissensbereiche durchsuchen"-Checkbox: nur bei Wissen-Modi außer Hilfe sichtbar -
-  // Hilfe bleibt serverseitig ohnehin fest auf den eigenen Bereich begrenzt (siehe WissenChatMode.js).
-  const showSearchAll = m.workspace === 'wissen' && key.replace(/^w_/, '') !== 'hilfe';
-  const searchAllRow = document.getElementById('wissen-search-all-row');
-  if (searchAllRow) {
-    searchAllRow.style.display = showSearchAll ? '' : 'none';
-    document.getElementById('search-all-areas').checked = false;
-  }
   return m;
 }
 

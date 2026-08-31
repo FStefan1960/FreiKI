@@ -209,11 +209,10 @@
   "account_menu.enter_to_send_off": "Touche Entrée : Nouveau paragraphe",
   "account_menu.dark_mode_on": "Mode sombre : Activé",
   "account_menu.dark_mode_off": "Mode sombre : Désactivé",
-  "input.search_all_areas": "Rechercher aussi dans d'autres domaines de connaissances",
   "sensitive_save.title": "🔒 La réponse ne sera pas enregistrée",
   "sensitive_save.body": "Cette réponse peut contenir des informations particulièrement sensibles ({category}) et ne sera donc pas enregistrée dans l'historique des discussions.",
   "sensitive_save.override": "Enregistrer quand même",
   "sensitive_save.confirm": "Ne pas enregistrer",
   "history.redacted": "[Réponse non enregistrée – pouvait contenir des informations sensibles]",
-  "chat.search_all_areas_retry": "Rechercher aussi dans d'autres domaines"
+  "chat.search_all_areas_retry": "Rechercher aussi dans d'autres domaines (plus lent)"
 }
