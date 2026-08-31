@@ -29,13 +29,18 @@ function saveConversations(list) {
 }
 
 // Nur Rolle + Inhalt speichern, keine langen Datei-Inhalte (> 500 Zeichen kürzen) - die
-// letzte Nachricht bleibt aber immer vollständig erhalten.
+// letzte Nachricht bleibt aber immer vollständig erhalten. Mit noHistory geflaggte Antworten
+// (BGT-Speicher-Warnung, siehe sensitive-detect.js/chat-send.js) werden durch einen Platzhalter
+// ersetzt statt gespeichert - das Flag hängt an der Nachricht selbst, damit die Redaktion auch
+// bei jedem späteren upsertCurrentConversation() derselben Unterhaltung erhalten bleibt.
 function slimMessages(history) {
   const capped = history.slice(-MAX_HISTORY_MESSAGES);
   const lastIndex = capped.length - 1;
   return capped.map((m, i) => ({
     role: m.role,
-    content: i < lastIndex && m.content.length > 500 ? m.content.slice(0, 500) + ' [...]' : m.content
+    content: m.noHistory
+      ? t('history.redacted', '[Antwort nicht gespeichert – enthielt möglicherweise schützenswerte Inhalte]')
+      : (i < lastIndex && m.content.length > 500 ? m.content.slice(0, 500) + ' [...]' : m.content)
   }));
 }
 

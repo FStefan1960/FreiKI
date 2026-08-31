@@ -123,6 +123,14 @@ async function ingestText(bereich, text, source, sourceUrl, opts = {}) {
 
 // Cosine-Distanz-Schwelle: schwächere Treffer nicht in den Kontext legen.
 const WISSEN_MAX_DISTANCE = 0.45;
+// Strenger als WISSEN_MAX_DISTANCE: gilt nur für die Ein-Bereich-Suche (Standardfall seit
+// 2026-08-31, siehe retrieveWissenChunksMulti). Ein kleiner, thematisch enger Bereich (z.B.
+// Brandschutz NRW, 13 Dokumente) lieferte bei 0.45 auch für fachfremde Fragen (z.B.
+// Verkehrsregeln) noch "Treffer" (Distanz 0.33-0.36) - inhaltlich falscher Kontext für die KI.
+// Die bereichsübergreifende Suche (searchAllAreas=true) bleibt bei 0.45, da dort ein echter
+// Treffer aus einem anderen Bereich gegen mehr Konkurrenz antritt und die lockerere Schwelle
+// dort schon lange bewährt ist.
+const WISSEN_SINGLE_AREA_MAX_DISTANCE = 0.35;
 // Keyword-Treffer dürfen weiter entfernt sein; reine Vektor-Suche verfehlt oft Fachbegriffe.
 const WISSEN_KEYWORD_MAX_DISTANCE = 0.65;
 const WISSEN_KEYWORD_BOOST = 0.12; // wird von der Distanz abgezogen beim Ranking
@@ -259,7 +267,17 @@ const WISSEN_CURRENT_AREA_BOOST = 0.08;
 // hat (allowedAreaKeys === null -> alle Bereiche, analog answerBotChat). preferredAreaKey (der
 // angeklickte Menüpunkt) bekommt einen Ranking-Bonus, ist aber keine harte Grenze mehr – andere
 // erlaubte Bereiche werden trotzdem durchsucht.
-async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 10, maxDistance = WISSEN_MAX_DISTANCE, preferredAreaKey = null } = {}) {
+// searchAllAreas: Cross-Area-Fanout ist standardmäßig AUS (nur preferredAreaKey wird durchsucht,
+// eine einzelne Query statt bis zu ~2 Queries × Anzahl Bereiche) - der Nutzer schaltet ihn per
+// Checkbox "Weitere Wissensbereiche mit durchsuchen" gezielt zu. Ohne diese Begrenzung fächerte
+// jede Wissen-Anfrage über alle (bei KorKI 29) Bereiche sequenziell auf einer einzigen gepoolten
+// Connection auf - führte am 2026-08-31 zu einem ~2min App-Ausfall, ausgelöst vom internen
+// w_hilfe-Health-Check (siehe [[project_korki_wissen_search_perf_2026-08-31]]).
+async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 10, maxDistance = WISSEN_MAX_DISTANCE, preferredAreaKey = null, searchAllAreas = false } = {}) {
+  if (!searchAllAreas && preferredAreaKey && kbAreas.getTable(preferredAreaKey)) {
+    return retrieveWissenChunks(preferredAreaKey, queryText, limit, WISSEN_SINGLE_AREA_MAX_DISTANCE);
+  }
+
   const areaEntries = kbAreas.entries().filter(
     ([areaKey]) => !allowedAreaKeys || allowedAreaKeys.includes(normArea(areaKey))
   );

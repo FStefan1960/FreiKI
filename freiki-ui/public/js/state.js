@@ -4,15 +4,6 @@ const State = {
   chatHistory: [],
   currentConversationId: null, // aktive Unterhaltung in der History-Leiste, siehe chat-history.js
 
-  threadIds: {}, // mode -> threadId for AnythingLLM
-  getThreadId(mode) {
-    if (!this.threadIds[mode]) this.threadIds[mode] = `${this.currentUsername}_${mode}_${Date.now()}`;
-    return this.threadIds[mode];
-  },
-  resetThreadId(mode) {
-    this.threadIds[mode] = `${this.currentUsername}_${mode}_${Date.now()}`;
-  },
-
   selectedFile: null,
   selectedFiles: [],
   authToken: null,

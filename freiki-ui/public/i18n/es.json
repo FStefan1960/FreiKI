@@ -208,5 +208,12 @@
   "account_menu.enter_to_send_on": "Tecla Intro: Enviar",
   "account_menu.enter_to_send_off": "Tecla Intro: Nuevo párrafo",
   "account_menu.dark_mode_on": "Modo oscuro: Activado",
-  "account_menu.dark_mode_off": "Modo oscuro: Desactivado"
+  "account_menu.dark_mode_off": "Modo oscuro: Desactivado",
+  "input.search_all_areas": "Buscar también en otras áreas de conocimiento",
+  "sensitive_save.title": "🔒 La respuesta no se guardará",
+  "sensitive_save.body": "Es posible que esta respuesta contenga contenido especialmente sensible ({category}), por lo que no se guardará en el historial del chat.",
+  "sensitive_save.override": "Guardar de todos modos",
+  "sensitive_save.confirm": "No guardar",
+  "history.redacted": "[Respuesta no guardada: podría contener contenido sensible]",
+  "chat.search_all_areas_retry": "Buscar también en otras áreas"
 }

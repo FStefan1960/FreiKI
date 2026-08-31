@@ -26,7 +26,8 @@ async function sendMessage() {
     formData.append('mode', State.currentMode);
     formData.append('username', State.currentUsername);
     formData.append('history', JSON.stringify(State.chatHistory.slice(-4)));
-    formData.append('threadId', State.getThreadId(State.currentMode));
+    const usedSearchAllAreas = !!document.getElementById('search-all-areas')?.checked;
+    if (usedSearchAllAreas) formData.append('searchAllAreas', '1');
     if (isMulti) {
       State.selectedFiles.forEach(f => formData.append('files', f));
       formData.append('multidoc_task', State.multidocTaskChoice);
@@ -83,7 +84,16 @@ async function sendMessage() {
     // gerenderten HTML unsichtbar sind, aber beim Kopieren/Vorlesen mitgehen.
     fullText = fullText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-    State.chatHistory.push({ role: 'assistant', content: fullText });
+    // BGT-Speicher-Warnung: nur für die Rolle "high_risk" (Berufsgeheimnisträger), siehe
+    // bgt-welcome.md. Prüft die fertige Antwort (nicht die Frage - die bleibt wie gewohnt
+    // gespeichert) gegen dieselbe Stichwortliste wie der serverseitige Audit-Log.
+    let noHistory = false;
+    if (State.currentRole === 'high_risk' && fullText) {
+      const category = detectSensitiveCategory(fullText);
+      if (category) noHistory = !(await showSensitiveSaveModal(category));
+    }
+
+    State.chatHistory.push(noHistory ? { role: 'assistant', content: fullText, noHistory: true } : { role: 'assistant', content: fullText });
     upsertCurrentConversation(State.currentMode);
     if (fullText) {
       const msgId = bubble.id;
@@ -91,12 +101,21 @@ async function sendMessage() {
       patchPaperlessLinks(bubble);
       renderMermaidBlocks(bubble, displayText);
       renderMathBlocks(bubble);
+      enhanceChatImages(bubble);
       // Text als data-Attribut speichern für sauberes Kopieren
       bubble.dataset.copyText = fullText;
       // Zugehörige User-Frage merken, damit z.B. der Word-Export einen sprechenden
       // Dateinamen ableiten kann (analog zu promptText bei Mermaid-Diagramm-Exporten).
       bubble.dataset.promptText = displayText;
-      addMessageActions(bubble, msgId, !!(State.modes[State.currentMode]?.imagegen || State.modes[State.currentMode]?.qrgen));
+      // Button "Auch andere Bereiche durchsuchen": immer bei Wissen-Antworten außer Hilfe (die
+      // bleibt bewusst begrenzt, siehe WissenChatMode.js) und nur, wenn diese Antwort noch NICHT
+      // schon bereichsübergreifend gesucht hat - sonst gäbe es nichts Breiteres mehr zu suchen.
+      // Bewusst unabhängig von Trefferqualität/-anzahl: ein Schwellwert lässt sich nie so genau
+      // treffen, dass er echte Nahtreffer durchlässt, aber verwandte Falschtreffer aus einem
+      // engen Bereich zuverlässig ausschließt (siehe KBService.WISSEN_SINGLE_AREA_MAX_DISTANCE).
+      const isWissenNonHilfe = State.modes[State.currentMode]?.workspace === 'wissen' &&
+        State.currentMode.replace(/^w_/, '') !== 'hilfe';
+      addMessageActions(bubble, msgId, !!(State.modes[State.currentMode]?.imagegen || State.modes[State.currentMode]?.qrgen), isWissenNonHilfe && !usedSearchAllAreas);
       addStarRating(bubble, msgId);
       const msgs = document.getElementById('messages');
       requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });

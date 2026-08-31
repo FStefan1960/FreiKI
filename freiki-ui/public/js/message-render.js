@@ -70,3 +70,47 @@ function addTyping() {
   document.getElementById('messages').appendChild(div);
   div.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
+
+// Chat-Bilder in der Bubble skalieren (CSS) und per Klick in Originalgroesse oeffnen,
+// inkl. seitlichem Scrollen - analog zur Mermaid-Grossansicht. Ohne Wrapper wuerde
+// overflow-x:hidden auf .messages den nicht passenden Teil einfach abschneiden.
+function enhanceChatImages(bubble) {
+  bubble.querySelectorAll('img').forEach(img => {
+    if (img.classList.contains('mermaid-ai-badge') || img.classList.contains('tts-ai-badge')) return;
+    if (img.closest('.message-image-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'message-image-wrap';
+    img.replaceWith(wrap);
+    wrap.appendChild(img);
+    img.title = t('js.mermaid_click_zoom', 'Klicken zum Vergrößern');
+    img.addEventListener('click', () => openImageLightbox(img));
+  });
+}
+
+function openImageLightbox(imgEl) {
+  const overlay = document.createElement('div');
+  overlay.className = 'mermaid-lightbox-overlay';
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+
+  const box = document.createElement('div');
+  box.className = 'mermaid-lightbox';
+  const full = document.createElement('img');
+  full.className = 'image-lightbox-img';
+  full.src = imgEl.currentSrc || imgEl.src;
+  full.alt = imgEl.alt || '';
+  const actions = document.createElement('div');
+  actions.className = 'mermaid-lightbox-actions';
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = t('js.close_x', '✕ Schließen');
+  closeBtn.addEventListener('click', close);
+  actions.append(closeBtn);
+  box.append(full, actions);
+  overlay.append(box);
+  document.body.append(overlay);
+}

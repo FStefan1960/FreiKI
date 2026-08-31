@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = me.username || sessionStorage.getItem('freiki_user') || '';
     State.currentUsername = username;
     State.currentRole = me.role || storedRole;
+    if (State.currentRole === 'high_risk') loadSensitiveCategories(); // siehe sensitive-detect.js
     migrateOldChatHistory(); // braucht State.currentUsername, siehe chat-history.js
     sessionStorage.setItem('freiki_user', username);
     sessionStorage.setItem('freiki_role', State.currentRole);

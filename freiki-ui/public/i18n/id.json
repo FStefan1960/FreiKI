@@ -208,5 +208,12 @@
   "account_menu.enter_to_send_on": "Perilaku Enter: Kirim",
   "account_menu.enter_to_send_off": "Perilaku Enter: Paragraf baru",
   "account_menu.dark_mode_on": "Mode gelap: Aktif",
-  "account_menu.dark_mode_off": "Mode gelap: Nonaktif"
+  "account_menu.dark_mode_off": "Mode gelap: Nonaktif",
+  "input.search_all_areas": "Cari juga di area pengetahuan lain",
+  "sensitive_save.title": "🔒 Jawaban tidak akan disimpan",
+  "sensitive_save.body": "Jawaban ini mungkin berisi konten yang sangat sensitif ({category}) sehingga tidak akan disimpan dalam riwayat obrolan.",
+  "sensitive_save.override": "Simpan saja",
+  "sensitive_save.confirm": "Jangan simpan",
+  "history.redacted": "[Jawaban tidak disimpan – mungkin berisi konten sensitif]",
+  "chat.search_all_areas_retry": "Cari juga di area lain"
 }

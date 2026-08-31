@@ -52,4 +52,4 @@ function detect(text) {
   return null;
 }
 
-module.exports = { detect, CATEGORIES };
+module.exports = { detect, CATEGORIES, ICD10_PATTERN };

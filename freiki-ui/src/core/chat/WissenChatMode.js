@@ -127,7 +127,12 @@ function sourcesFromCitations(answerText, chunks) {
   return sources;
 }
 
-async function handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys, userLanguage }) {
+async function handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys, userLanguage, searchAllAreas }) {
+  // "Hilfe" bleibt immer auf den eigenen Bereich begrenzt, unabhängig vom Client-Flag - eine
+  // App-Hilfe-Frage soll klar "nicht in den Unterlagen" sagen statt fachfremde Treffer aus
+  // anderen Wissensbereichen zu ziehen. Das begrenzt gleichzeitig den internen w_hilfe-
+  // Health-Check auf einen Bereich (siehe KBService.retrieveWissenChunksMulti).
+  const effectiveSearchAllAreas = wissenKey === 'hilfe' ? false : !!searchAllAreas;
   const hist = parseHistory(history).slice(-6);
   const originalQuestion = userMessage;
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
@@ -142,7 +147,7 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
   // Sucht über alle Wissensbereiche, auf die der Nutzer Zugriff hat (nicht nur den angeklickten
   // wissenKey) – der bekommt aber weiterhin einen Ranking-Bonus (preferredAreaKey), damit der
   // Menüpunkt eine echte Präferenz bleibt statt nur den Systemprompt zu bestimmen.
-  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, retrievalQuery, { limit: 10, preferredAreaKey: wissenKey });
+  const chunks = await kb.retrieveWissenChunksMulti(allowedAreaKeys, retrievalQuery, { limit: 10, preferredAreaKey: wissenKey, searchAllAreas: effectiveSearchAllAreas });
   const multiArea = new Set(chunks.map(c => c.area).filter(Boolean)).size > 1;
 
   const contextText = chunks.length

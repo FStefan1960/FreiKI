@@ -15,7 +15,7 @@ const { handleWissenMode } = require('./WissenChatMode');
 const { handleDirectMode } = require('./DirectChatMode');
 
 async function handleChat(req, res) {
-  const { message, mode, history, multidoc_task } = req.body;
+  const { message, mode, history, multidoc_task, searchAllAreas } = req.body;
   const modeConf = prompts.findMode(mode);
   const isMulti = modeConf?.multifile || false;
   const file = req.files?.['file']?.[0] || null;
@@ -171,7 +171,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
     } else if (isQrGen) {
       await handleQrGenMode(res, message);
     } else if (isWissen) {
-      await handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys, userLanguage });
+      await handleWissenMode(res, { wissenKey, userMessage, history, mode, allowedAreaKeys, userLanguage, searchAllAreas: searchAllAreas === '1' || searchAllAreas === true });
     } else {
       await handleDirectMode(res, { userMessage, history, mode, isMulti, now, hasFileContent: !!fileContent, userLanguage });
     }

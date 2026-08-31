@@ -2,11 +2,16 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
   <script>(function(){try{var t=localStorage.getItem('fk_theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-  <link rel="stylesheet" href="/style.css?v=29">
+  <link rel="stylesheet" href="/style.css?v=32">
   <link rel="stylesheet" href="/brand.css">
+  <script src="/marked.min.js"></script>
+  <script src="/purify.min.js"></script>
+  <script src="/simplewebauthn-browser.min.js"></script>
+  <script>window.FK_APP_NAME = "{{APP_NAME}}";</script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="{{APP_COLOR}}">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,6 +19,34 @@
   <meta name="apple-mobile-web-app-title" content="{{APP_NAME}}">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
   <link rel="icon" type="image/png" href="/favicon-32.png?v=3">
+  <style>
+    .admin-stats-widget {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--fk-text-muted);
+      background: var(--fk-tint);
+      border: 1px solid var(--fk-border-strong);
+      border-radius: 6px;
+      padding: 3px 8px;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .admin-stats-widget:hover { background: var(--fk-border-strong); }
+  .welcome-examples{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-content:center;margin-top:16px;max-width:420px;}
+  .welcome-example-chip{background:var(--fk-tint);border:1px solid var(--fk-border-strong);border-radius:20px;padding:6px 14px;font-size:.8rem;color:var(--fk-ink);font-weight:500;cursor:pointer;line-height:1.4;text-align:center;transition:background .15s,color .15s;}
+  .welcome-example-chip:hover{background:var(--fk-border-strong);color:var(--fk-text);}
+  #tc-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;}
+  #tc-modal-overlay.visible{display:flex;}
+  #tc-modal{background:#fff;border-radius:14px;padding:1.75rem 2rem;max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18);text-align:center;}
+  #tc-modal h3{margin:0 0 .6rem;font-size:1.05rem;color:var(--color-primary,#1F54C0);}
+  #tc-modal p{margin:0 0 1.25rem;font-size:.875rem;color:#444;line-height:1.5;}
+  #tc-modal .tc-btn-row{display:flex;gap:.75rem;justify-content:center;}
+  #tc-modal .tc-go{background:var(--color-primary,#1F54C0);color:#fff;border:none;border-radius:8px;padding:.6rem 1.4rem;font-size:.875rem;font-weight:600;cursor:pointer;}
+  #tc-modal .tc-go:hover{opacity:.88;}
+  #tc-modal .tc-skip{background:#f0f2f5;color:#444;border:none;border-radius:8px;padding:.6rem 1rem;font-size:.875rem;cursor:pointer;}
+  #tc-modal .tc-sso-hint{display:inline-flex;align-items:center;gap:.4rem;border:1.5px solid #dde1e7;border-radius:8px;padding:.5rem 1.25rem;margin-bottom:1.25rem;font-size:.9rem;font-weight:600;color:#555;background:#fafafa;}
+  </style>
 </head>
 <body>
 
@@ -319,6 +352,10 @@
             </svg>
           </button>
         </div>
+        <label class="wissen-search-all-row" id="wissen-search-all-row" style="display:none;">
+          <input type="checkbox" id="search-all-areas">
+          <span data-i18n="input.search_all_areas">Weitere Wissensbereiche mit durchsuchen</span>
+        </label>
         <input type="file" id="file-input" accept=".txt,.pdf,.doc,.docx,.md,.csv,.jpg,.jpeg,.png,.webp,image/*" onchange="fileSelected(this)">
       </div>
 
@@ -459,6 +496,18 @@
   </div>
 </div>
 
+<!-- BGT-Speicher-Warnung: siehe sensitive-detect.js/chat-send.js -->
+<div id="sensitive-save-modal" class="modal-overlay" onclick="if(event.target===this)sensitiveSaveConfirm()">
+  <div class="modal" style="max-width:420px;">
+    <h3 data-i18n="sensitive_save.title">🔒 Antwort wird nicht gespeichert</h3>
+    <p id="sensitive-save-body" style="font-size:14px;line-height:1.5;color:var(--text);margin:0;"></p>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="sensitiveSaveOverride()" data-i18n="sensitive_save.override">Trotzdem speichern</button>
+      <button class="modal-submit" onclick="sensitiveSaveConfirm()" data-i18n="sensitive_save.confirm">Nicht speichern</button>
+    </div>
+  </div>
+</div>
+
 <div id="feature-hint-modal" class="modal-overlay" onclick="if(event.target===this)closeFeatureHint()">
   <div class="modal" style="max-width:380px;">
     <h3 id="feature-hint-title"></h3>
@@ -526,30 +575,26 @@
 </div>
 
 <div id="tc-modal-overlay" onclick="if(event.target===this)tcClose(true)"><div id="tc-modal"><h3 data-i18n="teamchat.title">💬 Teamchat öffnen</h3><p data-i18n-html="teamchat.body">Bitte melde dich mit diesem Button an –<br>nicht mit E-Mail und Passwort.</p><div class="tc-sso-hint"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="OpenID Symbol"><path d="M7.19995 1.2V15.2L9.59995 14V0L7.19995 1.2Z" fill="#F48018"/><path d="M15.6652 5.3302L16.0001 8.80002L11.313 7.85391" fill="#AEB0B3"/><path d="M10 4.61206V6.19484C11.015 6.37555 12.0439 6.71905 12.768 7.17939L14.4821 6.09046C13.3141 5.34815 11.686 4.82159 10 4.61206ZM2.42378 9.90251C2.42378 8.13669 4.2954 6.64895 6.84567 6.19484V4.61206C2.94414 5.09733 0 7.28065 0 9.90251C0 12.5244 3.08942 14.8262 7.2 15.2V13.6001C4.43386 13.2433 2.42378 11.7657 2.42378 9.90251Z" fill="#AEB0B3"/></svg>{{APP_NAME}}</div><div class="tc-btn-row"><button class="tc-go" onclick="tcClose(true)" data-i18n="common.next">Weiter</button><button class="tc-skip" onclick="tcClose(false)" data-i18n="common.cancel">Abbrechen</button></div></div></div>
-
-<script src="/marked.min.js"></script>
-<script src="/purify.min.js"></script>
-<script src="/simplewebauthn-browser.min.js"></script>
-<script>window.FK_APP_NAME = "{{APP_NAME}}";</script>
 <script src="/js/i18n.js?v=2"></script>
 <script src="/js/render-math-mermaid.js?v=1"></script>
-<script src="/js/state.js?v=4"></script>
-<script src="/js/session-bootstrap.js?v=6"></script>
-<script src="/js/chat-history.js?v=4"></script>
+<script src="/js/state.js?v=5"></script>
+<script src="/js/sensitive-detect.js?v=2"></script>
+<script src="/js/session-bootstrap.js?v=9"></script>
+<script src="/js/chat-history.js?v=6"></script>
 <script src="/js/modes.js?v=3"></script>
 <script src="/js/auth.js?v=3"></script>
 <script src="/js/ui-chrome.js?v=4"></script>
-<script src="/js/chat-session.js?v=4"></script>
+<script src="/js/chat-session.js?v=8"></script>
 <script src="/js/chat-input.js?v=2"></script>
 <script src="/js/paperless.js?v=1"></script>
 <script src="/js/dictation.js?v=1"></script>
 <script src="/js/feedback.js?v=2"></script>
-<script src="/js/message-render.js?v=2"></script>
-<script src="/js/message-actions.js?v=3"></script>
+<script src="/js/message-render.js?v=4"></script>
+<script src="/js/message-actions.js?v=5"></script>
 <script src="/js/symbols-wizard.js?v=1"></script>
-<script src="/js/chat-send.js?v=3"></script>
+<script src="/js/chat-send.js?v=10"></script>
 <script src="/js/hilfe-bubble.js?v=1"></script>
 <script src="/js/account-self-service.js?v=1"></script>
-<script src="/js/admin-stats.js?v=4"></script>
+<script src="/js/admin-stats.js?v=5"></script>
 </body>
 </html>

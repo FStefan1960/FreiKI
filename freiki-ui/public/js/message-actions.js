@@ -2,6 +2,7 @@ const COPY_ICON  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 const DOC_ICON   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
 const PPTX_ICON  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="20" height="14" rx="2"></rect><path d="M8 21h8"></path><path d="M12 18v3"></path></svg>';
 const RETRY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"></path><path d="M3 21v-5h5"></path></svg>';
+const SEARCH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
 
 // Stellt dieselbe Nutzerfrage nochmal ins Eingabefeld und sendet sie erneut - bewusst als
 // frische neue Anfrage (nicht als Ersetzen der alten Antwort), damit nichts verloren geht
@@ -10,6 +11,21 @@ function retryMessage(msgId) {
   const bubble = document.getElementById(msgId);
   const promptText = bubble?.dataset.promptText;
   if (!promptText) return;
+  const input = document.getElementById('message-input');
+  input.value = promptText;
+  sendMessage();
+}
+
+// Wie retryMessage(), aber hakt vorher die Checkbox "Weitere Wissensbereiche mit durchsuchen"
+// an - erscheint nur als Button, wenn der Server im gewählten Bereich keinen Treffer fand
+// (searchAllAreasSuggested, siehe WissenChatMode.js finishWissen()). Checkbox bleibt danach
+// angehakt, damit Folgefragen in derselben Unterhaltung ebenfalls bereichsübergreifend suchen.
+function retryMessageSearchAllAreas(msgId) {
+  const bubble = document.getElementById(msgId);
+  const promptText = bubble?.dataset.promptText;
+  if (!promptText) return;
+  const checkbox = document.getElementById('search-all-areas');
+  if (checkbox) checkbox.checked = true;
   const input = document.getElementById('message-input');
   input.value = promptText;
   sendMessage();
@@ -327,7 +343,7 @@ async function speakMessage(msgId, btn, voice) {
   }
 }
 
-function addMessageActions(bubble, msgId, skipTtsAndCopy) {
+function addMessageActions(bubble, msgId, skipTtsAndCopy, suggestSearchAllAreas) {
   // Bei generierten Bildern ergeben Vorlesen (kein sinnvoller Text) und Kopieren
   // (koepiert nur den Bild-Link/Alt-Text, nicht das Bild selbst) keinen Sinn.
   if (skipTtsAndCopy) return null;
@@ -404,6 +420,18 @@ function addMessageActions(bubble, msgId, skipTtsAndCopy) {
     showFeatureHint('symbols', t('hint.symbols.title', '💡 Text illustrieren'),
       t('hint.symbols.body', 'Diesen Text kannst du jetzt mit passenden Symbolen illustrieren (experimentell). Klicke dazu unten auf <strong>„+ Symbole“</strong>.'));
   }
+  // Bei jeder Wissen-Antwort (außer Hilfe, außer schon bereichsübergreifend gesucht) - bietet
+  // die bereichsübergreifende Suche als expliziten, einen Klick entfernten Vorschlag an, statt
+  // zu versuchen per Distanz-Schwelle zu erraten, ob die Antwort ausreichend gut war (siehe
+  // chat-send.js).
+  if (suggestSearchAllAreas) {
+    const searchAll = document.createElement('button');
+    searchAll.className = 'copy-btn';
+    searchAll.innerHTML = SEARCH_ICON + ' <span>' + t('chat.search_all_areas_retry', 'Auch andere Bereiche durchsuchen') + '</span>';
+    searchAll.onclick = function() { retryMessageSearchAllAreas(msgId); };
+    row.appendChild(searchAll);
+  }
+
   bubble.parentElement.insertBefore(row, bubble.nextSibling);
   return row;
 }

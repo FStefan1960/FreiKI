@@ -14,6 +14,7 @@ const users = require('../../../core/auth/UserRepository');
 const { recordFeedback } = require('../../../jobs/feedbackReport');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { safeEqual } = require('../../../shared/utils/security');
+const sensitivePatterns = require('../../../core/audit/SensitivePatterns');
 
 const router = express.Router();
 router.use(express.json({ limit: '2mb' }));
@@ -36,6 +37,15 @@ router.get('/api/generated-images/:file', (req, res) => {
   if (!/^[a-f0-9-]+\.(png|jpg)$/.test(req.params.file)) return res.status(400).end();
   const filePath = path.join(config.APP_ROOT, 'generated_images', req.params.file);
   res.sendFile(filePath, err => { if (err) res.status(404).end(); });
+});
+
+// Liefert die Stichwortliste aus SensitivePatterns.js ans Frontend, damit der Client (BGT-
+// Speicher-Warnung vor localStorage-History, siehe chat-send.js) dieselbe Erkennung nutzen
+// kann wie der Server -- statt einer zweiten, potenziell abweichenden Kopie der Liste.
+router.get('/api/sensitive-categories', (req, res) => {
+  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ categories: sensitivePatterns.CATEGORIES, icd10Source: sensitivePatterns.ICD10_PATTERN.source });
 });
 
 router.get('/api/modes', asyncHandler(async (req, res) => {

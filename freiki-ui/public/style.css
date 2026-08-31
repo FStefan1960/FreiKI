@@ -1158,6 +1158,22 @@ html[data-theme="dark"] .messages {
 }
 .math-inline .katex { font-size: 1em; }
 
+.message-image-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 8px 0;
+  -webkit-overflow-scrolling: touch;
+}
+.message-image-wrap img {
+  cursor: zoom-in;
+}
+.image-lightbox-img {
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 .mermaid-lightbox-overlay {
   position: fixed;
   inset: 0;
@@ -1382,6 +1398,18 @@ html[data-theme="dark"] .messages {
 .file-preview.show { display: flex; }
 .file-remove { margin-left: auto; cursor: pointer; opacity: 0.6; }
 .file-remove:hover { opacity: 1; }
+
+.wissen-search-all-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: var(--fk-fs-caption);
+  color: var(--fk-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.wissen-search-all-row input[type="checkbox"] { cursor: pointer; }
 
 .input-box {
   display: flex;

@@ -25,6 +25,15 @@ function applyModeChrome(key) {
   const fi = document.getElementById('file-input');
   if (isMulti) { fi.setAttribute('multiple', ''); } else { fi.removeAttribute('multiple'); }
   removeFile();
+
+  // "Weitere Wissensbereiche durchsuchen"-Checkbox: nur bei Wissen-Modi außer Hilfe sichtbar -
+  // Hilfe bleibt serverseitig ohnehin fest auf den eigenen Bereich begrenzt (siehe WissenChatMode.js).
+  const showSearchAll = m.workspace === 'wissen' && key.replace(/^w_/, '') !== 'hilfe';
+  const searchAllRow = document.getElementById('wissen-search-all-row');
+  if (searchAllRow) {
+    searchAllRow.style.display = showSearchAll ? '' : 'none';
+    document.getElementById('search-all-areas').checked = false;
+  }
   return m;
 }
 
@@ -41,7 +50,6 @@ function setMode(key) {
 
 function newChat() {
   State.chatHistory = [];
-  if (State.currentMode) State.resetThreadId(State.currentMode);
   endCurrentConversation(); // vorherige Unterhaltung bleibt als History-Eintrag erhalten
   State.selectedFile = null;
   State.multidocTaskChoice = 'zusammenfassen';
@@ -150,6 +158,7 @@ function restoreChat(mode, history) {
       patchPaperlessLinks(bubble);
       renderMermaidBlocks(bubble, lastUserText);
       renderMathBlocks(bubble);
+      enhanceChatImages(bubble);
       bubble.dataset.copyText = msg.content;
       bubble.dataset.promptText = lastUserText;
       const msgId = bubble.id;
