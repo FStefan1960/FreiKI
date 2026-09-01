@@ -585,7 +585,7 @@ function buildEditCard(u){
         }catch(e){ statusMsg('err','Fehlgeschlagen: '+e.message); } finally{ reset2fa.disabled=false; }
       });
       resetPasskeys=document.createElement('button'); resetPasskeys.className='btn btn-ghost'; resetPasskeys.textContent='Passkeys zurücksetzen';
-      resetPasskeys.addEventListener('click',async()=>{ if(!confirm('Alle Passkeys von „'+u.username+'" löschen? Der Nutzer kann sich beim nächsten Login nicht mehr per Face ID/Touch ID anmelden, TOTP-Codes funktionieren weiter.')) return;
+      resetPasskeys.addEventListener('click',async()=>{ if(!confirm('Alle Passkeys von „'+u.username+'" löschen? Der Nutzer kann sich beim nächsten Login nicht mehr per Passkey (Face ID/Touch ID/Sicherheitsschlüssel) anmelden, TOTP-Codes funktionieren weiter.')) return;
         resetPasskeys.disabled=true;
         try{ const r=await fetch('/api/admin/users/'+u.id+'/reset-passkeys',{method:'POST',headers:H});
           const d=await r.json(); if(!r.ok) throw new Error(d.error||r.status); statusMsg('ok','Passkeys von „'+u.username+'" gelöscht.');

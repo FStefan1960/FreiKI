@@ -80,7 +80,7 @@
       <input type="text" id="twofa-code" placeholder="Code" data-i18n-placeholder="twofa.code_placeholder" autocomplete="one-time-code" inputmode="numeric">
       <div class="login-error" id="twofa-error" data-i18n="common.invalid_code">Ungültiger Code</div>
       <button class="login-btn" onclick="verifyTwoFactor()" data-i18n="common.confirm">Bestätigen</button>
-      <button class="login-btn" id="passkey-login-btn" style="display:none;background:var(--fk-canvas);color:var(--fk-text);border:1px solid var(--fk-border-strong)" onclick="loginWithPasskey()" data-i18n="twofa.passkey_btn">🔓 Mit Face ID / Touch ID anmelden</button>
+      <button class="login-btn" id="passkey-login-btn" style="display:none;background:var(--fk-canvas);color:var(--fk-text);border:1px solid var(--fk-border-strong)" onclick="loginWithPasskey()" data-i18n="twofa.passkey_btn">🔓 Mit Passkey anmelden</button>
     </div>
   </div>
 </div>
@@ -535,7 +535,7 @@
 <div id="security-modal" class="modal-overlay" onclick="if(event.target===this)closeSecurityModal()">
   <div class="modal" style="max-width:420px;">
     <h3 data-i18n="security.title">🔐 Sicherheit</h3>
-    <p style="font-size:13px;color:var(--text-muted,#6b7280);margin:4px 0 10px" data-i18n="security.intro">Zwei-Faktor-Authentifizierung: per Code aus einer Authenticator-App (Google Authenticator, Microsoft Authenticator, FreeOTP) oder per Passkey (Face ID/Touch ID).</p>
+    <p style="font-size:13px;color:var(--text-muted,#6b7280);margin:4px 0 10px" data-i18n="security.intro">Zwei-Faktor-Authentifizierung: per Code aus einer Authenticator-App (Google Authenticator, Microsoft Authenticator, FreeOTP) oder per Passkey (Face ID, Touch ID oder Sicherheitsschlüssel wie YubiKey).</p>
 
     <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px">
       <strong style="font-size:13px" data-i18n="security.authenticator_app_label">Authenticator-App</strong>
@@ -545,7 +545,7 @@
     </div>
 
     <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px">
-      <strong style="font-size:13px" data-i18n="security.passkey_label">Passkey (Face ID / Touch ID)</strong>
+      <strong style="font-size:13px" data-i18n="security.passkey_label">Passkey (Face ID / Touch ID / Sicherheitsschlüssel)</strong>
       <div id="passkey-list" style="margin:8px 0;font-size:13px;color:var(--text-muted,#6b7280)" data-i18n="common.loading">Lade...</div>
       <div id="security-modal-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px;"></div>
       <button class="modal-cancel" onclick="addPasskey()" data-i18n="security.add_passkey">Passkey hinzufügen</button>

@@ -42,8 +42,7 @@ async function getRegistrationOptions(uid, username) {
     excludeCredentials: existing.map(toAllowedCredential),
     authenticatorSelection: {
       residentKey: 'preferred',
-      userVerification: 'required', // erzwingt Face ID/Touch ID statt nur "Gerät entsperrt"
-      authenticatorAttachment: 'platform',
+      userVerification: 'required', // erzwingt Geräte-PIN/Biometrie statt nur "Gerät entsperrt"
     },
   });
   stashChallenge(uid, options.challenge);

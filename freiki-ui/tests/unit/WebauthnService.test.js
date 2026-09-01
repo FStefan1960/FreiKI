@@ -32,13 +32,13 @@ describe('WebauthnService (Passkey/FIDO2)', () => {
     creds.findByCredentialId = originalFindByCredentialId;
   });
 
-  it('sollte Registrierungs-Optionen mit erzwungener Nutzerverifikation (Face ID/Touch ID) erzeugen', async () => {
+  it('sollte Registrierungs-Optionen mit erzwungener Nutzerverifikation erzeugen und Plattform-Beschränkung weglassen (damit auch Sicherheitsschlüssel wie YubiKey gehen)', async () => {
     creds.listByUser = async () => [];
     const options = await webauthn.getRegistrationOptions(101, 'frank');
     assert.strictEqual(options.rp.id, new URL(config.APP_URL).hostname);
     assert.strictEqual(options.user.name, 'frank');
     assert.strictEqual(options.authenticatorSelection.userVerification, 'required');
-    assert.strictEqual(options.authenticatorSelection.authenticatorAttachment, 'platform');
+    assert.strictEqual(options.authenticatorSelection.authenticatorAttachment, undefined);
     assert.ok(options.challenge, 'Challenge muss erzeugt werden');
   });
 
