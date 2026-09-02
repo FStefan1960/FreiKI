@@ -165,8 +165,14 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
     citeHint;
 
   const now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'full', timeStyle: 'short' });
-  // Mit Treffern: Verlauf weglassen, damit frühere Absagen die RAG-Antwort nicht überschreiben.
-  const chatHistory = chunks.length ? [] : hist.slice(0, -1);
+  // Verlauf grundsätzlich mitgeben (sonst kann das Modell Folgefragen wie "Was ist dabei
+  // wichtig?" nicht mehr auf die vorherige Frage/Antwort beziehen). Bei Treffern nur echte
+  // Absagen ("Dazu steht in den Unterlagen nichts.") rausfiltern, damit die nicht die
+  // aktuelle RAG-Antwort überschreiben - statt wie vorher den kompletten Verlauf zu killen.
+  const priorHistory = hist.slice(0, -1);
+  const chatHistory = chunks.length
+    ? priorHistory.filter(m => !(m.role === 'assistant' && /steht in den unterlagen nichts/i.test(m.content || '')))
+    : priorHistory;
   const messages = withLanguageMessage([
     { role: 'system', content: systemPrompt + `\n\nSystemzeit: ${now}. /no_think` },
     ...chatHistory,
