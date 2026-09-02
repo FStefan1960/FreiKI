@@ -77,8 +77,12 @@ async function clearTable(table) {
 // z.B. "Datei.PDF" bei einem alten Direkt-Upload vs. "Datei" (Paperless-Titel ohne Endung)
 // beim paperless-sync-Re-Ingest. Ohne Normalisierung bleibt bei jedem Re-Sync die alte,
 // unverlinkte Kopie neben der neuen liegen (siehe KorKI kb_allgemein-Altlast, 2026-08-20).
+// NFC zusätzlich nötig, weil Umlaute je nach Herkunft unterschiedlich kodiert ankommen -
+// z.B. NFD (u + combining diaeresis) bei alten Mac-Direkt-Uploads vs. NFC bei Paperless-Titeln.
+// Byte-ungleiche, optisch identische Strings matchten sonst nicht (siehe KorKI HLW-Altlast,
+// 2026-09-02).
 function normalizeSourceName(source) {
-  return (source || '').toLowerCase().trim().replace(/\.(pdf|docx?|pptx?)$/i, '');
+  return (source || '').toLowerCase().trim().normalize('NFC').replace(/\.(pdf|docx?|pptx?)$/i, '');
 }
 
 async function deleteBySource(bereich, source) {
@@ -86,7 +90,7 @@ async function deleteBySource(bereich, source) {
   if (!table) throw Object.assign(new Error('Unbekannter Bereich: ' + bereich), { status: 400 });
   if (!source) return { deleted: 0 };
   const result = await pool.query(
-    `DELETE FROM ${table} WHERE regexp_replace(lower(metadata->>'source'), '\\.(pdf|docx?|pptx?)$', '') = $1`,
+    `DELETE FROM ${table} WHERE regexp_replace(normalize(lower(metadata->>'source'), NFC), '\\.(pdf|docx?|pptx?)$', '') = $1`,
     [normalizeSourceName(source)]
   );
   return { deleted: result.rowCount || 0 };
