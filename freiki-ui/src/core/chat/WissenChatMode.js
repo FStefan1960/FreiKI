@@ -93,6 +93,46 @@ async function rewriteQuery(question, hist) {
   return question;
 }
 
+// Embedding, Keyword-Boost (KBService.extractKeywordTerms) und Datumserkennung (resolveDateHints
+// oben) sind rein auf deutschen Text zugeschnitten. Das Sprachfeld (userLanguage) steuert bisher
+// nur die Antwortsprache (siehe LanguageInstruction.js) - die Suche selbst lief immer auf dem
+// unübersetzten Originaltext, weshalb Nutzerinnen mit gesetzter Antwortsprache bei Fragen in
+// dieser Sprache oft 0 Treffer bekamen ("Dazu steht in den Unterlagen nichts."), obwohl die
+// passenden (deutschen) Dokumente da waren. Nur für Profile mit gesetzter, nicht-deutscher
+// Antwortsprache aktiv - die große Mehrheit (Deutsch/kein Feld gesetzt) zahlt keinen Zusatz-Call.
+// Menüsprache bleibt bewusst außen vor: sie ist reine UI-Übersetzung, keine Zusicherung, dass die
+// Wissenssuche in dieser Sprache funktioniert (das gilt nur für die explizit gewählte Antwortsprache).
+async function translateForRetrieval(question, userLanguage) {
+  const lang = (userLanguage || '').trim().toLowerCase();
+  if (!lang || lang === 'de' || lang === 'deutsch') return question;
+  try {
+    const r = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
+      body: JSON.stringify({
+        model: config.VLLM_MODEL,
+        messages: [
+          { role: 'system', content: 'Prüfe die Sprache der folgenden Nutzerfrage. Ist sie bereits auf Deutsch, gib sie exakt unverändert zurück. Andernfalls übersetze sie ins Deutsche. Gib NUR die (ggf. übersetzte) Frage zurück – ohne Erklärung, ohne Anführungszeichen, ohne zusätzlichen Text. /no_think' },
+          { role: 'user', content: question }
+        ],
+        max_tokens: 200,
+        temperature: 0,
+        ...THINKING_KWARGS
+      })
+    });
+    const d = await r.json();
+    const translated = d.choices?.[0]?.message?.content?.trim();
+    if (translated && translated.length > 1) return translated;
+  } catch (e) {
+    console.warn('Retrieval-Übersetzung fehlgeschlagen:', e.message);
+  }
+  return question;
+}
+
+// Absage-Antwort eines vorherigen (fehlgeschlagenen) Versuchs - siehe handleWissenMode:
+// darf weder in die Retrieval-Query noch unverändert in den LLM-Verlauf einfließen.
+const NEGATIVE_ANSWER_RE = /steht in den unterlagen nichts/i;
+
 function resolveSourceFromChunk(c) {
   const meta = c?.metadata || {};
   const url = meta.source_url || null;
@@ -136,11 +176,20 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
   const hist = parseHistory(history).slice(-6);
   const originalQuestion = userMessage;
   const todayISO = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
-  userMessage = await rewriteQuery(userMessage, hist);
+  // Nur für die Suche (Embedding/Keyword/Datum) übersetzen, siehe translateForRetrieval oben.
+  // Die Nutzerantwort/der Chatverlauf bekommen weiterhin die Originalfrage zu sehen.
+  const retrievalQuestion = await translateForRetrieval(originalQuestion, userLanguage);
+  // Der Button "Auch andere Bereiche durchsuchen" sendet dieselbe Frage unverändert erneut
+  // (siehe retryMessageSearchAllAreas in message-actions.js) - die Frage ist dann bereits die
+  // vollständigste verfügbare Formulierung. rewriteQuery würde sie trotzdem als "kurz/vage"
+  // einstufen und anhand des Gesprächsverlaufs umformulieren - der bei diesem Retry nur aus
+  // derselben Frage plus der vorherigen Absage ("Dazu steht in den Unterlagen nichts.") besteht
+  // und die Umformulierung nur Richtung Fehltreffer verzerrt hätte.
+  userMessage = effectiveSearchAllAreas ? retrievalQuestion : await rewriteQuery(retrievalQuestion, hist);
   // Für die Nutzerantwort Originalfrage behalten; Rewrite nur für Retrieval.
-  // Datumshinweise aus der Originalfrage (nicht der Umformulierung) auflösen, damit
+  // Datumshinweise aus der (ggf. übersetzten) Retrieval-Frage auflösen, damit
   // "heute"/"morgen"/"1. August" als ISO-Datum fürs Keyword-Boosting verfügbar sind.
-  const dateHints = resolveDateHints(originalQuestion, todayISO);
+  const dateHints = resolveDateHints(retrievalQuestion, todayISO);
   const retrievalQuery = dateHints.length ? `${userMessage} ${dateHints.join(' ')}` : userMessage;
   userMessage = originalQuestion;
 
@@ -171,7 +220,7 @@ async function handleWissenMode(res, { wissenKey, userMessage, history, mode, al
   // aktuelle RAG-Antwort überschreiben - statt wie vorher den kompletten Verlauf zu killen.
   const priorHistory = hist.slice(0, -1);
   const chatHistory = chunks.length
-    ? priorHistory.filter(m => !(m.role === 'assistant' && /steht in den unterlagen nichts/i.test(m.content || '')))
+    ? priorHistory.filter(m => !(m.role === 'assistant' && NEGATIVE_ANSWER_RE.test(m.content || '')))
     : priorHistory;
   const messages = withLanguageMessage([
     { role: 'system', content: systemPrompt + `\n\nSystemzeit: ${now}. /no_think` },
