@@ -126,7 +126,9 @@ router.put('/api/form-templates/:id/fields', asyncHandler(async (req, res) => {
   if (!fields) return res.status(400).json({ error: 'Feldliste erforderlich.' });
 
   const seen = new Set();
-  for (const f of fields) {
+  const lastGroupIndex = new Map(); // group_key -> zuletzt gesehener Array-Index
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
     if (!FIELD_KEY_RE.test(f.field_key || '')) return res.status(400).json({ error: `Ungültiger Feldname: ${f.field_key}` });
     if (seen.has(f.field_key)) return res.status(400).json({ error: `Feldname doppelt: ${f.field_key}` });
     seen.add(f.field_key);
@@ -137,6 +139,23 @@ router.put('/api/form-templates/:id/fields', asyncHandler(async (req, res) => {
       if (!Number.isFinite(v) || v < 0 || v > 1) return res.status(400).json({ error: `Ungültige Koordinate (${k}) für ${f.field_key}` });
     }
     if (!Number.isInteger(f.page_number) || f.page_number < 1) return res.status(400).json({ error: `Ungültige Seitenzahl für ${f.field_key}` });
+
+    // Auswahlgruppen (mehrere exklusive Checkboxen, z.B. Familienstand) - siehe
+    // FormFieldGrouping.js, das davon ausgeht, dass Felder derselben Gruppe im Array immer
+    // direkt aufeinanderfolgen (so entstehen sie ohnehin, wenn der Admin sie im Editor
+    // nacheinander zeichnet; nur eine nachträgliche Umsortierung könnte das brechen).
+    if (f.group_key) {
+      const groupKey = String(f.group_key).trim();
+      if (!FIELD_KEY_RE.test(groupKey)) return res.status(400).json({ error: `Ungültiger Gruppenname: ${f.group_key}` });
+      if (f.field_type !== 'checkbox') return res.status(400).json({ error: `Gruppen sind nur für Checkbox-Felder erlaubt (${f.field_key})` });
+      if (!f.option_value || !String(f.option_value).trim()) return res.status(400).json({ error: `Options-Beschriftung fehlt für ${f.field_key}` });
+      if (lastGroupIndex.has(groupKey) && lastGroupIndex.get(groupKey) !== i - 1) {
+        return res.status(400).json({ error: `Felder der Gruppe "${groupKey}" müssen direkt aufeinanderfolgen.` });
+      }
+      lastGroupIndex.set(groupKey, i);
+      f.group_key = groupKey;
+      f.option_value = String(f.option_value).trim();
+    }
   }
 
   await templates.setFields(id, fields);

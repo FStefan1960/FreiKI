@@ -105,6 +105,17 @@
       flex: 1 1 140px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none;
     }
     .input-row input[type="text"]:focus { border-color: #2B9CD8; }
+
+    /* display:contents statt eines eigenen Flex-Containers: die Options-Buttons reihen sich so
+       direkt zwischen den anderen input-row-Kindern ein (gleicher Zeilenumbruch/Abstand), statt
+       als ein einzelnes verschachteltes Flex-Item behandelt zu werden. */
+    .choice-row { display: contents; }
+    .choice-btn {
+      padding: 10px 16px; background: #f8fafc; border: 1px solid #bfdbfe; border-radius: 8px;
+      font-size: 14px; font-family: inherit; cursor: pointer; color: #1f2937;
+    }
+    .choice-btn:hover { border-color: #2B9CD8; background: #f0f9ff; }
+    .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     #send-btn {
       padding: 10px 18px; background: linear-gradient(135deg, #15803d, #22c55e); color: #fff;
       border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap;
@@ -222,6 +233,7 @@
     <div class="progress" id="progress"></div>
     <div class="thread" id="thread"></div>
     <div class="input-row" id="input-row">
+      <div class="choice-row" id="choice-row"></div>
       <input type="text" id="chat-input" placeholder="Antwort eingeben …">
       <button type="button" id="send-btn">Senden</button>
       <button type="button" id="save-pin-btn">Speichern</button>
@@ -288,6 +300,7 @@
   const progress = document.getElementById('progress');
   const thread = document.getElementById('thread');
   const inputRow = document.getElementById('input-row');
+  const choiceRow = document.getElementById('choice-row');
   const chatInput = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
   const skipBtn = document.getElementById('skip-btn');
@@ -476,6 +489,45 @@
   // bewusst keine serverseitige/LLM-Prüfung der Antworten mehr (siehe formRoutes.js).
   const INPUT_TYPES = { number: 'number', date: 'date' };
 
+  // Bei einer Auswahlgruppe (field_type "choice", siehe FormFieldGrouping.js) zeigt der Chat
+  // anklickbare Buttons statt des Text-/Zahlen-/Datumsfelds - das erzwingt genau eine Auswahl,
+  // wo bei einer reinen Texteingabe zwei Checkboxen gleichzeitig "ja" bekommen könnten.
+  function renderChoices(options) {
+    choiceRow.innerHTML = '';
+    (options || []).forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'choice-btn';
+      btn.textContent = opt.label;
+      btn.addEventListener('click', () => sendChoice(opt.fieldKey, opt.label));
+      choiceRow.appendChild(btn);
+    });
+  }
+
+  async function sendChoice(fieldKey, label) {
+    if (!sessionId) return;
+    choiceRow.querySelectorAll('button').forEach(b => b.disabled = true);
+    addMessage('user', label);
+    const pending = document.createElement('div');
+    pending.className = 'msg pending';
+    pending.textContent = currentLabels.pending;
+    thread.appendChild(pending);
+    thread.scrollTop = thread.scrollHeight;
+    try {
+      const res = await fetch('/api/forms/' + sessionId + '/answer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: fieldKey })
+      });
+      const data = await res.json();
+      pending.remove();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Unbekannter Fehler');
+      renderState(data);
+    } catch (e) {
+      pending.remove();
+      showStatus(e.message, 'error');
+    }
+  }
+
   function renderState(data) {
     if (data.done) {
       progress.textContent = currentLabels.progressComplete;
@@ -486,9 +538,18 @@
     } else {
       progress.textContent = currentLabels.progressQuestion + ' ' + (data.fieldIndex + 1) + ' ' + currentLabels.progressOf + ' ' + data.totalFields + (data.required === false ? ' ' + currentLabels.progressOptional : '');
       inputRow.style.display = 'flex';
-      chatInput.type = INPUT_TYPES[data.fieldType] || 'text';
       skipBtn.style.display = data.required === false ? 'block' : 'none';
       finishBtn.style.display = 'none';
+      if (data.fieldType === 'choice') {
+        chatInput.style.display = 'none';
+        sendBtn.style.display = 'none';
+        renderChoices(data.options);
+      } else {
+        chatInput.style.display = '';
+        sendBtn.style.display = '';
+        choiceRow.innerHTML = '';
+        chatInput.type = INPUT_TYPES[data.fieldType] || 'text';
+      }
       if (data.error) addMessage('error', data.error);
       addMessage('assistant', data.question);
     }

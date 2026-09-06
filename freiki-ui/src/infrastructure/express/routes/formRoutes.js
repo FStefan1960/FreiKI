@@ -3,7 +3,8 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { formResumeLimiter } = require('../middlewares/security');
 const templates = require('../../../core/forms/FormTemplateRepository');
 const sessions = require('../../../core/forms/FormSessionRepository');
-const { translateQuestion, translateLabels, DEFAULT_LANGUAGE } = require('../../../core/forms/FormDialogService');
+const { translateLabels, buildQuestionPayload, DEFAULT_LANGUAGE } = require('../../../core/forms/FormDialogService');
+const { buildSteps, locateStep } = require('../../../core/forms/FormFieldGrouping');
 const { fillFormToPdfBuffer } = require('../../../core/forms/FormFillService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 
@@ -27,16 +28,10 @@ async function loadSessionState(sessionId) {
 }
 
 async function stateResponse(session, fields) {
-  const total = fields.length;
-  const idx = session.current_field_index;
-  if (idx >= total) return { ok: true, sessionId: session.id, done: true, totalFields: total };
-  const field = fields[idx];
-  const question = await translateQuestion(field.question_text, session.language);
-  return {
-    ok: true, sessionId: session.id, done: false,
-    question, fieldIndex: idx, totalFields: total,
-    fieldType: field.field_type, required: field.required,
-  };
+  const { step, stepIndex, totalSteps } = locateStep(fields, session.current_field_index);
+  if (!step) return { ok: true, sessionId: session.id, done: true, totalFields: totalSteps };
+  const payload = await buildQuestionPayload(step, session.language);
+  return { ok: true, sessionId: session.id, done: false, fieldIndex: stepIndex, totalFields: totalSteps, ...payload };
 }
 
 // Aktive Formularvorlagen für den Formular-Chat
@@ -71,14 +66,14 @@ router.post('/api/forms/:slug/start', asyncHandler(async (req, res) => {
 
   const language = sanitizeLanguage(req.body?.language);
   const { id, pin } = await sessions.create(template.id, language, s.username);
-  const [question, labels] = await Promise.all([
-    translateQuestion(fields[0].question_text, language),
+  const { step, stepIndex, totalSteps } = locateStep(fields, 0);
+  const [payload, labels] = await Promise.all([
+    buildQuestionPayload(step, language),
     translateLabels(language),
   ]);
   res.json({
     ok: true, sessionId: id, pin, done: false,
-    question, fieldIndex: 0, totalFields: fields.length,
-    fieldType: fields[0].field_type, required: fields[0].required, labels,
+    fieldIndex: stepIndex, totalFields: totalSteps, ...payload, labels,
   });
 }));
 
@@ -113,19 +108,25 @@ router.post('/api/forms/:sessionId/answer', asyncHandler(async (req, res) => {
   const state = await loadSessionState(sessionId);
   if (!state) return res.status(404).json({ error: 'Sitzung nicht gefunden oder abgelaufen.' });
   const { session, fields } = state;
-  if (session.current_field_index >= fields.length) {
-    return res.json(await stateResponse(session, fields));
-  }
-  const field = fields[session.current_field_index];
-  const nextIndex = session.current_field_index + 1;
+  const { step } = locateStep(fields, session.current_field_index);
+  if (!step) return res.json(await stateResponse(session, fields));
+  const stepRequired = step.fields.some((f) => f.required);
+  const nextIndex = session.current_field_index + step.fields.length;
 
   if (skip) {
-    if (field.required) return res.status(400).json({ error: 'Dieses Feld ist ein Pflichtfeld und kann nicht übersprungen werden.' });
+    if (stepRequired) return res.status(400).json({ error: 'Dieses Feld ist ein Pflichtfeld und kann nicht übersprungen werden.' });
     await sessions.advanceField(sessionId, nextIndex);
+  } else if (step.isGroup) {
+    // Bei einer Auswahlgruppe schickt der Chat den field_key der angeklickten Option statt
+    // Freitext (siehe formular-chat.html) - gespeichert wird nur die gewählte Option, die
+    // übrigen Gruppenmitglieder bleiben ohne Antwort (FormFillService zeichnet dort kein "X").
+    const chosen = step.fields.find((f) => f.field_key === String(message || '').trim());
+    if (!chosen) return res.status(400).json({ error: 'Ungültige Auswahl.' });
+    await sessions.saveAnswer(sessionId, chosen.field_key, 'ja', nextIndex);
   } else {
     const value = String(message || '').trim();
     if (!value) return res.status(400).json({ error: 'Keine Antwort übergeben.' });
-    await sessions.saveAnswer(sessionId, field.field_key, value, nextIndex);
+    await sessions.saveAnswer(sessionId, step.fields[0].field_key, value, nextIndex);
   }
 
   const updated = await sessions.getById(sessionId);
@@ -142,7 +143,13 @@ router.post('/api/forms/:sessionId/finish', asyncHandler(async (req, res) => {
   if (!state) return res.status(404).json({ error: 'Sitzung nicht gefunden oder abgelaufen.' });
   const { session, fields } = state;
 
-  const missing = fields.filter(f => f.required && !session.answers[f.field_key]);
+  // Gruppenweise statt feldweise geprüft: bei einer Auswahlgruppe bekommt planmäßig nur die
+  // gewählte Option eine Antwort, alle anderen Mitglieder bleiben leer (siehe /answer oben) -
+  // eine feldweise Prüfung würde deshalb jede unvollständig beantwortete Gruppe fälschlich als
+  // "fehlt" melden, sobald mehr als eine Option als required markiert ist.
+  const missing = buildSteps(fields).filter(
+    (step) => step.fields.some((f) => f.required) && !step.fields.some((f) => session.answers[f.field_key])
+  );
   if (missing.length > 0) {
     return res.status(400).json({ error: 'Noch nicht alle Pflichtfelder beantwortet.' });
   }

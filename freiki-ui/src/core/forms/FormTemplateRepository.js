@@ -37,9 +37,18 @@ async function ensureSchema() {
       question_text  TEXT NOT NULL,
       required       BOOLEAN NOT NULL DEFAULT true,
       order_index    INT NOT NULL DEFAULT 0,
+      group_key      TEXT,
+      option_value   TEXT,
       UNIQUE (template_id, field_key)
     )
   `);
+  // Fasst mehrere Checkbox-Felder zu einer exklusiven Auswahlgruppe zusammen (z.B.
+  // Familienstand: ledig/verheiratet/geschieden/verwitwet als vier einzeln gezeichnete
+  // Checkboxen) - siehe FormFieldGrouping.js. Auf bereits deployten Instanzen fehlen diese
+  // Spalten noch, daher ADD COLUMN IF NOT EXISTS zusätzlich zum CREATE TABLE (gleiches Muster
+  // wie bei form_sessions.language/username).
+  await pool.query(`ALTER TABLE form_template_fields ADD COLUMN IF NOT EXISTS group_key TEXT`);
+  await pool.query(`ALTER TABLE form_template_fields ADD COLUMN IF NOT EXISTS option_value TEXT`);
 }
 
 async function createTemplate({ slug, title, description, createdBy }) {
@@ -121,10 +130,11 @@ async function setFields(templateId, fields) {
     for (const f of fields) {
       await client.query(
         `INSERT INTO form_template_fields
-           (template_id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+           (template_id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index, group_key, option_value)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
         [templateId, f.field_key, f.page_number, f.x, f.y, f.width, f.height,
-         f.field_type, f.question_text, f.required !== false, f.order_index ?? 0]
+         f.field_type, f.question_text, f.required !== false, f.order_index ?? 0,
+         f.group_key || null, f.option_value || null]
       );
     }
     await client.query('COMMIT');
@@ -138,7 +148,7 @@ async function setFields(templateId, fields) {
 
 async function listFields(templateId) {
   const { rows } = await pool.query(
-    `SELECT id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index
+    `SELECT id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index, group_key, option_value
      FROM form_template_fields WHERE template_id=$1 ORDER BY order_index, id`,
     [templateId]
   );

@@ -140,6 +140,19 @@
         </div>
         <label>Frage im Chat</label>
         <input type="text" id="ff-question">
+        <div class="field-form-row" id="ff-group-row" style="display:none">
+          <div>
+            <label>Gruppe (optional, für exklusive Auswahl)</label>
+            <input type="text" id="ff-group" placeholder="z.B. familienstand">
+          </div>
+          <div>
+            <label>Options-Beschriftung</label>
+            <input type="text" id="ff-option" placeholder="z.B. verheiratet">
+          </div>
+        </div>
+        <p class="hint" id="ff-group-hint" style="display:none;margin-top:2px">
+          Mehrere Checkbox-Felder mit derselben Gruppe (gleiche Frage!) werden im Chat als eine Frage mit anklickbaren Optionen dargestellt - es kann dann nur eine davon angekreuzt werden. Die Boxen dazu einzeln nacheinander auf der Seite einzeichnen.
+        </p>
         <div class="checkbox-row">
           <input type="checkbox" id="ff-required" checked>
           <label style="margin:0" for="ff-required">Pflichtfeld</label>
@@ -184,8 +197,22 @@
   const ffKey = document.getElementById('ff-key');
   const ffType = document.getElementById('ff-type');
   const ffQuestion = document.getElementById('ff-question');
+  const ffGroupRow = document.getElementById('ff-group-row');
+  const ffGroupHint = document.getElementById('ff-group-hint');
+  const ffGroup = document.getElementById('ff-group');
+  const ffOption = document.getElementById('ff-option');
   const ffRequired = document.getElementById('ff-required');
   const ffDelete = document.getElementById('ff-delete');
+
+  // Gruppe/Options-Beschriftung ergeben nur bei Checkbox-Feldern Sinn (siehe adminFormRoutes.js-
+  // Validierung: group_key ist dort auf field_type==='checkbox' beschränkt).
+  function updateGroupFieldsVisibility() {
+    const isCheckbox = ffType.value === 'checkbox';
+    ffGroupRow.style.display = isCheckbox ? 'flex' : 'none';
+    ffGroupHint.style.display = isCheckbox ? 'block' : 'none';
+    if (!isCheckbox) { ffGroup.value = ''; ffOption.value = ''; }
+  }
+  ffType.addEventListener('change', updateGroupFieldsVisibility);
 
   let currentTemplate = null;
   let currentPages = [];
@@ -308,7 +335,7 @@
         box.style.top = (f.y * 100) + '%';
         box.style.width = (f.width * 100) + '%';
         box.style.height = (f.height * 100) + '%';
-        box.innerHTML = '<span class="fb-label">' + f.field_key + '</span><span class="fb-resize"></span>';
+        box.innerHTML = '<span class="fb-label">' + (f.group_key ? f.group_key + ': ' + f.option_value : f.field_key) + '</span><span class="fb-resize"></span>';
         box.addEventListener('click', (e) => {
           e.stopPropagation();
           if (box.dataset.dragged === '1') { delete box.dataset.dragged; return; }
@@ -445,13 +472,16 @@
     editingIndex = idx;
     if (idx === null) {
       ffKey.value = ''; ffType.value = 'text'; ffQuestion.value = ''; ffRequired.checked = true;
+      ffGroup.value = ''; ffOption.value = '';
       ffDelete.classList.add('hidden');
     } else {
       const f = currentFields[idx];
       ffKey.value = f.field_key; ffType.value = f.field_type; ffQuestion.value = f.question_text; ffRequired.checked = f.required;
+      ffGroup.value = f.group_key || ''; ffOption.value = f.option_value || '';
       ffDelete.classList.remove('hidden');
       pendingBox = null;
     }
+    updateGroupFieldsVisibility();
     fieldForm.classList.add('visible');
     ffKey.focus();
   }
@@ -467,8 +497,12 @@
   document.getElementById('ff-save').addEventListener('click', () => {
     const key = ffKey.value.trim();
     const question = ffQuestion.value.trim();
+    const groupKey = ffType.value === 'checkbox' ? ffGroup.value.trim() : '';
+    const optionValue = ffType.value === 'checkbox' ? ffOption.value.trim() : '';
     if (!/^[a-z][a-z0-9_]{0,49}$/.test(key)) { showStatus(editorStatus, 'Feldname: nur Kleinbuchstaben/Ziffern/_, muss mit Buchstabe beginnen.', 'error'); return; }
     if (!question) { showStatus(editorStatus, 'Bitte eine Frage für dieses Feld eintragen.', 'error'); return; }
+    if (groupKey && !/^[a-z][a-z0-9_]{0,49}$/.test(groupKey)) { showStatus(editorStatus, 'Gruppenname: nur Kleinbuchstaben/Ziffern/_, muss mit Buchstabe beginnen.', 'error'); return; }
+    if (groupKey && !optionValue) { showStatus(editorStatus, 'Bitte eine Options-Beschriftung für diese Gruppe eintragen.', 'error'); return; }
 
     if (editingIndex !== null) {
       const f = currentFields[editingIndex];
@@ -476,13 +510,15 @@
         showStatus(editorStatus, 'Feldname bereits vergeben.', 'error'); return;
       }
       f.field_key = key; f.field_type = ffType.value; f.question_text = question; f.required = ffRequired.checked;
+      f.group_key = groupKey || null; f.option_value = optionValue || null;
     } else {
       if (currentFields.some(other => other.field_key === key)) {
         showStatus(editorStatus, 'Feldname bereits vergeben.', 'error'); return;
       }
       currentFields.push({
         ...pendingBox, field_key: key, field_type: ffType.value, question_text: question,
-        required: ffRequired.checked, order_index: currentFields.length
+        required: ffRequired.checked, group_key: groupKey || null, option_value: optionValue || null,
+        order_index: currentFields.length
       });
     }
     closeFieldForm();

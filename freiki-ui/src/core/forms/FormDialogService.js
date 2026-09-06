@@ -1,11 +1,6 @@
 const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
-
-// Siehe ChatService.js/OCRService.js: chat_template_kwargs nur bei Qwen-Modellen setzen
-// (Mistral/FrankKI lehnt unbekannte Felder mit HTTP 422 ab).
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
+const { THINKING_KWARGS } = require('../chat/ThinkingConfig');
 
 const DEFAULT_LANGUAGE = 'Deutsch';
 const isGerman = (language) => !language || language.trim().toLowerCase() === 'deutsch';
@@ -104,4 +99,25 @@ async function translateLabels(language) {
   }
 }
 
-module.exports = { translateQuestion, translateLabels, DEFAULT_LANGUAGE };
+// Baut die im Chat anzuzeigende Frage für einen Formular-Schritt (siehe FormFieldGrouping.js).
+// Bei einer Gruppe (mehrere exklusive Checkbox-Felder, z.B. Familienstand) werden zusätzlich die
+// Options-Beschriftungen übersetzt und als "choice"-Fragetyp mit fieldKey je Option ausgeliefert,
+// damit der Chat echte Buttons statt eines Freitextfelds anzeigen kann - das erzwingt serverseitig
+// nichts, verhindert aber in der normalen Bedienung, dass zwei Optionen gleichzeitig "ja" werden.
+async function buildQuestionPayload(step, language) {
+  const first = step.fields[0];
+  if (step.isGroup) {
+    const [question, options] = await Promise.all([
+      translateQuestion(first.question_text, language),
+      Promise.all(step.fields.map(async (f) => ({
+        fieldKey: f.field_key,
+        label: await translateQuestion(f.option_value || f.field_key, language),
+      }))),
+    ]);
+    return { question, fieldType: 'choice', options, required: step.fields.some((f) => f.required) };
+  }
+  const question = await translateQuestion(first.question_text, language);
+  return { question, fieldType: first.field_type, required: first.required };
+}
+
+module.exports = { translateQuestion, translateLabels, buildQuestionPayload, DEFAULT_LANGUAGE };
