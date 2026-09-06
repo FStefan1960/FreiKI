@@ -26,7 +26,7 @@ function getIndexHtml() {
     .replace(/\{\{FOOTER_NOTE\}\}/g,       brand.footerNote || brand.name)
     .replace(/\{\{APP_VERSION\}\}/g,       GIT_VERSION)
     .replace(/\{\{AGPL_SOURCE_NOTICE\}\}/g,
-      '<a href="https://github.com/FStefan1960/FreiKI" target="_blank" rel="noopener" style="color:inherit">Lizenz: AGPL-3.0-or-later</a>');
+      `<a href="${brand.sourceRepoUrl}" target="_blank" rel="noopener" style="color:inherit">Lizenz: AGPL-3.0-or-later</a>`);
 }
 
 // index.html liegt in PUBLIC_DIR und würde von express.static sonst roh (mit ungefüllten

@@ -15,6 +15,9 @@ const BRAND_DEFAULTS = {
   swVersion:     process.env.APP_SW_VERSION    || '1',
   demoMode:      process.env.APP_DEMO_MODE === 'true',
   footerNote:    process.env.APP_FOOTER_NOTE   || '',
+  // AGPL-3.0 verlangt, dass der Quellcode-Link auf das Repo der tatsächlich laufenden
+  // Version zeigt - bei Forks (KorKI, FrankKI) muss das instanzspezifisch überschrieben werden.
+  sourceRepoUrl: process.env.APP_SOURCE_REPO_URL || 'https://github.com/FStefan1960/FreiKI',
   mandatoryTraining: process.env.APP_MANDATORY_TRAINING === 'true',
   selfRegistration:  process.env.APP_SELF_REGISTRATION === 'true',
   useMetacom:        process.env.APP_USE_METACOM === 'true',
@@ -56,6 +59,7 @@ async function loadBrandConfig() {
       swVersion:     db.swVersion     ?? BRAND_DEFAULTS.swVersion,
       demoMode:      BRAND_DEFAULTS.demoMode,   // nur aus .env steuerbar
       footerNote:    db.footerNote    ?? BRAND_DEFAULTS.footerNote,
+      sourceRepoUrl: BRAND_DEFAULTS.sourceRepoUrl, // nur aus .env steuerbar
       mandatoryTraining: BRAND_DEFAULTS.mandatoryTraining, // nur aus .env steuerbar
       selfRegistration:  BRAND_DEFAULTS.selfRegistration,  // nur aus .env steuerbar
       useMetacom:        BRAND_DEFAULTS.useMetacom,        // nur aus .env steuerbar
