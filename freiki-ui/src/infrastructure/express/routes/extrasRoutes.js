@@ -17,16 +17,23 @@ const SYMBOLS_FONT_PATH = path.join(__dirname, '..', '..', '..', '..', 'fonts', 
 
 const router = express.Router();
 
-// Instanzspezifische Zusatz-Tools aus public/extras/*.json
-router.get('/api/extras', (_req, res) => {
+// Instanzspezifische Zusatz-Tools aus public/extras/*.json - das optionale roles-Feld
+// (siehe modes.js, wo dasselbe Feld clientseitig fürs Ein-/Ausblenden im Menü ausgewertet wird)
+// muss auch hier serverseitig greifen, sonst verrät der Endpunkt Titel/Icon/Zielpfad
+// rollen-beschränkter Extras (z.B. Formular-Vorlagen bei KorKI) an jeden Aufrufer, auch ohne
+// Anmeldung - der eigentliche Zugriffsschutz liegt zwar ohnehin auf der Zielseite/-API, aber
+// die bloße Existenz eines admin/manager-Tools muss nicht jeder Anfrage ausgeliefert werden.
+router.get('/api/extras', (req, res) => {
   const dir = path.join(config.PUBLIC_DIR, 'extras');
+  const role = getSession(req)?.role || null;
   try {
     if (!fs.existsSync(dir)) return res.json([]);
     const extras = fs.readdirSync(dir)
       .filter(f => f.endsWith('.json'))
       .sort()
       .map(f => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch { return null; } })
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(e => !e.roles || (role && e.roles.includes(role)));
     res.json(extras);
   } catch (e) { res.json([]); }
 });
