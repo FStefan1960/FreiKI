@@ -55,11 +55,15 @@
     .page-container img { display: block; width: 100%; height: auto; }
     .field-box {
       position: absolute; border: 2px solid #2B9CD8; background: rgba(43,156,216,0.18);
-      cursor: pointer; box-sizing: border-box;
+      cursor: move; box-sizing: border-box;
     }
     .field-box .fb-label {
       position: absolute; top: -20px; left: -2px; background: #1E3A8A; color: #fff;
-      font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+      font-size: 10px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none;
+    }
+    .field-box .fb-resize {
+      position: absolute; right: -5px; bottom: -5px; width: 12px; height: 12px;
+      background: #1E3A8A; border: 2px solid #fff; border-radius: 50%; cursor: nwse-resize;
     }
     .drawing-box { position: absolute; border: 2px dashed #22c55e; background: rgba(34,197,94,0.15); pointer-events: none; }
 
@@ -304,10 +308,91 @@
         box.style.top = (f.y * 100) + '%';
         box.style.width = (f.width * 100) + '%';
         box.style.height = (f.height * 100) + '%';
-        box.innerHTML = '<span class="fb-label">' + f.field_key + '</span>';
-        box.addEventListener('click', (e) => { e.stopPropagation(); openFieldForm(idx); });
+        box.innerHTML = '<span class="fb-label">' + f.field_key + '</span><span class="fb-resize"></span>';
+        box.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (box.dataset.dragged === '1') { delete box.dataset.dragged; return; }
+          openFieldForm(idx);
+        });
+        attachBoxDrag(box, container, idx);
+        attachBoxResize(box.querySelector('.fb-resize'), container, idx);
         container.appendChild(box);
       });
+  }
+
+  // Feld-Box per Pointer-Drag verschieben. Ein Schwellenwert unterscheidet
+  // Klick (Formular öffnen) von echtem Verschieben; nach einem Drag wird der
+  // nachfolgende click-Event via dataset.dragged unterdrückt.
+  function attachBoxDrag(box, container, idx) {
+    box.addEventListener('pointerdown', (e) => {
+      if (e.target.classList.contains('fb-resize')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      box.setPointerCapture(e.pointerId);
+      const startClientX = e.clientX, startClientY = e.clientY;
+      const f = currentFields[idx];
+      const startX = f.x, startY = f.y;
+      let dragged = false;
+
+      const onMove = (ev) => {
+        const r = container.getBoundingClientRect();
+        const dx = (ev.clientX - startClientX) / r.width;
+        const dy = (ev.clientY - startClientY) / r.height;
+        if (!dragged && (Math.abs(ev.clientX - startClientX) > 3 || Math.abs(ev.clientY - startClientY) > 3)) {
+          dragged = true;
+        }
+        if (!dragged) return;
+        const nx = Math.min(Math.max(startX + dx, 0), 1 - f.width);
+        const ny = Math.min(Math.max(startY + dy, 0), 1 - f.height);
+        box.style.left = (nx * 100) + '%';
+        box.style.top = (ny * 100) + '%';
+        f.x = nx; f.y = ny;
+      };
+      const onUp = () => {
+        box.removeEventListener('pointermove', onMove);
+        box.removeEventListener('pointerup', onUp);
+        box.removeEventListener('pointercancel', onUp);
+        try { box.releasePointerCapture(e.pointerId); } catch (_) {}
+        if (dragged) box.dataset.dragged = '1';
+      };
+      box.addEventListener('pointermove', onMove);
+      box.addEventListener('pointerup', onUp);
+      box.addEventListener('pointercancel', onUp);
+    });
+  }
+
+  // Feld-Box per Griff unten rechts in der Größe verändern.
+  function attachBoxResize(handle, container, idx) {
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handle.setPointerCapture(e.pointerId);
+      const box = handle.parentElement;
+      const startClientX = e.clientX, startClientY = e.clientY;
+      const f = currentFields[idx];
+      const startW = f.width, startH = f.height;
+
+      const onMove = (ev) => {
+        const r = container.getBoundingClientRect();
+        const dw = (ev.clientX - startClientX) / r.width;
+        const dh = (ev.clientY - startClientY) / r.height;
+        const nw = Math.min(Math.max(startW + dw, 0.01), 1 - f.x);
+        const nh = Math.min(Math.max(startH + dh, 0.01), 1 - f.y);
+        box.style.width = (nw * 100) + '%';
+        box.style.height = (nh * 100) + '%';
+        f.width = nw; f.height = nh;
+      };
+      const onUp = () => {
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup', onUp);
+        handle.removeEventListener('pointercancel', onUp);
+        try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+        box.dataset.dragged = '1';
+      };
+      handle.addEventListener('pointermove', onMove);
+      handle.addEventListener('pointerup', onUp);
+      handle.addEventListener('pointercancel', onUp);
+    });
   }
 
   // Pointer Events statt mouse* + document-Listener: mit setPointerCapture bleiben
