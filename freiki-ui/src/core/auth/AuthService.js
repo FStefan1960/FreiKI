@@ -8,10 +8,7 @@ const { sendWelcomeMail, sendBgtWelcomeMail, sendRegistrationNotificationMail } 
 const { generatePassword, fetchWithTimeout } = require('../../shared/utils/text');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { config } = require('../../shared/config');
-
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
+const { THINKING_KWARGS } = require('../chat/ThinkingConfig');
 
 // Pflichtschulung greift vor der 2FA-Einrichtung, gilt aber (anders als 2FA) für alle Rollen
 // und nur, wo APP_MANDATORY_TRAINING=true gesetzt ist (aktuell nirgends aktiv).

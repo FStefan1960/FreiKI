@@ -5,15 +5,10 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
 const { searchLinks } = require('../../../core/integrations/SearXNGService');
+const { THINKING_KWARGS } = require('../../../core/chat/ThinkingConfig');
 
 const router = express.Router();
 router.use(express.json({ limit: '20kb' }));
-
-// Siehe FormDialogService.js: chat_template_kwargs nur bei Qwen-Modellen setzen
-// (Mistral/FrankKI lehnt unbekannte Felder mit HTTP 422 ab).
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
 
 // Feste Aktions-Vokabular: das LLM darf nur aus diesen Typen wählen (Prompt-Anweisung),
 // serverseitig zusätzlich hart gefiltert - eine Halluzination des Modells kann so höchstens

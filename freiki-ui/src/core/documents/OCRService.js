@@ -4,14 +4,9 @@ const crypto = require('crypto');
 const { execFileSync } = require('child_process');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
+const { THINKING_KWARGS } = require('../chat/ThinkingConfig');
 
 const TESSERACT_ARGS = ['-l', 'deu', '--oem', '1', '--psm', '3'];
-
-// Siehe ChatService.js: chat_template_kwargs nur bei Qwen-Modellen setzen (Mistral/FrankKI
-// lehnt unbekannte Felder mit HTTP 422 ab).
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
 
 // execFile statt der node-tesseract-ocr-Bibliothek (die exec() mit string-konkateniertem
 // Shell-Befehl nutzt - GHSA-8j44-735h-w4w2, Command Injection, kein Fix verfügbar). Mit

@@ -5,18 +5,13 @@ const { fetchWithTimeout } = require('../../shared/utils/text');
 const { normArea } = require('../../shared/utils/text');
 const { getEmbeddings } = require('./EmbeddingService');
 const kbAreas = require('./KBAreaRepository');
+const { THINKING_KWARGS } = require('../chat/ThinkingConfig');
 
 const CHUNK_SIZE = 800;
 const CHUNK_OVERLAP = 150;
 const EMBED_BATCH = 4;
 const BOT_CHUNKS_PER_AREA = 4;
 const BOT_TOP_CHUNKS = 8;
-
-// Siehe ChatService.js: chat_template_kwargs nur bei Qwen-Modellen setzen (Mistral/FrankKI
-// lehnt unbekannte Felder mit HTTP 422 ab).
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
 
 function chunkText(text, source) {
   const paras = text.split(/\n{2,}/).map(p => p.trim()).filter(p => p.length > 0);
@@ -317,6 +312,7 @@ async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 1
 async function answerHilfeChat(message) {
   const hilfeTable = config.HILFE_KB_TABLE;
   if (!hilfeTable) return { error: 'HILFE_KB_TABLE nicht konfiguriert', status: 503 };
+  if (!kbAreas.isValidKbTable(hilfeTable)) return { error: 'HILFE_KB_TABLE ungültig', status: 503 };
   const [queryEmbedding] = await getEmbeddings([message]);
   const vecStr = '[' + queryEmbedding.join(',') + ']';
   const client = await pool.connect();

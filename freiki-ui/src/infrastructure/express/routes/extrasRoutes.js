@@ -9,16 +9,11 @@ const { fetchWithTimeout } = require('../../../shared/utils/text');
 const { PDFDocument } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const { symbolsToDocxBuffer } = require('../../../core/documents/DocxExportService');
+const { THINKING_KWARGS } = require('../../../core/chat/ThinkingConfig');
 
 // Siehe FormFillService.js für die ausführliche Begründung (echte Unicode-Schrift statt
 // pdf-lib-Standardfonts, wegen Zeichenumrissen/Mehrsprachigkeit).
 const SYMBOLS_FONT_PATH = path.join(__dirname, '..', '..', '..', '..', 'fonts', 'DejaVuSans.ttf');
-
-// Siehe FormDialogService.js: chat_template_kwargs nur bei Qwen-Modellen setzen
-// (Mistral/FrankKI lehnt unbekannte Felder mit HTTP 422 ab).
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
 
 const router = express.Router();
 

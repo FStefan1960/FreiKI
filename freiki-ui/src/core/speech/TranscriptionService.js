@@ -7,12 +7,7 @@ const FormData = require('form-data');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout } = require('../../shared/utils/text');
 const { sendTranscriptMail, sendTranscriptFailureMail } = require('../integrations/EmailService');
-
-// Siehe ChatService.js: chat_template_kwargs nur bei Qwen-Modellen setzen (Mistral/FrankKI
-// lehnt unbekannte Felder mit HTTP 422 ab).
-const THINKING_KWARGS = /qwen/i.test(config.VLLM_MODEL || '')
-  ? { chat_template_kwargs: { enable_thinking: false } }
-  : {};
+const { THINKING_KWARGS } = require('../chat/ThinkingConfig');
 
 async function formatTranscript(transcript) {
   try {
