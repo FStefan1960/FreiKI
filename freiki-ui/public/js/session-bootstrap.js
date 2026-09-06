@@ -144,7 +144,9 @@ let lastTipIndex = -1;
 async function loadTips() {
   if (sessionStorage.getItem('freiki_tip_shown')) return;
   try {
-    const r = await fetch('/api/tips');
+    let lang = 'de';
+    try { lang = localStorage.getItem('fk_ui_lang') || 'de'; } catch (e) {}
+    const r = await fetch('/api/tips?lang=' + encodeURIComponent(lang));
     const d = await r.json();
     tipList = d.tips || [];
     if (tipList.length) {

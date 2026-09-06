@@ -19,10 +19,21 @@ const sensitivePatterns = require('../../../core/audit/SensitivePatterns');
 const router = express.Router();
 router.use(express.json({ limit: '2mb' }));
 
-router.get('/api/tips', (_req, res) => {
+// Sprachen decken sich mit FK_SUPPORTED_LANGS in public/js/i18n.js.
+const TIPS_LANGS = ['en', 'fr', 'es', 'ru', 'id', 'mg'];
+
+router.get('/api/tips', (req, res) => {
   try {
     const brand = getBrandConfig();
-    const raw = fs.readFileSync(path.join(config.APP_ROOT, 'tips.md'), 'utf8')
+    const lang = TIPS_LANGS.includes(req.query.lang) ? req.query.lang : null;
+    const file = lang ? `tips.${lang}.md` : 'tips.md';
+    let raw;
+    try {
+      raw = fs.readFileSync(path.join(config.APP_ROOT, file), 'utf8');
+    } catch (e) {
+      raw = fs.readFileSync(path.join(config.APP_ROOT, 'tips.md'), 'utf8');
+    }
+    raw = raw
       .replace(/\{\{APP_NAME\}\}/g, brand.name)
       .replace(/\{\{MATTERMOST_URL\}\}/g, brand.mattermostUrl || 'dem Team-Chat');
     const tips = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
