@@ -39,6 +39,7 @@ async function ensureSchema() {
       order_index    INT NOT NULL DEFAULT 0,
       group_key      TEXT,
       option_value   TEXT,
+      depends_on_field_key TEXT,
       UNIQUE (template_id, field_key)
     )
   `);
@@ -49,6 +50,10 @@ async function ensureSchema() {
   // wie bei form_sessions.language/username).
   await pool.query(`ALTER TABLE form_template_fields ADD COLUMN IF NOT EXISTS group_key TEXT`);
   await pool.query(`ALTER TABLE form_template_fields ADD COLUMN IF NOT EXISTS option_value TEXT`);
+  // Bedingte Felder (z.B. "Seit wann verheiratet?" nur wenn die Checkbox "verheiratet" mit
+  // Ja beantwortet wurde) - siehe FormFieldGrouping.js buildSteps(). Zeigt per field_key auf
+  // ein Checkbox-Feld derselben Vorlage; NULL bedeutet unbedingt (wie bisher).
+  await pool.query(`ALTER TABLE form_template_fields ADD COLUMN IF NOT EXISTS depends_on_field_key TEXT`);
 }
 
 async function createTemplate({ slug, title, description, createdBy }) {
@@ -130,11 +135,11 @@ async function setFields(templateId, fields) {
     for (const f of fields) {
       await client.query(
         `INSERT INTO form_template_fields
-           (template_id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index, group_key, option_value)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+           (template_id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index, group_key, option_value, depends_on_field_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [templateId, f.field_key, f.page_number, f.x, f.y, f.width, f.height,
          f.field_type, f.question_text, f.required !== false, f.order_index ?? 0,
-         f.group_key || null, f.option_value || null]
+         f.group_key || null, f.option_value || null, f.depends_on_field_key || null]
       );
     }
     await client.query('COMMIT');
@@ -148,7 +153,7 @@ async function setFields(templateId, fields) {
 
 async function listFields(templateId) {
   const { rows } = await pool.query(
-    `SELECT id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index, group_key, option_value
+    `SELECT id, field_key, page_number, x, y, width, height, field_type, question_text, required, order_index, group_key, option_value, depends_on_field_key
      FROM form_template_fields WHERE template_id=$1 ORDER BY order_index, id`,
     [templateId]
   );

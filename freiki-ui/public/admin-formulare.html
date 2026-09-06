@@ -153,6 +153,9 @@
         <p class="hint" id="ff-group-hint" style="display:none;margin-top:2px">
           Mehrere Checkbox-Felder mit derselben Gruppe (gleiche Frage!) werden im Chat als eine Frage mit anklickbaren Optionen dargestellt - es kann dann nur eine davon angekreuzt werden. Die Boxen dazu einzeln nacheinander auf der Seite einzeichnen.
         </p>
+        <label>Nur wenn ... (optional)</label>
+        <select id="ff-depends"><option value="">— keine Abhängigkeit —</option></select>
+        <p class="hint" style="margin-top:2px">Feld wird im Chat nur gefragt, wenn die ausgewählte Checkbox zuvor mit Ja beantwortet wurde (z.B. "Seit wann verheiratet?" nur wenn "verheiratet" angekreuzt ist). Zur Auswahl stehen bereits vorher im Formular platzierte Checkbox-Felder.</p>
         <div class="checkbox-row">
           <input type="checkbox" id="ff-required" checked>
           <label style="margin:0" for="ff-required">Pflichtfeld</label>
@@ -201,6 +204,7 @@
   const ffGroupHint = document.getElementById('ff-group-hint');
   const ffGroup = document.getElementById('ff-group');
   const ffOption = document.getElementById('ff-option');
+  const ffDepends = document.getElementById('ff-depends');
   const ffRequired = document.getElementById('ff-required');
   const ffDelete = document.getElementById('ff-delete');
 
@@ -213,6 +217,26 @@
     if (!isCheckbox) { ffGroup.value = ''; ffOption.value = ''; }
   }
   ffType.addEventListener('change', updateGroupFieldsVisibility);
+
+  // Nur bereits vorher im Formular platzierte Checkbox-Felder sind als Abhängigkeit wählbar
+  // (siehe adminFormRoutes.js: die Bedingung muss auf ein Feld mit kleinerem Array-Index zeigen,
+  // sonst wäre die Antwort im Chat zum Zeitpunkt der Bedingungsprüfung noch nicht bekannt).
+  // Bei einem neuen Feld (editingIndex === null) zählt es als ans Ende angehängt, also sind
+  // alle bisherigen Checkbox-Felder erlaubt.
+  function updateDependsOptions(currentDependsValue) {
+    const limit = editingIndex === null ? currentFields.length : editingIndex;
+    const candidates = currentFields
+      .slice(0, limit)
+      .filter((f) => f.field_type === 'checkbox');
+    ffDepends.innerHTML = '<option value="">— keine Abhängigkeit —</option>';
+    candidates.forEach((f) => {
+      const opt = document.createElement('option');
+      opt.value = f.field_key;
+      opt.textContent = f.group_key ? `${f.group_key}: ${f.option_value}` : f.field_key;
+      ffDepends.appendChild(opt);
+    });
+    ffDepends.value = candidates.some((f) => f.field_key === currentDependsValue) ? currentDependsValue : '';
+  }
 
   let currentTemplate = null;
   let currentPages = [];
@@ -335,7 +359,8 @@
         box.style.top = (f.y * 100) + '%';
         box.style.width = (f.width * 100) + '%';
         box.style.height = (f.height * 100) + '%';
-        box.innerHTML = '<span class="fb-label">' + (f.group_key ? f.group_key + ': ' + f.option_value : f.field_key) + '</span><span class="fb-resize"></span>';
+        const label = (f.group_key ? f.group_key + ': ' + f.option_value : f.field_key) + (f.depends_on_field_key ? ' ⤷' : '');
+        box.innerHTML = '<span class="fb-label">' + label + '</span><span class="fb-resize"></span>';
         box.addEventListener('click', (e) => {
           e.stopPropagation();
           if (box.dataset.dragged === '1') { delete box.dataset.dragged; return; }
@@ -474,11 +499,13 @@
       ffKey.value = ''; ffType.value = 'text'; ffQuestion.value = ''; ffRequired.checked = true;
       ffGroup.value = ''; ffOption.value = '';
       ffDelete.classList.add('hidden');
+      updateDependsOptions('');
     } else {
       const f = currentFields[idx];
       ffKey.value = f.field_key; ffType.value = f.field_type; ffQuestion.value = f.question_text; ffRequired.checked = f.required;
       ffGroup.value = f.group_key || ''; ffOption.value = f.option_value || '';
       ffDelete.classList.remove('hidden');
+      updateDependsOptions(f.depends_on_field_key || '');
       pendingBox = null;
     }
     updateGroupFieldsVisibility();
@@ -503,6 +530,7 @@
     if (!question) { showStatus(editorStatus, 'Bitte eine Frage für dieses Feld eintragen.', 'error'); return; }
     if (groupKey && !/^[a-z][a-z0-9_]{0,49}$/.test(groupKey)) { showStatus(editorStatus, 'Gruppenname: nur Kleinbuchstaben/Ziffern/_, muss mit Buchstabe beginnen.', 'error'); return; }
     if (groupKey && !optionValue) { showStatus(editorStatus, 'Bitte eine Options-Beschriftung für diese Gruppe eintragen.', 'error'); return; }
+    const dependsOn = ffDepends.value || null;
 
     if (editingIndex !== null) {
       const f = currentFields[editingIndex];
@@ -511,6 +539,7 @@
       }
       f.field_key = key; f.field_type = ffType.value; f.question_text = question; f.required = ffRequired.checked;
       f.group_key = groupKey || null; f.option_value = optionValue || null;
+      f.depends_on_field_key = dependsOn;
     } else {
       if (currentFields.some(other => other.field_key === key)) {
         showStatus(editorStatus, 'Feldname bereits vergeben.', 'error'); return;
@@ -518,7 +547,7 @@
       currentFields.push({
         ...pendingBox, field_key: key, field_type: ffType.value, question_text: question,
         required: ffRequired.checked, group_key: groupKey || null, option_value: optionValue || null,
-        order_index: currentFields.length
+        depends_on_field_key: dependsOn, order_index: currentFields.length
       });
     }
     closeFieldForm();

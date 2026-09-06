@@ -126,12 +126,14 @@ router.put('/api/form-templates/:id/fields', asyncHandler(async (req, res) => {
   if (!fields) return res.status(400).json({ error: 'Feldliste erforderlich.' });
 
   const seen = new Set();
+  const fieldIndexByKey = new Map(); // field_key -> Array-Index (für depends_on_field_key-Prüfung unten)
   const lastGroupIndex = new Map(); // group_key -> zuletzt gesehener Array-Index
   for (let i = 0; i < fields.length; i++) {
     const f = fields[i];
     if (!FIELD_KEY_RE.test(f.field_key || '')) return res.status(400).json({ error: `Ungültiger Feldname: ${f.field_key}` });
     if (seen.has(f.field_key)) return res.status(400).json({ error: `Feldname doppelt: ${f.field_key}` });
     seen.add(f.field_key);
+    fieldIndexByKey.set(f.field_key, i);
     if (!FIELD_TYPES.has(f.field_type)) return res.status(400).json({ error: `Ungültiger Feldtyp: ${f.field_type}` });
     if (!f.question_text || !String(f.question_text).trim()) return res.status(400).json({ error: `Fragetext fehlt für ${f.field_key}` });
     for (const k of ['x', 'y', 'width', 'height']) {
@@ -155,6 +157,22 @@ router.put('/api/form-templates/:id/fields', asyncHandler(async (req, res) => {
       lastGroupIndex.set(groupKey, i);
       f.group_key = groupKey;
       f.option_value = String(f.option_value).trim();
+    }
+
+    // Bedingte Felder (z.B. "Seit wann verheiratet?" nur wenn "verheiratet" angekreuzt ist) -
+    // siehe FormFieldGrouping.js buildSteps(). Die Bedingung muss ein bereits im Formular
+    // vorkommendes Checkbox-Feld sein, das im Chat vorher gefragt wird (kleinerer Array-Index) -
+    // sonst wäre die Antwort zum Zeitpunkt der Bedingungsprüfung noch gar nicht bekannt.
+    if (f.depends_on_field_key) {
+      const dependsKey = String(f.depends_on_field_key).trim();
+      const dependsIndex = fieldIndexByKey.get(dependsKey);
+      if (dependsIndex === undefined || dependsIndex >= i) {
+        return res.status(400).json({ error: `Abhängigkeit von "${dependsKey}" muss auf ein vorheriges Feld zeigen (${f.field_key})` });
+      }
+      if (fields[dependsIndex].field_type !== 'checkbox') {
+        return res.status(400).json({ error: `Abhängigkeiten sind nur von Checkbox-Feldern möglich ("${dependsKey}" für ${f.field_key})` });
+      }
+      f.depends_on_field_key = dependsKey;
     }
   }
 

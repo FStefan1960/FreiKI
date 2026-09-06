@@ -28,7 +28,7 @@ async function loadSessionState(sessionId) {
 }
 
 async function stateResponse(session, fields) {
-  const { step, stepIndex, totalSteps } = locateStep(fields, session.current_field_index);
+  const { step, stepIndex, totalSteps } = locateStep(fields, session.current_field_index, session.answers);
   if (!step) return { ok: true, sessionId: session.id, done: true, totalFields: totalSteps };
   const payload = await buildQuestionPayload(step, session.language);
   return { ok: true, sessionId: session.id, done: false, fieldIndex: stepIndex, totalFields: totalSteps, ...payload };
@@ -108,7 +108,7 @@ router.post('/api/forms/:sessionId/answer', asyncHandler(async (req, res) => {
   const state = await loadSessionState(sessionId);
   if (!state) return res.status(404).json({ error: 'Sitzung nicht gefunden oder abgelaufen.' });
   const { session, fields } = state;
-  const { step } = locateStep(fields, session.current_field_index);
+  const { step } = locateStep(fields, session.current_field_index, session.answers);
   if (!step) return res.json(await stateResponse(session, fields));
   const stepRequired = step.fields.some((f) => f.required);
   const nextIndex = session.current_field_index + step.fields.length;
@@ -147,7 +147,7 @@ router.post('/api/forms/:sessionId/finish', asyncHandler(async (req, res) => {
   // gewählte Option eine Antwort, alle anderen Mitglieder bleiben leer (siehe /answer oben) -
   // eine feldweise Prüfung würde deshalb jede unvollständig beantwortete Gruppe fälschlich als
   // "fehlt" melden, sobald mehr als eine Option als required markiert ist.
-  const missing = buildSteps(fields).filter(
+  const missing = buildSteps(fields, session.answers).filter(
     (step) => step.fields.some((f) => f.required) && !step.fields.some((f) => session.answers[f.field_key])
   );
   if (missing.length > 0) {
