@@ -1,6 +1,6 @@
 # FreiKI / KorKI – Administratorhandbuch
 
-**Stand Juni 2026**
+**Stand September 2026 (Version 0.8.7)**
 
 > Dieses Handbuch richtet sich an Personen mit SSH-Zugang zum Server und Admin-Zugang in der Oberfläche. Grundkenntnisse in Linux und Docker werden vorausgesetzt.
 
@@ -16,7 +16,7 @@
 6. [Wissensbereiche und Knowledge Bases](#6-wissensbereiche-und-knowledge-bases)
 7. [Mailserver](#7-mailserver)
 8. [Paperless – Zwei-Mailbox-Pipeline](#8-paperless--zwei-mailbox-pipeline)
-9. [n8n-Workflows](#9-n8n-workflows)
+9. [Automatisierung (native Node.js-Jobs)](#9-automatisierung-native-nodejs-jobs-vormals-n8n)
 10. [Monitoring (Uptime Kuma, Beszel & n8n)](#10-monitoring-uptime-kuma-beszel--n8n)
 11. [Deployment und Updates](#11-deployment-und-updates)
 12. [Service Worker / PWA-Cache](#12-service-worker--pwa-cache)
@@ -43,7 +43,6 @@ Internet / LAN
        │
        ├── vLLM  (Qwen 2.5 32B AWQ, GPU – nur KorKI)
        ├── PostgreSQL  (KB-Tabellen + Benutzer + app_config)
-       ├── n8n  (Workflows: Sync, KI-Tagging, Monitoring)
        ├── Paperless-ngx  (Dokumentenarchiv)
        ├── Mailserver  (docker-mailserver)
        ├── Mattermost  (Team-Chat + Bot)
@@ -53,7 +52,9 @@ Internet / LAN
 
 Deaktiviert (Daten erhalten, Volumes bleiben):
        ├── AnythingLLM  (RAG läuft direkt über pgvector)
-       └── Flowise      (nicht mehr genutzt)
+       ├── Flowise      (nicht mehr genutzt)
+       └── n8n          (Container läuft ggf. noch mit, alle Workflows deaktiviert –
+                          abgelöst durch native Node.js-Jobs, siehe Kapitel 9)
 ```
 
 **Instanzen:**
@@ -175,6 +176,7 @@ Branding-Einstellungen sind sofort aktiv ohne Neustart.
 | **Cache-Version** | Bei CSS/JS-Änderungen +1 setzen → zwingt Browser-Cache-Aktualisierung |
 | **Mattermost-URL** | Link zum Team-Chat |
 | **Paperless-URL** | Öffentliche URL für Paperless-Dokumentenlinks |
+| **Breaking News** | Text für ein einmaliges Login-Hinweis-Fenster (`/admin/config`). Erscheint allen Nutzer:innen beim nächsten Login, bis sie mit „Verstanden" bestätigt haben. Eine neue Nachricht setzt die Kenntnisnahme aller Konten automatisch zurück (`breakingNewsVersion` in `app_config`) |
 
 **Logos** sind instanzspezifisch und werden **nicht** im Git-Repo verwaltet:
 - `public/app-header.png` — Banner-Logo (800×200 px empfohlen)
@@ -190,11 +192,16 @@ Diese Dateien werden bei `git pull` nicht überschrieben (in `.gitignore`).
 
 ### 4.1 Rollen
 
-| Rolle | Rechte |
-|---|---|
-| **admin** | Vollzugriff: alle Modi, alle Bereiche, Benutzerverwaltung, Admin-Konfiguration |
-| **manager** | Wie `default` + bestimmte Wissensbereiche verwalten |
-| **default** | Nur zugewiesene Wissensbereiche; alle Werkzeuge immer verfügbar |
+| Rolle | DB-Wert | Rechte |
+|---|---|---|
+| **admin** | `admin` | Vollzugriff: alle Modi, alle Bereiche, Benutzerverwaltung, Admin-Konfiguration |
+| **manager** | `manager` | Wie `default` + bestimmte Wissensbereiche verwalten |
+| **BGT** (Berufsgeheimnisträger) | `high_risk` | Wie `default` + Pflicht-2FA; sensible Stichworte werden kategorisiert protokolliert (siehe Kapitel 15) |
+| **default** | `default` | Nur zugewiesene Wissensbereiche; alle Werkzeuge immer verfügbar |
+
+**Pflicht-2FA:** Für `admin` und `high_risk` erzwingt die App beim nächsten Login die Einrichtung von Zwei-Faktor-Authentifizierung (Authenticator-App, Backup-Codes, optional Passkey/WebAuthn inkl. externer Sicherheitsschlüssel wie YubiKey). Wird die Rolle eines bestehenden Kontos nachträglich auf `high_risk` gesetzt, verschickt das System automatisch eine Zusatzmail mit 2FA-Anleitung (sofern eine E-Mail-Adresse hinterlegt ist).
+
+**Selbstregistrierung:** Ist unter `/register.html` aktiviert, können sich Interessierte selbst mit Name, Dienststelle (Pflichtfeld), Funktion, Telefon und E-Mail anmelden. Anfragen landen mit `pending_approval=true` in der Tabelle und erscheinen in der Benutzerverwaltung als offene Anfrage; erst nach Freischaltung durch Admin/Manager wird `pending_approval` gelöscht und die Willkommensmail mit Zugangsdaten verschickt.
 
 ### 4.2 Benutzer anlegen
 
@@ -239,11 +246,20 @@ CREATE TABLE korki_users (
   use_paperless BOOLEAN DEFAULT FALSE,
   suspended     BOOLEAN DEFAULT FALSE,
   created_at    TIMESTAMPTZ DEFAULT now(),
-  updated_at    TIMESTAMPTZ DEFAULT now()
+  updated_at    TIMESTAMPTZ DEFAULT now(),
+  -- seit August 2026 per ALTER TABLE ergänzt:
+  telefon               TEXT NOT NULL DEFAULT '',
+  dienststelle          TEXT NOT NULL DEFAULT '',
+  language              TEXT NOT NULL DEFAULT 'de',
+  pending_approval      BOOLEAN NOT NULL DEFAULT false,  -- Selbstregistrierung, siehe Kapitel 4.2
+  totp_secret           TEXT,
+  totp_enabled          BOOLEAN NOT NULL DEFAULT false,
+  totp_backup_codes     JSONB NOT NULL DEFAULT '[]',
+  news_ack_version      INTEGER NOT NULL DEFAULT 0        -- Breaking News, siehe Kapitel 3
 );
 ```
 
-Wird beim ersten Start automatisch angelegt.
+Wird beim ersten Start automatisch angelegt (`ensureSchema()` in `UserRepository.js`, selbstbootstrappend per `CREATE TABLE IF NOT EXISTS` + `ADD COLUMN IF NOT EXISTS`).
 
 ---
 
@@ -342,6 +358,17 @@ Verknüpft Modus-Schlüssel mit pgvector-Tabellen:
 ```
 
 Der Schlüssel entspricht dem Modus-Key ohne `w_`-Präfix.
+
+**Gruppierung (seit 0.8.x):** Ein optionales `group`-Feld ordnet Unterkategorien einer Elternkategorie zu (z. B. mehrere Bereiche unter einem gemeinsamen Oberbegriff). Betroffen sind Sidebar-Menü, Admin-Rechteverwaltung (Sammelauswahl „Alle" pro Gruppe) und die Auswahl in `/kb-upload`. Schaltet ein Konto eine Unterkategorie frei, wird die Elternkategorie automatisch mit freigeschaltet.
+
+```json
+{
+  "aws": { "table": "kb_aws", "label": "Arbeitssicherheit", "group": "oh" },
+  "ad":  { "table": "kb_ad", "label": "Arbeitsschutz-Dokumente", "group": "oh" }
+}
+```
+
+**Wissen-Suche-Default:** Eine Frage im Wissen-Modus durchsucht standardmäßig nur den angeklickten Bereich (nicht mehr alle freigegebenen Bereiche parallel). Grund: Ein sequenzieller Cross-Area-Health-Check hatte am 31.08.2026 durch parallele Abfragen auf einer Connection einen ~2-minütigen App-Ausfall ausgelöst. Nutzer:innen erreichen eine übergreifende Suche seither gezielt über den Button „Auch andere Bereiche durchsuchen" unter der Antwort.
 
 ### 6.2 KB-Tabellenschema
 
@@ -514,28 +541,36 @@ Nutzer mit `use_paperless = true` können das Archiv über den „Archiv durchsu
 
 ---
 
-## 9. n8n-Workflows
+## 9. Automatisierung (native Node.js-Jobs, vormals n8n)
 
-### Aktive Workflows (KorKI)
+**n8n-Ablösung (seit Version 0.7.7/0.7.8, 2026-08-18):** Alle produktiven Workflows laufen nicht mehr über n8n, sondern als native Node.js-Jobs in `freiki-ui/src/jobs/`, gestartet über einen internen Scheduler (`src/jobs/scheduler.js`). Der n8n-Container ist auf FreiKI/KorKI teils noch vorhanden, aber ohne aktive Workflows – nur noch Referenz/Fallback, nicht Teil des laufenden Betriebs. Neue Automatisierung gehört in `src/jobs/`, nicht mehr in n8n.
 
-| Workflow | Trigger | Funktion |
-|---|---|---|
-| Paperless → KorKI Sync | alle 15 Min | `ready-for-rag` → Embeddings → KB-Tabelle |
-| Paperless KI-Tagging | alle 2 h | `not-yet-tagged` → KI-Tags → Paperless |
-| Paperless Tags synchronisieren | täglich | Bereichs-Tags in Paperless aktuell halten |
-| KorKI Tagesbericht | täglich 07:00 | Dienststatus → Mattermost #monitoring |
-| KorKI Monitoring | alle 30 Min | Disk/RAM-Warnung → Mattermost |
-| KorKI @mention Handler | Webhook | Mattermost-Erwähnungen → KI-Antwort |
-| Mattermost KorKI Bot | Webhook | /korki-Befehle |
-| KorKI Abwesenheitsassistent | inaktiv | — |
-| KorKI Wetterwarnungen | Trigger | DWD-Warnungen → Mattermost |
-| KorKI NINA-Warnungen | Trigger | Katastrophenschutz → Mattermost |
-| KorKI Docker Update Check | Trigger | neue Docker-Images → Mattermost |
+### Aktive native Jobs (`freiki-ui/src/jobs/`)
 
-### Workflow importieren
+| Job | Funktion |
+|---|---|
+| `scheduler.js` | Zentraler Scheduler, registriert und triggert alle unten stehenden Jobs |
+| `statusReport.js` | Tagesbericht: Dienststatus → Mattermost |
+| `usageStatsReport.js` | Nutzungsstatistik-Auswertung fürs Admin-Dashboard |
+| `resourceHealthAlert.js` | Disk-/RAM-Warnung → Mattermost |
+| `syntheticHealthCheck.js` | Health-Check LLM/Embedding/RAG/Login/Archiv per echtem HTTP-Call gegen den eigenen Server; meldet nur bei Fehler |
+| `workflowHealthCheck.js` | Prüft die Job-Registry: Mail an alle Admins bei überfälligem oder fehlgeschlagenem Job |
+| `vllmSignalMonitor.js` | vLLM-Down/Up-Alert per Signal (CallMeBot), braucht `SIGNAL_PHONE`/`SIGNAL_APIKEY` in `.env`, sonst inaktiv |
+| `gpuMetricsReport.js` | GPU-Momentaufnahme für den Tagesbericht (läuft auf Instanzen ohne lokales vLLM leer durch) |
+| `tageslosung.js` | Tageslosung-Extra, mehrsprachig |
+| `medienspiegel.js` / `gesellschaftstrends.js` | Content-Extras, instanzspezifisch |
+| `wetterwarnungen.js` / `ninaWarnungen.js` | DWD-/Katastrophenschutz-Warnungen → Mattermost |
+| `sicherheitslage.js` | IT-Sicherheitslage-Extra |
+| `dockerUpdateCheck.js` | Neue Docker-Images → Mattermost |
+| `feedbackReport.js` | Sammelt In-App-Feedback für die Administration |
+
+Paperless-Sync (Wissen/Archiv) läuft als eigener Container (`paperless-sync/`, Repo-Wurzel), Mattermost-Bots über `src/core/integrations/` – beide nativ, nicht mehr über n8n-Workflows.
+
+### Nach Änderungen an Jobs
 
 ```bash
-docker exec -it n8n n8n import:workflow --input=/home/node/.n8n/workflows/datei.json
+docker compose up -d --force-recreate freiki-ui
+docker logs -f freiki-ui | grep -i job
 ```
 
 ---
@@ -761,9 +796,11 @@ chat_template_kwargs: { enable_thinking: false }
 
 - **`JWT_SECRET`** muss kryptographisch zufällig sein (≥ 32 Zeichen), pro Instanz einzigartig, niemals ins Repo.
 - Passwörter werden mit **bcrypt (10 Runden)** gehasht.
-- JWT-Token laufen nach **12 Stunden** ab.
+- JWT-Token liegen seit der Security-Härtung (0.5.0) in einem **HttpOnly-Cookie** (kein `localStorage` mehr, damit per JS/XSS nicht auslesbar) und laufen **um Mitternacht (Europe/Berlin)** ab, nicht mehr nach fester Stundenzahl (`secondsUntilMidnightBerlin()` in `AuthMiddleware.js`).
+- **Pflicht-2FA** für die Rollen `admin` und `high_risk` (BGT): Authenticator-App + Backup-Codes, optional Passkey/WebAuthn inkl. externer Sicherheitsschlüssel (YubiKey). Ein Reset (verlorener Authenticator) erfordert erneute Passwortbestätigung.
+- **Sensible-Inhalte-Protokollierung:** Eingaben in Chat/Excel-Chat werden auf Stichworte (Diagnosen, Medikamente, psychische Erkrankungen, Sucht, Behinderung/Pflege) geprüft. Bei Treffer wird nur Zeitstempel, Benutzername, Werkzeug und Kategorie protokolliert – nie der Inhalt. Für Rolle `high_risk` ist ein Treffer im Rahmen der fachlichen Aufgabe als dokumentierte Ausnahme zulässig.
 - Das eigene Admin-Konto kann weder gesperrt noch gelöscht werden.
-- **IMAP in n8n:** `markSeen` niemals auf `true` setzen.
+- **IMAP (native Jobs/Paperless-Sync):** `markSeen` niemals auf `true` setzen.
 - Alle `/api/*`-Antworten für authentifizierte Endpunkte: `Cache-Control: no-store`.
 
 ### fail2ban (KorKI)
@@ -785,4 +822,4 @@ sudo fail2ban-client set korki-app unbanip <IP>
 
 ---
 
-*Stand: Juni 2026 – FreiKI/KorKI mit pgvector-RAG, eigenem Mailserver, Mattermost, Paperless, n8n-Monitoring.*
+*Stand: September 2026 (Version 0.8.7) – FreiKI/KorKI mit pgvector-RAG, eigenem Mailserver, Mattermost, Paperless, nativer Job-Automatisierung (n8n abgelöst, siehe Kapitel 9).*
