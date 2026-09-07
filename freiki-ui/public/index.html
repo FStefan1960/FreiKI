@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
   <script>(function(){try{var t=localStorage.getItem('fk_theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-  <link rel="stylesheet" href="/style.css?v=33">
+  <link rel="stylesheet" href="/style.css?v=34">
   <link rel="stylesheet" href="/brand.css">
   <script src="/marked.min.js"></script>
   <script src="/purify.min.js"></script>
@@ -195,13 +195,12 @@
           </svg>
         </button>
       </div>
-      <div id="mode-buttons-werkzeuge" class="tab-panel"></div>
-      <div id="mode-buttons-wissen" class="tab-panel" style="display:none"></div>
-      <div id="mode-buttons-extras" class="tab-panel" style="display:none"></div>
-      <div id="mode-buttons-verlauf" class="tab-panel" style="display:none"></div>
-
-      <div style="margin-top: auto;"></div>
-
+      <div class="sidebar-scroll">
+        <div id="mode-buttons-werkzeuge" class="tab-panel"></div>
+        <div id="mode-buttons-wissen" class="tab-panel" style="display:none"></div>
+        <div id="mode-buttons-extras" class="tab-panel" style="display:none"></div>
+        <div id="mode-buttons-verlauf" class="tab-panel" style="display:none"></div>
+      </div>
 
 
       <div class="sidebar-footer">
