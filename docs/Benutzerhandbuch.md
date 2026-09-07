@@ -24,8 +24,9 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 
 - Die Sitzung gilt bis **Mitternacht (Europe/Berlin)**. Danach melden Sie sich erneut an.
 - Auf der Anmeldeseite können Sie die **Oberflächensprache** wählen: Deutsch, Englisch, Französisch, Spanisch, Russisch, Indonesisch, Malagasy.
-- Administratoren und Berufsgeheimnisträger (Rolle BGT) müssen **Zwei-Faktor-Authentifizierung** einrichten (Authenticator-App, Backup-Codes, optional Passkey / Face ID / Touch ID).
+- Administratoren und Berufsgeheimnisträger (Rolle BGT) müssen **Zwei-Faktor-Authentifizierung** einrichten (Authenticator-App, Backup-Codes, optional Passkey / Face ID / Touch ID / externer Sicherheitsschlüssel wie YubiKey).
 - Wo aktiviert, erscheint beim ersten Login eine **Datenschutz-Schulung**. Alle Folien müssen durchgeklickt werden; die Teilnahme wird dokumentiert.
+- Hat Ihre Administration eine wichtige Mitteilung hinterlegt, erscheint sie Ihnen beim nächsten Login einmalig als **Hinweis-Fenster**. Ein Klick auf „Verstanden“ bestätigt die Kenntnisnahme.
 
 **Aufbau der App:**
 
@@ -98,7 +99,7 @@ Ein Werkzeug für alle Richtungen: Standard ist **ins Deutsche**. Eine andere Zi
 
 ### 4.4 Wissenssuche
 
-Eigene Einträge im Tab **Wissen** (siehe Kapitel 5). Im Werkzeuge-Tab erscheint zusätzlich oft eine übergreifende Suche über alle für Sie freigegebenen Bereiche.
+Eigene Einträge im Tab **Wissen** (siehe Kapitel 5). Eine Frage wird standardmäßig nur im gerade angeklickten Bereich beantwortet. Steht die Antwort dort nicht, erscheint unter der Antwort der Button **„Auch andere Bereiche durchsuchen“** – damit weiten Sie die Suche gezielt auf alle für Sie freigegebenen Bereiche aus.
 
 ### 4.5 Berichte & Dokumente
 
@@ -148,7 +149,7 @@ Im Tab **Wissen** erscheinen nur Bereiche, die Ihre Administration für Sie frei
 
 Beispiel: „Was muss ich tun, wenn ein Bewohner stürzt?“ → Handlungsschritte aus den hinterlegten Unterlagen mit Angabe des Dokuments.
 
-Manager können in freigegebene Bereiche Dokumente hochladen (über die von der Administration vorgesehene Upload-Seite). Sichtbarkeit und Reihenfolge der Bereiche legt die Administration fest.
+Manager können in freigegebene Bereiche Dokumente hochladen (über die von der Administration vorgesehene Upload-Seite). Sichtbarkeit und Reihenfolge der Bereiche legt die Administration fest. Zusammengehörige Bereiche können in der Seitenleiste zu einer Gruppe zusammengefasst sein (z. B. mehrere Unterkategorien unter einem gemeinsamen Oberbegriff).
 
 ---
 
@@ -225,7 +226,7 @@ Klick auf Avatar/Name unten links. Einträge, die nur für bestimmte Rollen gelt
 | **Benutzerverwaltung** | nur Administratoren |
 | **Prompts verwalten** | nur Administratoren (Werkzeugtexte und Übersetzungen) |
 | **Passwort ändern** | mindestens 6 Zeichen |
-| **Sicherheit: 2FA / Passkeys** | Authenticator, Backup-Codes, Face ID / Touch ID; Pflicht für Admin und BGT |
+| **Sicherheit: 2FA / Passkeys** | Authenticator, Backup-Codes, Face ID / Touch ID / externer Sicherheitsschlüssel (YubiKey etc.); Pflicht für Admin und BGT |
 | **Antwortsprache ändern** | feste Chat-Antwortsprache (Freitext, z. B. „Englisch“, „italiano“) – unabhängig von der Oberflächensprache |
 | **Enter-Verhalten** | Senden oder neuer Absatz |
 | **Dunkelmodus** | An / Aus |
