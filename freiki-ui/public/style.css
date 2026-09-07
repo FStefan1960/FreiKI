@@ -395,6 +395,13 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   transition: transform 0.25s ease;
+}
+
+/* Nur die Werkzeug-Liste scrollt; Logo/Tabs oben und Konto-Menü unten bleiben fix,
+   auch wenn viele Tools den verfügbaren Platz sprengen. */
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -509,7 +516,8 @@ body.sidebar-resizing { cursor: col-resize; user-select: none; }
 
 /* Wissen-Kategorie mit Unterkategorien (z.B. OH → AWS/AD/ID/Rufbereitschaft): der Button der
    übergeordneten Kategorie wirkt als Gruppen-Überschrift, die Kind-Bereiche werden darunter
-   eingerückt gerendert (siehe renderWissenMenu() in modes.js). */
+   eingerückt gerendert (siehe renderWissenMenu() in modes.js). Ein separater Toggle-Button
+   klappt die Kind-Bereiche ein/aus, ohne die Kategorie-Auswahl per Klick auf den Titel zu stören. */
 .mode-btn-group-head .mode-nav-title {
   text-transform: uppercase;
   font-size: var(--fk-fs-caption);
@@ -517,6 +525,30 @@ body.sidebar-resizing { cursor: col-resize; user-select: none; }
   font-weight: 700;
   color: var(--fk-text-subtle);
 }
+.mode-group-head-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.mode-group-head-row .mode-btn-group-head { flex: 1; min-width: 0; }
+.mode-group-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fk-text-subtle);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mode-group-toggle:hover { background: var(--fk-tint); }
+.mode-group-toggle svg { transition: transform 0.15s ease; transform: rotate(90deg); }
+.mode-group-head-row.collapsed .mode-group-toggle svg { transform: rotate(0deg); }
 .mode-group-children {
   margin: 0 0 4px 18px;
   padding-left: 10px;
@@ -651,7 +683,7 @@ body.sidebar-resizing { cursor: col-resize; user-select: none; }
 
 /* Sidebar footer (user row) */
 .sidebar-footer {
-  margin-top: auto;
+  flex-shrink: 0;
   padding: 12px 16px;
   border-top: 1px solid var(--fk-border);
   display: flex;

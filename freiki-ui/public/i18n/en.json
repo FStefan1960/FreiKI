@@ -31,6 +31,7 @@
   "sidebar.tab_knowledge": "Knowledge",
   "sidebar.tab_extras": "Extras",
   "sidebar.tab_history": "History",
+  "sidebar.group_toggle": "Expand or collapse subcategories",
   "sidebar.account_menu": "Account menu",
   "sidebar.logout": "Sign out",
   "account_menu.feedback": "Feedback & suggestions",

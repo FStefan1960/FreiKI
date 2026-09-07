@@ -31,6 +31,7 @@
   "sidebar.tab_knowledge": "Connaissances",
   "sidebar.tab_extras": "Extras",
   "sidebar.tab_history": "Historique",
+  "sidebar.group_toggle": "Développer ou réduire les sous-catégories",
   "sidebar.account_menu": "Menu du compte",
   "sidebar.logout": "Se déconnecter",
   "account_menu.feedback": "Retours & suggestions",

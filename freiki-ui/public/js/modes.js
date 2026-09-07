@@ -117,6 +117,18 @@ function makeModeBtn(m) {
   return btn;
 }
 
+// Merkt sich pro Browser, welche Wissen-Gruppen der Nutzer eingeklappt hat (Fileexplorer-
+// artiges Verhalten), damit die Wahl auch nach einem Reload erhalten bleibt.
+const WISSEN_COLLAPSE_STORAGE_KEY = 'fk-wissen-collapsed-groups';
+function loadCollapsedWissenGroups() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(WISSEN_COLLAPSE_STORAGE_KEY) || '[]'));
+  } catch { return new Set(); }
+}
+function saveCollapsedWissenGroups(set) {
+  try { localStorage.setItem(WISSEN_COLLAPSE_STORAGE_KEY, JSON.stringify([...set])); } catch {}
+}
+
 // Rendert die Wissen-Buttons gruppiert: Bereiche mit "group" (aus areas.json, z.B. AWS/AD/ID/
 // Rufbereitschaft → OH) erscheinen eingerückt unter dem Button ihrer übergeordneten Kategorie.
 // Bereiche ohne group (die meisten) bleiben unverändert eine flache Liste.
@@ -129,6 +141,7 @@ function renderWissenMenu(container, wissen) {
   // beim fehlenden Root stillschweigend verschwinden, obwohl der Server sie korrekt freigegeben hat.
   const presentKeys = new Set(wissen.map(m => bareKey(m.key)));
   const rendered = new Set();
+  const collapsed = loadCollapsedWissenGroups();
   wissen.forEach(m => {
     if (rendered.has(m.key)) return;
     if (m.group && !presentKeys.has(m.group)) {
@@ -142,13 +155,38 @@ function renderWissenMenu(container, wissen) {
     const children = wissen.filter(x => x.group === bareKey(m.key));
     if (children.length) {
       btn.classList.add('mode-btn-group-head');
-      container.appendChild(btn);
+
+      const row = document.createElement('div');
+      row.className = 'mode-group-head-row';
+
+      const isCollapsed = collapsed.has(m.key);
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'mode-group-toggle';
+      toggle.setAttribute('aria-expanded', String(!isCollapsed));
+      toggle.setAttribute('aria-label', t('sidebar.group_toggle', 'Unterkategorien ein-/ausblenden'));
+      toggle.innerHTML = '<svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true"><path d="M4 2l8 6-8 6z" fill="currentColor"/></svg>';
+
       const childrenWrap = document.createElement('div');
       childrenWrap.className = 'mode-group-children';
       children.forEach(child => {
         childrenWrap.appendChild(makeModeBtn(child));
         rendered.add(child.key);
       });
+
+      const setCollapsed = (val) => {
+        childrenWrap.hidden = val;
+        row.classList.toggle('collapsed', val);
+        toggle.setAttribute('aria-expanded', String(!val));
+        if (val) collapsed.add(m.key); else collapsed.delete(m.key);
+        saveCollapsedWissenGroups(collapsed);
+      };
+      toggle.onclick = (e) => { e.stopPropagation(); setCollapsed(!childrenWrap.hidden); };
+
+      row.appendChild(toggle);
+      row.appendChild(btn);
+      if (isCollapsed) setCollapsed(true);
+      container.appendChild(row);
       container.appendChild(childrenWrap);
     } else {
       container.appendChild(btn);
