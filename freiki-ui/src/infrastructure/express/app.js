@@ -89,7 +89,13 @@ async function start() {
   formSessions.startFormSessionPurgeSchedule();
   startJobs();
 
-  app.listen(config.PORT, () => console.log(`${getBrandConfig().name} UI läuft auf Port ${config.PORT}`));
+  const server = app.listen(config.PORT, () => console.log(`${getBrandConfig().name} UI läuft auf Port ${config.PORT}`));
+  // Node 18+ killt Requests standardmäßig nach 5 Minuten (requestTimeout). kb-ingest-text
+  // verarbeitet große Dokumente synchron (mehrere hundert Chunks, ~2s Pause pro Batch) und
+  // braucht bei sehr großen Dokumenten länger - der Handler lief dann im Hintergrund weiter,
+  // während paperless-sync bereits "fetch failed" sah und der Tag nie auf ki-synced wechselte.
+  server.requestTimeout = 20 * 60 * 1000;
+  server.headersTimeout = 20 * 60 * 1000 + 5000;
 }
 
 module.exports = { app, start };
