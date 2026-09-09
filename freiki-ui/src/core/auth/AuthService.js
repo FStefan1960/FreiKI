@@ -1,10 +1,11 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const users = require('./UserRepository');
 const { signToken, signPendingToken, verifyPendingToken } = require('./AuthMiddleware');
 const totp = require('./TotpService');
 const webauthn = require('./WebauthnService');
 const webauthnCreds = require('./WebauthnCredentialRepository');
-const { sendWelcomeMail, sendBgtWelcomeMail, sendRegistrationNotificationMail } = require('../integrations/EmailService');
+const { sendWelcomeMail, sendBgtWelcomeMail, sendPasswordResetMail, sendRegistrationNotificationMail } = require('../integrations/EmailService');
 const { generatePassword, fetchWithTimeout } = require('../../shared/utils/text');
 const { getBrandConfig } = require('../../shared/config/BrandConfig');
 const { config } = require('../../shared/config');
@@ -210,6 +211,35 @@ async function resetPassword(id, password) {
   return users.updatePasswordHash(id, hash);
 }
 
+// ── Passwort vergessen (Selbstbedienung, öffentliches Formular) ─────────────
+// Antwort ist bewusst IMMER {ok:true} - unabhängig davon, ob die E-Mail existiert - sonst
+// ließe sich über den Rückgabewert erraten, welche E-Mail-Adressen registriert sind.
+async function requestPasswordReset(email) {
+  const u = await users.findByEmailForReset((email || '').trim());
+  if (!u) return { ok: true };
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 Stunde
+  await users.setResetToken(u.id, tokenHash, expiresAt);
+  const resetUrl = `${config.APP_URL}/reset-password.html?token=${token}`;
+  try {
+    await sendPasswordResetMail(u.email, u.username, resetUrl);
+  } catch (mailErr) {
+    console.error('Passwort-Reset-Mail fehlgeschlagen:', mailErr.message);
+  }
+  return { ok: true };
+}
+
+async function resetPasswordWithToken(token, newPassword) {
+  const tokenHash = crypto.createHash('sha256').update(String(token || '')).digest('hex');
+  const u = await users.findByResetTokenHash(tokenHash);
+  if (!u) return { error: 'invalid-token' };
+  const hash = await bcrypt.hash(newPassword, 10);
+  await users.updatePasswordHash(u.id, hash);
+  await users.clearResetToken(u.id);
+  return { ok: true };
+}
+
 // Setzt ein neues Zufallspasswort und schickt die Willkommensmail erneut.
 async function resendWelcome(id) {
   const u = await users.findProfileById(id);
@@ -366,6 +396,7 @@ async function rejectRegistration(id) {
 module.exports = {
   login, verifyTwoFactor, start2FASetup, confirm2FASetup, disable2FA, requestReinit2FA,
   changePassword, changeLanguage, changeEnterToSend, createUser, resetPassword, resendWelcome, completeTraining,
+  requestPasswordReset, resetPasswordWithToken,
   getPasskeyLoginOptions, verifyPasskeyLogin, getPasskeyRegistrationOptions,
   confirmPasskeyRegistration, listPasskeys, removePasskey, resetPasskeys,
   registerInterest, approveRegistration, rejectRegistration,

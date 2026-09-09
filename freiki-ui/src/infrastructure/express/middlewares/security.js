@@ -47,6 +47,17 @@ const registrationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Öffentliches "Passwort vergessen"-Formular: verschickt Mails und erlaubt (trotz generischer
+// {ok:true}-Antwort, siehe AuthService.requestPasswordReset) Brute-Force-Versuche gegen den
+// Reset-Token selbst - enger als der globale API-Limiter, analog zu registrationLimiter.
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: 'Zu viele Anfragen – bitte später erneut versuchen' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Gegen Brute-Force der 8-stelligen DokumentenPIN beim Formular-Fortsetzen (Formular-Chat).
 const formResumeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -84,6 +95,6 @@ function require2FASetupComplete(req, res, next) {
 }
 
 module.exports = {
-  securityHeaders, apiLimiter, loginLimiter, registrationLimiter, formResumeLimiter, isDockerInternalIp,
+  securityHeaders, apiLimiter, loginLimiter, registrationLimiter, forgotPasswordLimiter, formResumeLimiter, isDockerInternalIp,
   require2FASetupComplete,
 };

@@ -339,6 +339,17 @@ body {
   display: none;
 }
 
+.login-forgot-link {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: var(--fk-fs-caption);
+  color: var(--fk-text-muted);
+  text-decoration: none;
+}
+.login-forgot-link:hover { color: var(--fk-primary); text-decoration: underline; }
+
 .login-register-link {
   display: block;
   width: 100%;

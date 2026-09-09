@@ -3,7 +3,7 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
 const auditLog = require('../../../core/audit/AdminAuditRepository');
-const { loginLimiter } = require('../middlewares/security');
+const { loginLimiter, forgotPasswordLimiter } = require('../middlewares/security');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { secondsUntilMidnightBerlin } = require('../../../shared/utils/text');
 const { config } = require('../../../shared/config');
@@ -91,6 +91,35 @@ router.post('/api/webauthn/login/verify', asyncHandler(async (req, res) => {
     res.json(result);
   } catch (e) {
     console.error('webauthn/login/verify error:', e.message);
+    res.status(500).json({ error: 'Verbindungsfehler' });
+  }
+}));
+
+// Öffentliches "Passwort vergessen"-Formular (public/forgot-password.html) - bewusst ohne
+// Session-Prüfung. Antwort ist absichtlich immer gleich (siehe AuthService.requestPasswordReset),
+// damit sich darüber nicht erraten lässt, welche E-Mail-Adressen existieren.
+router.post('/api/forgot-password', forgotPasswordLimiter, asyncHandler(async (req, res) => {
+  const { email } = req.body || {};
+  if (!users.isValidEmail(email)) return res.status(400).json({ error: 'Gültige E-Mail-Adresse erforderlich' });
+  try {
+    await AuthService.requestPasswordReset(email);
+  } catch (e) {
+    console.error('forgot-password error:', e.message);
+  }
+  res.json({ ok: true });
+}));
+
+router.post('/api/reset-password', forgotPasswordLimiter, asyncHandler(async (req, res) => {
+  const { token, newPassword } = req.body || {};
+  if (!token) return res.status(400).json({ error: 'Ungültiger oder abgelaufener Link' });
+  if (!newPassword || newPassword.length < 8)
+    return res.status(400).json({ error: 'Neues Passwort muss mindestens 8 Zeichen haben' });
+  try {
+    const result = await AuthService.resetPasswordWithToken(token, newPassword);
+    if (result.error) return res.status(400).json({ error: 'Ungültiger oder abgelaufener Link' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('reset-password error:', e.message);
     res.status(500).json({ error: 'Verbindungsfehler' });
   }
 }));

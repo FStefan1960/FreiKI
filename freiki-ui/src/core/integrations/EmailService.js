@@ -81,6 +81,22 @@ async function sendWelcomeMail(to, username, password, firstName = '', lastName 
   });
 }
 
+async function sendPasswordResetMail(to, username, resetUrl) {
+  if (!to || !config.SMTP_HOST) return;
+  const brand = getBrandConfig();
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `${brand.name} <${config.SMTP_FROM}>`,
+    to,
+    subject: `${brand.name}: Passwort zurücksetzen`,
+    text: `Hallo ${username},\n\n` +
+      `für Ihr ${brand.name}-Konto wurde ein neues Passwort angefordert. Über den folgenden Link können Sie ein neues Passwort vergeben (gültig für 1 Stunde):\n\n` +
+      `${resetUrl}\n\n` +
+      `Falls Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren – Ihr Passwort bleibt unverändert.\n\n` +
+      `Viele Grüße\n${brand.name}`
+  });
+}
+
 async function sendTranscriptMail(to, originalFilename, transcriptText) {
   const brand = getBrandConfig();
   const transporter = createTransporter();
@@ -196,4 +212,4 @@ async function sendReportMail(to, subject, { text, html } = {}) {
   });
 }
 
-module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail };
+module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendPasswordResetMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail };

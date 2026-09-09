@@ -41,7 +41,9 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS use_metacom BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS pending_approval BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS dienststelle TEXT NOT NULL DEFAULT '',
-      ADD COLUMN IF NOT EXISTS news_ack_version INTEGER NOT NULL DEFAULT 0
+      ADD COLUMN IF NOT EXISTS news_ack_version INTEGER NOT NULL DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS reset_token_hash TEXT,
+      ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ
   `);
 }
 
@@ -52,6 +54,15 @@ function findByUsername(username) {
 
 function findById(id) {
   return pool.query('SELECT * FROM freiki_users WHERE id=$1', [id]).then(r => r.rows[0] || null);
+}
+
+// Passwort-vergessen-Anfrage kommt per E-Mail rein, nicht per Benutzername - suspended-Konten
+// bewusst ausgeschlossen, damit ein gesperrter Nutzer sich nicht selbst per Reset-Link entsperrt.
+function findByEmailForReset(email) {
+  return pool.query(
+    "SELECT * FROM freiki_users WHERE lower(email)=lower($1) AND email <> '' AND suspended=false AND pending_approval=false",
+    [email]
+  ).then(r => r.rows[0] || null);
 }
 
 function findProfileById(id) {
@@ -148,6 +159,24 @@ async function updatePasswordHash(id, hash) {
   return rowCount > 0;
 }
 
+// ── Passwort vergessen ────────────────────────────────────────
+// Gespeichert wird nur der SHA-256-Hash des Reset-Tokens (nie der Token selbst) - ein
+// DB-Leak allein reicht damit nicht, um einen fremden Account zu übernehmen.
+async function setResetToken(id, tokenHash, expiresAt) {
+  await pool.query('UPDATE freiki_users SET reset_token_hash=$1, reset_token_expires=$2 WHERE id=$3', [tokenHash, expiresAt, id]);
+}
+
+function findByResetTokenHash(tokenHash) {
+  return pool.query(
+    'SELECT * FROM freiki_users WHERE reset_token_hash=$1 AND reset_token_expires > now() AND suspended=false',
+    [tokenHash]
+  ).then(r => r.rows[0] || null);
+}
+
+async function clearResetToken(id) {
+  await pool.query('UPDATE freiki_users SET reset_token_hash=NULL, reset_token_expires=NULL WHERE id=$1', [id]);
+}
+
 // Gezielte Selbst-Service-Änderung nur der Sprache (im Unterschied zu update(), das ein
 // komplettes Admin-Formular erwartet und sonst first_name/last_name/etc. mit '' überschreiben würde).
 async function updateLanguage(id, language) {
@@ -224,8 +253,10 @@ const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@
 
 module.exports = {
   VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById,
+  findByEmailForReset,
   listAll, listPending, create, update, updatePasswordHash, updateLanguage, updateEnterToSend, remove, listAdminEmails,
   generateUniqueUsername,
   setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes, completeTraining, declineTraining, ackBreakingNews,
+  setResetToken, findByResetTokenHash, clearResetToken,
   isValidUsername, isValidEmail, cleanAreas,
 };

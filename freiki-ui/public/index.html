@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>{{APP_NAME}} – {{APP_TAGLINE}}</title>
   <script>(function(){try{var t=localStorage.getItem('fk_theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-  <link rel="stylesheet" href="/style.css?v=34">
+  <link rel="stylesheet" href="/style.css?v=35">
   <link rel="stylesheet" href="/brand.css">
   <script src="/marked.min.js"></script>
   <script src="/purify.min.js"></script>
@@ -73,6 +73,7 @@
       </select>
       <div class="login-error" id="login-error" role="alert" aria-live="assertive" data-i18n="login.error_invalid">Ungültige Anmeldedaten</div>
       <button class="login-btn" onclick="login()" data-i18n="login.submit">Anmelden</button>
+      <a class="login-forgot-link" href="/forgot-password.html" data-i18n="login.forgot_password">Passwort vergessen?</a>
       <a class="login-register-link" href="/register.html" style="{{SELF_REGISTRATION_LINK_STYLE}}" data-i18n="login.request_access">Zugang beantragen</a>
     </div>
     <div class="login-form" id="twofa-form" style="display:none">

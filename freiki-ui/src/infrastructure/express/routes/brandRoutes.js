@@ -47,6 +47,16 @@ router.get('/register.html', (_req, res) => {
   res.type('html').send(html);
 });
 
+// "Passwort vergessen"-Flow: anders als register.html nicht an APP_SELF_REGISTRATION gebunden,
+// da das Zurücksetzen des eigenen Passworts unabhängig von der Selbstregistrierung immer
+// verfügbar sein soll.
+router.get(['/forgot-password.html', '/reset-password.html'], (req, res) => {
+  const brand = getBrandConfig();
+  const html = fs.readFileSync(path.join(config.PUBLIC_DIR, req.path), 'utf8')
+    .replace(/\{\{APP_NAME\}\}/g, brand.name);
+  res.type('html').send(html);
+});
+
 // Dynamisch: Cache-Name + Assets richten sich nach der aktuellen Marke (Name, Logo, swVersion).
 // (Im Original-server.js gab es hierfür zwei "/sw.js"-Routen, eine davon toter Code durch
 // Doppelregistrierung – am 2026-07-05 auf FreiKI/KorKI/FrankKI/BonKI einheitlich gefixt.)

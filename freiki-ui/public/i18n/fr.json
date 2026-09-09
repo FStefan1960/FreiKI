@@ -4,6 +4,7 @@
   "login.password": "Mot de passe",
   "login.error_invalid": "Identifiants invalides",
   "login.submit": "Se connecter",
+  "login.forgot_password": "Mot de passe oublié ?",
   "login.request_access": "Demander un accès",
   "twofa.instructions": "Veuillez saisir le code à 6 chiffres de votre application d'authentification (ou un code de secours).",
   "twofa.code_placeholder": "Code",
