@@ -30,11 +30,20 @@ const apiLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen' },
   skip: (req) => /^\/api\/pictograms\/\d+\/image(?:\?|$)/.test(req.originalUrl || ''),
 });
+// handler statt message, damit die Sperrfrist als retryAfterSeconds mitgeschickt wird -
+// das Frontend zeigt darauf ein Countdown-Modal (siehe lockout-modal in index.html), statt
+// die Sperre nur als generische Fehlermeldung im Login-Formular anzuzeigen.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: { error: 'Zu viele Login-Versuche' },
   skip: (req) => isDockerInternalIp(req.ip),
+  handler: (req, res, _next, options) => {
+    const resetTime = req.rateLimit && req.rateLimit.resetTime;
+    const retryAfterSeconds = resetTime
+      ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000))
+      : Math.ceil(options.windowMs / 1000);
+    res.status(options.statusCode).json({ error: 'Zu viele Login-Versuche', retryAfterSeconds });
+  },
 });
 
 // Öffentliches Anmeldeformular: legt DB-Zeilen an und verschickt Mails, daher enger als

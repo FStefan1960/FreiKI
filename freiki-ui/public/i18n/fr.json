@@ -216,5 +216,8 @@
   "sensitive_save.override": "Enregistrer quand même",
   "sensitive_save.confirm": "Ne pas enregistrer",
   "history.redacted": "[Réponse non enregistrée – pouvait contenir des informations sensibles]",
-  "chat.search_all_areas_retry": "Rechercher aussi dans d'autres domaines (plus lent)"
+  "chat.search_all_areas_retry": "Rechercher aussi dans d'autres domaines (plus lent)",
+  "lockout.title": "Trop de tentatives de connexion",
+  "lockout.message": "Pour des raisons de sécurité, la connexion est temporairement bloquée. Nouvel essai possible dans :",
+  "lockout.ready": "Vous pouvez à nouveau vous connecter."
 }

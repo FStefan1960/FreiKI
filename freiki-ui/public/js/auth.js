@@ -99,6 +99,46 @@ async function declineTraining() {
   forceLogout();
 }
 
+// Sperr-Countdown nach zu vielen Fehlversuchen (loginLimiter in security.js, 5/15min).
+// Läuft clientseitig lokal ab statt gegen den Server zu pollen - die tatsächliche Sperre
+// bleibt serverseitig maßgeblich, der Countdown ist nur die Anzeige dazu.
+let lockoutInterval = null;
+
+function showLockoutModal(retryAfterSeconds) {
+  const modal = document.getElementById('lockout-modal');
+  const countdownEl = document.getElementById('lockout-countdown');
+  const messageEl = document.getElementById('lockout-message');
+  const readyEl = document.getElementById('lockout-ready-text');
+  let remaining = Math.max(1, Math.round(retryAfterSeconds));
+  const render = () => {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    countdownEl.textContent = m + ':' + String(s).padStart(2, '0');
+  };
+  messageEl.style.display = '';
+  readyEl.style.display = 'none';
+  countdownEl.style.display = '';
+  render();
+  modal.classList.remove('hide');
+  clearInterval(lockoutInterval);
+  lockoutInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(lockoutInterval);
+      messageEl.style.display = 'none';
+      countdownEl.style.display = 'none';
+      readyEl.style.display = '';
+      return;
+    }
+    render();
+  }, 1000);
+}
+
+function closeLockoutModal() {
+  document.getElementById('lockout-modal').classList.add('hide');
+  clearInterval(lockoutInterval);
+}
+
 async function login() {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
@@ -111,7 +151,9 @@ async function login() {
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (data.requires2fa) {
+    if (res.status === 429) {
+      showLockoutModal(data.retryAfterSeconds || 900);
+    } else if (data.requires2fa) {
       State.pending2faToken = data.pendingToken;
       State.pendingUsername = username;
       document.getElementById('login-form').style.display = 'none';
@@ -147,7 +189,9 @@ async function verifyTwoFactor() {
       body: JSON.stringify({ pendingToken: State.pending2faToken, code })
     });
     const data = await res.json();
-    if (res.ok && data.role) {
+    if (res.status === 429) {
+      showLockoutModal(data.retryAfterSeconds || 900);
+    } else if (res.ok && data.role) {
       completeLogin(data, State.pendingUsername);
     } else {
       errorEl.textContent = data.error || t('common.invalid_code', 'Ungültiger Code');

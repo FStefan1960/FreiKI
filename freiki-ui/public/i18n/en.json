@@ -216,5 +216,8 @@
   "sensitive_save.override": "Save anyway",
   "sensitive_save.confirm": "Don't save",
   "history.redacted": "[Answer not saved – may have contained sensitive content]",
-  "chat.search_all_areas_retry": "Also search other areas (slower)"
+  "chat.search_all_areas_retry": "Also search other areas (slower)",
+  "lockout.title": "Too many login attempts",
+  "lockout.message": "For security reasons, login is temporarily locked. You can try again in:",
+  "lockout.ready": "You can log in again now."
 }

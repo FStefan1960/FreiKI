@@ -216,5 +216,8 @@
   "sensitive_save.override": "Simpan saja",
   "sensitive_save.confirm": "Jangan simpan",
   "history.redacted": "[Jawaban tidak disimpan – mungkin berisi konten sensitif]",
-  "chat.search_all_areas_retry": "Cari juga di area lain (lebih lambat)"
+  "chat.search_all_areas_retry": "Cari juga di area lain (lebih lambat)",
+  "lockout.title": "Terlalu banyak percobaan login",
+  "lockout.message": "Demi keamanan, login untuk sementara dikunci. Coba lagi dalam:",
+  "lockout.ready": "Anda sekarang dapat login kembali."
 }

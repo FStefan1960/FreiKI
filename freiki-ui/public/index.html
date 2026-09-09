@@ -107,6 +107,18 @@
   </div>
 </div>
 
+<!-- Sperre nach zu vielen Fehlversuchen (loginLimiter: 5 Versuche/15min, siehe security.js) -->
+<div id="lockout-modal" class="demo-modal-overlay hide" role="dialog" aria-modal="true" aria-labelledby="lockout-title">
+  <div class="demo-modal" style="width:380px">
+    <div class="demo-modal-icon">🔒</div>
+    <h2 id="lockout-title" data-i18n="lockout.title">Zu viele Anmeldeversuche</h2>
+    <p id="lockout-message" data-i18n="lockout.message">Aus Sicherheitsgründen ist die Anmeldung vorübergehend gesperrt. Neuer Versuch möglich in:</p>
+    <p id="lockout-countdown" style="font-size:1.6rem;font-weight:700;text-align:center;margin:10px 0">15:00</p>
+    <p id="lockout-ready-text" style="display:none" data-i18n="lockout.ready">Sie können sich jetzt wieder anmelden.</p>
+    <button class="demo-modal-btn" onclick="closeLockoutModal()" data-i18n="common.close">Schließen</button>
+  </div>
+</div>
+
 <!-- Pflichtschulung beim ersten Login (nur wo aktiviert, siehe APP_MANDATORY_TRAINING) -->
 <div id="training-modal" class="demo-modal-overlay hide" style="padding:0">
   <div class="demo-modal" style="width:100vw;height:100vh;max-width:100%;max-height:100%;border-radius:0;border-top:none;display:flex;flex-direction:column;padding:20px 24px;box-sizing:border-box">

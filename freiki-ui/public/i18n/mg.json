@@ -216,5 +216,8 @@
   "sensitive_save.override": "Tehirizo ihany",
   "sensitive_save.confirm": "Aza tehirizina",
   "history.redacted": "[Tsy voatahiry ny valiny – mety nisy votoaty manokana tao]",
-  "chat.search_all_areas_retry": "Katsaho ihany koa amin'ny sehatra hafa (miadana kokoa)"
+  "chat.search_all_areas_retry": "Katsaho ihany koa amin'ny sehatra hafa (miadana kokoa)",
+  "lockout.title": "Fanandramana fidirana be loatra",
+  "lockout.message": "Noho ny antony filaminana, dia voahidy vonjimaika ny fidirana. Azo andramana indray afaka:",
+  "lockout.ready": "Afaka miditra indray ianao izao."
 }

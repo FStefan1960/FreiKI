@@ -216,5 +216,8 @@
   "sensitive_save.override": "Guardar de todos modos",
   "sensitive_save.confirm": "No guardar",
   "history.redacted": "[Respuesta no guardada: podría contener contenido sensible]",
-  "chat.search_all_areas_retry": "Buscar también en otras áreas (más lento)"
+  "chat.search_all_areas_retry": "Buscar también en otras áreas (más lento)",
+  "lockout.title": "Demasiados intentos de inicio de sesión",
+  "lockout.message": "Por motivos de seguridad, el inicio de sesión está bloqueado temporalmente. Podrá volver a intentarlo en:",
+  "lockout.ready": "Ya puede volver a iniciar sesión."
 }
