@@ -19,10 +19,13 @@ info:
     - **Chat**: KI-gestützte Konversationen mit verschiedenen Modi (z. B. Leichte Sprache, Zusammenfassen).
     - **Dokumentenanalyse**: PDF, DOCX, Bilder (OCR), Audio (Transkription).
     - **Wissensdatenbank (RAG)**: Semantische Suche in hinterlegten Dokumenten.
+    - **Formulare**: Vorausgefüllte PDF-Formulare per Chat-Dialog (Vorlagen-Verwaltung + Ausfüll-Flow).
+    - **Scanner**: QR-/Barcode-Scanner mit KI-gestützten Folgeaktionen und Produkt-Lookup.
+    - **Barrierefreiheit**: Leichte Sprache mit Piktogramm-Illustration (ARASAAC).
     - **Excel-Analyse**: Dynamische Abfragen auf Excel-Dateien via MCP.
     - **Integration**: Mattermost, Paperless-ngx, SearXNG (Web-Suche), ARASAAC-Piktogramme.
 
-  version: 1.1.0
+  version: 1.2.0
   contact:
     name: FreiKI Support
   license:
@@ -44,6 +47,12 @@ tags:
     description: KI-Chat, Modi und Historie
   - name: Dokumentenanalyse
     description: Upload, OCR, RAG und Wissensbereiche
+  - name: Formulare
+    description: Vorausgefüllte PDF-Formulare per Chat-Dialog (Vorlagen-Verwaltung und Ausfüll-Flow)
+  - name: Scanner
+    description: QR-/Barcode-Scanner mit KI-gestützten Folgeaktionen und Produkt-Lookup
+  - name: Barrierefreiheit
+    description: Leichte Sprache mit Piktogramm-Illustration (ARASAAC)
   - name: Excel
     description: Excel-Dateien analysieren und abfragen
   - name: Sprachfunktionen
@@ -156,6 +165,259 @@ paths:
                 $ref: "#/components/schemas/Error"
         "401":
           description: Ungültiger Code oder abgelaufener pendingToken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/webauthn/login/options:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Passkey-Login-Optionen anfordern (zweiter Login-Schritt)
+      description: |
+        Alternative zum TOTP-Code im zweiten Login-Schritt bei aktivem 2FA - gleicher
+        pendingToken wie /api/login/verify-2fa. Liefert WebAuthn-Challenge/Optionen für
+        navigator.credentials.get(). Bewusst ohne Rate-Limit: eine WebAuthn-Antwort ist eine
+        kryptografische Signatur, nicht erratbar wie ein Code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pendingToken
+              properties:
+                pendingToken:
+                  type: string
+                  description: Aus der requires2fa-Antwort von /api/login
+      responses:
+        "200":
+          description: WebAuthn-Authentifizierungsoptionen (PublicKeyCredentialRequestOptions)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Ungültige Anfrage oder pendingToken abgelaufen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/webauthn/login/verify:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Passkey-Login bestätigen (zweiter Login-Schritt)
+      description: Prüft die WebAuthn-Antwort gegen die zuvor per /api/webauthn/login/options erzeugte Challenge und schließt den Login ab. Setzt dasselbe freiki_session-Cookie wie /api/login/verify-2fa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pendingToken
+                - response
+              properties:
+                pendingToken:
+                  type: string
+                response:
+                  type: object
+                  description: Vom Browser erzeugte AuthenticationResponseJSON (navigator.credentials.get())
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Login abgeschlossen
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: freiki_session=eyJhbG...; HttpOnly; SameSite=Lax; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccess"
+        "400":
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Passkey-Anmeldung fehlgeschlagen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forgot-password:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Passwort-Reset per E-Mail anfordern
+      description: |
+        Öffentliches Formular (public/forgot-password.html), ohne Session-Prüfung. Antwort ist
+        absichtlich IMMER {ok:true} - unabhängig davon, ob die E-Mail existiert - damit sich
+        darüber nicht erraten lässt, welche Adressen registriert sind. Existiert ein Konto,
+        wird ein Einmal-Token (1h gültig, nur als SHA-256-Hash gespeichert) erzeugt und ein
+        Reset-Link per Mail verschickt. Rate-limitiert (10/h).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: max@example.com
+      responses:
+        "200":
+          description: Immer {ok:true}, unabhängig davon ob die E-Mail existiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: Keine gültige E-Mail-Adresse übergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Zu viele Anfragen (Rate-Limit 10 pro Stunde)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/reset-password:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Neues Passwort mit Reset-Token setzen
+      description: Nimmt den per E-Mail verschickten Token entgegen (siehe /api/forgot-password) und setzt ein neues Passwort. Der Token ist nach Verwendung oder nach 1 Stunde ungültig.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+      responses:
+        "200":
+          description: Passwort erfolgreich geändert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: Ungültiger/abgelaufener Link oder Passwort zu kurz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Zu viele Anfragen (Rate-Limit 10 pro Stunde)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/register:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Selbstregistrierung (Zugang beantragen)
+      description: |
+        Öffentliches Anmeldeformular (public/register.html), nur aktiv wenn
+        APP_SELF_REGISTRATION=true. Legt einen gesperrten Nutzer an (pending_approval); der
+        Benutzername wird serverseitig aus Vor-/Nachname generiert, nicht abgefragt. Admins
+        werden per Mail benachrichtigt und schalten über /api/admin/registrations frei.
+        Rate-limitiert (5 pro Stunde).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - last_name
+                - funktion
+                - telefon
+                - email
+                - dienststelle
+              properties:
+                first_name:
+                  type: string
+                  example: Max
+                last_name:
+                  type: string
+                  example: Mustermann
+                funktion:
+                  type: string
+                  example: Sozialarbeiter
+                telefon:
+                  type: string
+                  example: "0123 456789"
+                email:
+                  type: string
+                  format: email
+                dienststelle:
+                  type: string
+                  example: Wohnverbund Nord
+                language:
+                  type: string
+                  description: Freitext, wird per LLM auf ein deutsches Sprach-Adjektiv normalisiert; leer/nicht erkannt fällt auf Deutsch zurück
+                  example: englisch
+      responses:
+        "200":
+          description: Registrierungsanfrage angelegt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  username:
+                    type: string
+                    description: Serverseitig generierter Benutzername (noch gesperrt bis zur Freischaltung)
+                    example: mmustermann
+        "400":
+          description: Pflichtfeld fehlt oder ungültige E-Mail-Adresse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Zu viele Registrierungsversuche (Rate-Limit 5 pro Stunde)
           content:
             application/json:
               schema:
@@ -293,6 +555,143 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/webauthn/register/options:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Passkey-Registrierung starten (Selbstverwaltung)
+      description: Erzeugt WebAuthn-Registrierungsoptionen für den eingeloggten Nutzer (navigator.credentials.create()).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: WebAuthn-Registrierungsoptionen (PublicKeyCredentialCreationOptions)
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Fehler beim Erzeugen der Optionen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/webauthn/register/verify:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Passkey-Registrierung bestätigen
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - response
+              properties:
+                response:
+                  type: object
+                  description: Vom Browser erzeugte RegistrationResponseJSON
+                  additionalProperties: true
+                nickname:
+                  type: string
+                  description: Anzeigename für den Passkey (z. B. Gerätename), optional
+                  example: MacBook Touch ID
+      responses:
+        "200":
+          description: Passkey registriert
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Ungültige Anfrage oder Verifikation fehlgeschlagen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/webauthn/credentials:
+    get:
+      tags:
+        - Authentifizierung
+      summary: Eigene Passkeys auflisten
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der registrierten Passkeys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passkeys:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        nickname:
+                          type: string
+                          nullable: true
+                        device_type:
+                          type: string
+                          nullable: true
+                        created_at:
+                          type: string
+                          format: date-time
+        "401":
+          description: Nicht angemeldet
+
+  /api/webauthn/credentials/{id}:
+    delete:
+      tags:
+        - Authentifizierung
+      summary: Eigenen Passkey löschen
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Passkey gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Nicht gefunden (gehört nicht dem angemeldeten Nutzer)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/change-password:
     post:
       tags:
@@ -335,6 +734,160 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /api/change-language:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Antwortsprache ändern (Selbstbedienung)
+      description: |
+        Freitext-Eingabe (z. B. "italiano", "auf Englisch bitte") wird per LLM auf ein
+        einzelnes deutsches Sprach-Adjektiv normalisiert und in freiki_users.language
+        gespeichert. Nicht erkannte Eingaben liefern einen Fehler statt eines Fallbacks.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - language
+              properties:
+                language:
+                  type: string
+                  example: englisch
+      responses:
+        "200":
+          description: Sprache geändert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  language:
+                    type: string
+                    example: englisch
+        "400":
+          description: Sprache erforderlich oder nicht erkannt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/change-enter-to-send:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Enter-Sende-Verhalten ändern (Selbstbedienung)
+      description: Steuert, ob Enter im Chat-Eingabefeld die Nachricht sofort sendet (true) oder nur einen Zeilenumbruch einfügt (false, dann sendet Shift+Enter bzw. der Senden-Button).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enterToSend:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Einstellung gespeichert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  enterToSend:
+                    type: boolean
+        "401":
+          description: Nicht angemeldet
+
+  /api/training/complete:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Pflichtschulung abschließen
+      description: Markiert die Pflichtschulung als abgeschlossen (training_completed=true), nur relevant wenn APP_MANDATORY_TRAINING=true. Ein Admin kann dies über /api/admin/users/{id}/reset-training wieder zurücksetzen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Schulung als abgeschlossen markiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "401":
+          description: Nicht angemeldet
+
+  /api/training/decline:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Pflichtschulung ablehnen (sperrt das eigene Konto)
+      description: |
+        Nutzer lehnt die Kenntnisnahme am Ende der Pflichtschulung ab -> Konto wird sofort
+        gesperrt (training_completed bleibt false, damit die Schulung nach Admin-Entsperrung
+        erneut angezeigt wird). Wird immer im Audit-Log protokolliert.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Konto gesperrt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "401":
+          description: Nicht angemeldet
+
+  /api/news/ack:
+    post:
+      tags:
+        - Authentifizierung
+      summary: Breaking-News-Hinweis quittieren
+      description: Quittiert die aktuell aktive Breaking-News-Version für den eingeloggten Nutzer (news_ack_version). Die Version wird serverseitig aus der Brand-Config gelesen, nicht vom Client übergeben.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Quittiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "401":
+          description: Nicht angemeldet
 
   /api/me:
     get:
@@ -448,6 +1001,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /api/sensitive-categories:
+    get:
+      tags:
+        - Chat
+      summary: Kategorien für die Erkennung sensibler Inhalte
+      description: |
+        Liefert dieselbe Stichwortliste, die auch der Server zur Erkennung nutzt (siehe
+        SensitivePatterns.js), damit der Client (Warnung vor dem lokalen Speichern der
+        Chat-Historie im Browser bei BGT-Nutzer:innen) dieselbe Erkennung anwenden kann statt
+        einer zweiten, potenziell abweichenden Kopie der Liste.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Kategorien + Regex-Quelltext für ICD-10-Codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+                  icd10Source:
+                    type: string
+                    description: Regex-Quelltext (ohne Flags) zur Erkennung von ICD-10-Codes
+        "401":
+          description: Nicht angemeldet
 
   /api/modes:
     get:
@@ -727,6 +1313,217 @@ paths:
         "404":
           description: Dokument nicht gefunden
 
+  /api/export-docx:
+    post:
+      tags:
+        - Dokumentenanalyse
+      summary: Chat-Antwort als Word-Dokument exportieren
+      description: Wandelt Markdown-Text (z. B. eine Chat-Antwort) in eine .docx zum Download um.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                filename:
+                  type: string
+                  description: Ohne Endung, wird bereinigt/gekürzt (max. 80 Zeichen)
+                  example: zusammenfassung
+      responses:
+        "200":
+          description: Word-Dokument
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Kein Text übergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/pptx-templates:
+    get:
+      tags:
+        - Dokumentenanalyse
+      summary: Verfügbare PPTX-Export-Vorlagen (Dropdown)
+      description: Für jeden eingeloggten Nutzer sichtbar (anders als Hochladen/Löschen, siehe /api/admin/pptx-templates) - Liste fest einprogrammierter und per Admin hochgeladener Vorlagen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der Vorlagen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          example: generic
+                        label:
+                          type: string
+        "401":
+          description: Nicht angemeldet
+
+  /api/export-pptx:
+    post:
+      tags:
+        - Dokumentenanalyse
+      summary: Chat-Antwort als PowerPoint-Gliederung exportieren
+      description: |
+        Wandelt Markdown mit #/##-Überschriften (als Folien) in eine .pptx um. Bis auf
+        template="generic" (alter Fallback ohne Branding/Bilder) nutzt jede Vorlage eine echte
+        .pptx mit Logo/Layouts. Optional wird ein KI-Titelbild generiert (kostet auf
+        DeepInfra-Instanzen echtes Geld pro Export, daher per includeImage abschaltbar).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                filename:
+                  type: string
+                  example: gliederung
+                includeImage:
+                  type: boolean
+                  default: true
+                template:
+                  type: string
+                  description: Vorlagen-Key aus GET /api/pptx-templates, oder "generic" für den bildlosen Fallback
+                  example: generic
+      responses:
+        "200":
+          description: PowerPoint-Datei
+          content:
+            application/vnd.openxmlformats-officedocument.presentationml.presentation:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Kein Text übergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/kb-documents:
+    get:
+      tags:
+        - Dokumentenanalyse
+      summary: Dokumente eines Wissensbereichs auflisten
+      description: Admin sieht alle Bereiche, Manager nur die ihm zugewiesenen (manage_areas). Dient dem gezielten Löschen einzelner Dokumente statt "Bereich leeren".
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: bereich
+          in: query
+          required: true
+          schema:
+            type: string
+          example: stvo
+      responses:
+        "200":
+          description: Liste der Dokumente (source-Namen mit Chunk-Anzahl)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source:
+                          type: string
+                        chunks:
+                          type: integer
+        "403":
+          description: Keine Berechtigung für diesen Bereich
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Dokumentenanalyse
+      summary: Einzelnes Dokument aus der Wissensdatenbank löschen
+      description: Löscht alle Chunks mit diesem source-Namen aus dem angegebenen Bereich.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bereich
+                - source
+              properties:
+                bereich:
+                  type: string
+                  example: stvo
+                source:
+                  type: string
+      responses:
+        "200":
+          description: Gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: Kein Dokument angegeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Keine Berechtigung für diesen Bereich
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/excel-upload:
     post:
       tags:
@@ -824,6 +1621,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/dictate:
+    post:
+      tags:
+        - Sprachfunktionen
+      summary: Kurzdiktat transkribieren (Mikrofon-Button im Eingabefeld)
+      description: |
+        Anders als /api/transcribe synchron und ohne E-Mail-Versand: die Antwort geht direkt
+        zurück und landet zum Nachbessern im Chat-Eingabefeld. Bewusst ohne
+        LLM-Absatzformatierung - bei kurzen Diktaten unnötige Zusatzlatenz.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Erkannter Text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+        "400":
+          description: Keine Audiodaten
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+        "502":
+          description: Spracherkennung nicht verfügbar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/transcribe:
     post:
       tags:
@@ -903,6 +1747,1082 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /api/forms:
+    get:
+      tags:
+        - Formulare
+      summary: Aktive Formularvorlagen auflisten (Formular-Chat)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der aktiven Vorlagen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        slug:
+                          type: string
+                          example: antrag-eingliederungshilfe
+                        title:
+                          type: string
+                        description:
+                          type: string
+        "401":
+          description: Nicht angemeldet
+
+  /api/forms/sessions:
+    get:
+      tags:
+        - Formulare
+      summary: Offene (pausierte) Sitzungen auflisten
+      description: Zeigt wer welches Formular begonnen hat (Vorlage + Nutzername + letzte Aktivität), damit sich mehrere Nutzer:innen mit derselben Vorlage nicht verwechseln. Enthält bewusst keine Antwortinhalte - die PIN bleibt der einzige Weg, tatsächlich fortzusetzen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste offener Sitzungen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        slug:
+                          type: string
+                        title:
+                          type: string
+                        username:
+                          type: string
+                        updatedAt:
+                          type: string
+                          format: date-time
+        "401":
+          description: Nicht angemeldet
+
+  /api/forms/{slug}/pages:
+    get:
+      tags:
+        - Formulare
+      summary: Seitenvorschau einer Formularvorlage
+      description: Für jeden eingeloggten Nutzer sichtbar (anders als die Admin-Verwaltung unter /api/form-templates/{id}) - jede:r soll die Vorlage anschauen können, bevor der Dialog gestartet wird.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+          example: antrag-eingliederungshilfe
+      responses:
+        "200":
+          description: Seitenliste mit Bild-URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  pages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        pageNumber:
+                          type: integer
+                        url:
+                          type: string
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Formular nicht gefunden oder nicht aktiv
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forms/{slug}/pages/{pageNumber}/image:
+    get:
+      tags:
+        - Formulare
+      summary: Einzelne Formularseite als Bild
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pageNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: PNG-Bild der Seite
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Formular oder Seite nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forms/{slug}/start:
+    post:
+      tags:
+        - Formulare
+      summary: Formular-Dialog starten
+      description: Legt eine neue Sitzung an (inkl. 8-stelliger PIN zum späteren Fortsetzen) und liefert die erste Frage.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language:
+                  type: string
+                  description: Freitext, max. 40 Zeichen; Default Deutsch
+                  example: Englisch
+      responses:
+        "200":
+          description: Sitzung gestartet, erste Frage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormSessionState"
+        "400":
+          description: Formular hat noch keine Felder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Formular nicht gefunden oder nicht aktiv
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forms/resume:
+    post:
+      tags:
+        - Formulare
+      summary: Pausierte Sitzung per PIN fortsetzen
+      description: Rate-limitiert (10 Versuche/15 Min) gegen Brute-Force der 8-stelligen PIN.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - slug
+                - pin
+              properties:
+                slug:
+                  type: string
+                pin:
+                  type: string
+                  example: "12345678"
+      responses:
+        "200":
+          description: Aktueller Sitzungsstand
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormSessionState"
+        "400":
+          description: Vorlage oder PIN fehlt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Formular oder Sitzung mit dieser PIN nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Zu viele Versuche (Rate-Limit 10 pro 15 Min)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forms/{sessionId}/answer:
+    post:
+      tags:
+        - Formulare
+      summary: Antwort auf die aktuelle Formularfrage übergeben
+      description: |
+        Antworten werden bewusst NICHT durch ein LLM geprüft/normalisiert - reale Namen und
+        Zahlen sind nicht zuverlässig algorithmisch validierbar. Bei Auswahlgruppen (mehrere
+        exklusive Checkboxen) wird statt Freitext der field_key der gewählten Option gesendet.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: Freitext-Antwort, oder field_key bei Auswahlgruppen
+                skip:
+                  type: boolean
+                  description: Frage überspringen (nur bei nicht-Pflichtfeldern erlaubt)
+      responses:
+        "200":
+          description: Nächste Frage, oder done:true wenn alle Felder beantwortet sind
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormSessionState"
+        "400":
+          description: Ungültige Sitzung, Pflichtfeld kann nicht übersprungen werden, ungültige Auswahl, oder keine Antwort übergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Sitzung nicht gefunden oder abgelaufen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forms/{sessionId}/finish:
+    post:
+      tags:
+        - Formulare
+      summary: Formular abschließen und als PDF herunterladen
+      description: |
+        Prüft, ob alle Pflichtfelder (gruppenweise, siehe Auswahlgruppen) beantwortet sind, und
+        füllt die Vorlage zu einem PDF aus. Die Sitzung wird NICHT automatisch gelöscht - der
+        Download kann fehlschlagen (z. B. Drucker), ohne dass die Sitzung verloren geht. Löschung
+        erst nach expliziter Bestätigung über POST /api/forms/{sessionId}/confirm-print.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Ausgefülltes PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Ungültige Sitzung oder noch nicht alle Pflichtfelder beantwortet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Sitzung nicht gefunden oder abgelaufen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/forms/{sessionId}/confirm-print:
+    post:
+      tags:
+        - Formulare
+      summary: Ausdruck bestätigen (löscht die Sitzung)
+      description: Nutzer bestätigt, dass der PDF-Ausdruck geklappt hat - erst dann wird die Sitzung gelöscht (Datenminimierung, aber erst nach erfolgreichem Ausdruck). Verwaiste Sitzungen fängt zusätzlich ein TTL-Purge-Job ab.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Sitzung gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "401":
+          description: Nicht angemeldet
+        "404":
+          description: Sitzung nicht gefunden oder abgelaufen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/form-templates:
+    get:
+      tags:
+        - Formulare
+      summary: Formularvorlagen verwalten - Liste
+      description: Admin- und Manager-Zugriff (wie /api/kb-upload) - anders als die PPTX-Vorlagen dürfen Manager Formularvorlagen mitpflegen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste aller Vorlagen (auch inaktive)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  templates:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FormTemplate"
+        "403":
+          description: Nur für Admins und Manager
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Formulare
+      summary: Neue Formularvorlage anlegen (PDF/Bild-Scan hochladen)
+      description: Rastert eine hochgeladene PDF-Vorlage seitenweise in PNGs (oder übernimmt ein einzelnes Bild), bevor im nächsten Schritt Felder per PUT /api/form-templates/{id}/fields eingezeichnet werden.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - slug
+                - title
+              properties:
+                file:
+                  type: string
+                  format: binary
+                slug:
+                  type: string
+                  pattern: '^[a-z][a-z0-9-]{1,49}$'
+                  example: antrag-eingliederungshilfe
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Vorlage angelegt, Seiten gerastert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  template:
+                    $ref: "#/components/schemas/FormTemplate"
+                  pages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        pageNumber:
+                          type: integer
+                        url:
+                          type: string
+        "400":
+          description: Keine Datei, ungültiger Kurzname oder kein Titel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Nur für Admins und Manager
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Kurzname bereits vergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/form-templates/{id}:
+    get:
+      tags:
+        - Formulare
+      summary: Formularvorlage inkl. Seiten und Feldern laden (Editor)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vorlage, Seiten und definierte Felder
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  template:
+                    $ref: "#/components/schemas/FormTemplate"
+                  pages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        pageNumber:
+                          type: integer
+                        url:
+                          type: string
+                  fields:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FormField"
+        "403":
+          description: Nur für Admins und Manager
+        "404":
+          description: Vorlage nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Formulare
+      summary: Stammdaten einer Formularvorlage ändern
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                active:
+                  type: boolean
+                  description: Nur aktive Vorlagen erscheinen im Formular-Chat (GET /api/forms)
+      responses:
+        "200":
+          description: Aktualisiert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  template:
+                    $ref: "#/components/schemas/FormTemplate"
+        "403":
+          description: Nur für Admins und Manager
+        "404":
+          description: Vorlage nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Formulare
+      summary: Formularvorlage löschen
+      description: Löscht die Vorlage inkl. aller Seitenbilder auf der Festplatte.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "403":
+          description: Nur für Admins und Manager
+        "404":
+          description: Vorlage nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/form-templates/{id}/pages/{pageNumber}/image:
+    get:
+      tags:
+        - Formulare
+      summary: Seitenbild einer Formularvorlage (Editor-Ansicht)
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: pageNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: PNG-Bild der Seite
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Nur für Admins und Manager
+        "404":
+          description: Seite nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/form-templates/{id}/fields:
+    put:
+      tags:
+        - Formulare
+      summary: Feld-Definitionen einer Formularvorlage speichern
+      description: |
+        Ersetzt die komplette Feldliste. Jedes Feld hat relative Koordinaten (0-1) auf einer
+        Seite. Unterstützt Auswahlgruppen (mehrere exklusive Checkboxen, z. B. Familienstand -
+        müssen im Array direkt aufeinanderfolgen) und bedingte Felder (depends_on_field_key,
+        muss auf ein vorheriges Checkbox-Feld zeigen).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fields
+              properties:
+                fields:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/FormField"
+      responses:
+        "200":
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  fields:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FormField"
+        "400":
+          description: Ungültiges Feld (Name, Typ, Koordinate, Seitenzahl, Gruppe oder Abhängigkeit)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Nur für Admins und Manager
+        "404":
+          description: Vorlage nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/scanner/analyze:
+    post:
+      tags:
+        - Scanner
+      summary: Gescannten QR-/Barcode-Inhalt auf Folgeaktionen prüfen
+      description: |
+        Ordnet dem Inhalt per LLM mögliche Folgeaktionen zu (Link öffnen, Produkt-Lookup,
+        Kontakt speichern, E-Mail, WLAN, Web-Suche). Reine Klassifikation - das Modell schlägt
+        nur Buttons vor, die eigentliche Aktion übernimmt fest verdrahteter Code. Ein
+        serverseitiges Vokabular filtert Halluzinationen hart heraus.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  maxLength: 2000
+                format:
+                  type: string
+                  description: Erkanntes Barcode-Format (z. B. QR_CODE, EAN_13, CODE_128)
+                  maxLength: 40
+      responses:
+        "200":
+          description: Vorgeschlagene Aktionen (max. 3, leer wenn keine passt)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  actions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum:
+                            - open_url
+                            - ean_lookup
+                            - save_contact
+                            - send_email
+                            - wifi_info
+                            - web_lookup
+                        label:
+                          type: string
+                          nullable: true
+        "400":
+          description: Kein Text übergeben
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/barcode/product:
+    get:
+      tags:
+        - Scanner
+      summary: EAN/UPC-Produktsuche
+      description: Über die öffentliche Open-Food-Facts-API (kein Key nötig) - deckt primär Lebensmittel/Konsumgüter ab.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{6,14}$'
+      responses:
+        "200":
+          description: Produktdaten, oder found:false wenn nicht gefunden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  found:
+                    type: boolean
+                  title:
+                    type: string
+                    nullable: true
+                  brand:
+                    type: string
+                    nullable: true
+                  quantity:
+                    type: string
+                    nullable: true
+                  image:
+                    type: string
+                    nullable: true
+                  allergens:
+                    type: string
+                    nullable: true
+                    description: Deutsch übersetzte EU-Pflichtallergene, kommagetrennt
+                  traces:
+                    type: string
+                    nullable: true
+        "400":
+          description: Ungültiger Code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/barcode/manual:
+    get:
+      tags:
+        - Scanner
+      summary: Bedienungsanleitung zu einem Produkt suchen
+      description: Websuche (SearXNG, dieselbe Infrastruktur wie der Chat-Modus "Web-Recherche") nach der Bedienungsanleitung eines per EAN gefundenen Produkts. Liefert nur Titel/URL fremder Websites.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 200
+        - name: brand
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+      responses:
+        "200":
+          description: Suchergebnisse (Titel + URL)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+        "400":
+          description: Kein Produktname
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/barcode/websearch:
+    get:
+      tags:
+        - Scanner
+      summary: Generische Web-Suche zu einem Barcode ohne eigene Lookup-API
+      description: Für Formate ohne freie Lookup-API (z. B. PZN/Pharmazentralnummer, ITF-Artikelnummern) - SearXNG-Suche mit formatabhängigem Hinweiswort zur besseren Trefferqualität.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 100
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suchergebnisse (Titel + URL)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+        "400":
+          description: Kein Code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/leichte-sprache/symbols:
+    post:
+      tags:
+        - Barrierefreiheit
+      summary: Piktogramm-Kandidaten zu einer Leichte-Sprache-Antwort vorschlagen
+      description: |
+        Nimmt eine bereits fertige Leichte-Sprache-Antwort entgegen (ein Gedanke pro Zeile) und
+        liefert pro Zeile mehrere ARASAAC-Piktogramm-Kandidaten statt einer automatischen
+        Auswahl - der Nutzer wählt im "+ Symbole"-Wizard selbst aus.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  description: Mehrzeiliger Leichte-Sprache-Text
+      responses:
+        "200":
+          description: Piktogramm-Kandidaten je Zeile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        text:
+                          type: string
+                        keyword:
+                          type: string
+                          nullable: true
+                        candidates:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                              keyword:
+                                type: string
+                              url:
+                                type: string
+                                description: data:-URL (base64-PNG)
+        "400":
+          description: Kein Text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/leichte-sprache/symbols/pdf:
+    post:
+      tags:
+        - Barrierefreiheit
+      summary: Illustrierten Leichte-Sprache-Text als PDF exportieren
+      description: Baut aus den im Wizard bestätigten Zeilen (Text + optionales Piktogramm) ein PDF, Icon links neben umgebrochenem Text.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lines
+              properties:
+                lines:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      text:
+                        type: string
+                      imageDataUrl:
+                        type: string
+                        description: 'data:image/png;base64,... - optional'
+      responses:
+        "200":
+          description: PDF-Datei
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Keine Zeilen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
+
+  /api/leichte-sprache/symbols/word:
+    post:
+      tags:
+        - Barrierefreiheit
+      summary: Illustrierten Leichte-Sprache-Text als Word-Dokument exportieren
+      description: Wie POST /api/leichte-sprache/symbols/pdf, nur als .docx.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lines
+              properties:
+                lines:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      text:
+                        type: string
+                      imageDataUrl:
+                        type: string
+      responses:
+        "200":
+          description: Word-Dokument
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Keine Zeilen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Nicht angemeldet
 
   /api/bot-chat:
     post:
@@ -1007,6 +2927,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /api/mattermost/slash-command:
+    post:
+      tags:
+        - Integration
+      summary: Mattermost Slash-Command "/freiki"
+      description: |
+        Ersetzt den früheren n8n-Webhook-Workflow - Mattermosts commands.url zeigt direkt
+        hierher. Mattermost verlangt eine Antwort binnen 3s, daher sofortige Bestätigung
+        (ephemeral) + asynchrone Auslieferung der eigentlichen RAG-Antwort über response_url.
+      security:
+        - mattermostSlashToken: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - token
+                - text
+                - response_url
+              properties:
+                token:
+                  type: string
+                  description: Mattermost-Slash-Command-Token (MATTERMOST_SLASH_TOKEN)
+                text:
+                  type: string
+                  example: Was steht im SGB IX über Eingliederungshilfe?
+                user_name:
+                  type: string
+                response_url:
+                  type: string
+                  format: uri
+                  description: Von Mattermost mitgeliefert, für die asynchrone Antwort
+      responses:
+        "200":
+          description: Sofortige (ephemeral) Bestätigung, die eigentliche Antwort folgt per response_url
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response_type:
+                    type: string
+                    example: ephemeral
+                  text:
+                    type: string
+        "403":
+          description: Ungültiges Slash-Command-Token
+
+  /api/mattermost/mention:
+    post:
+      tags:
+        - Integration
+      summary: Mattermost-Erwähnung "@freiki" in einem Channel
+      description: |
+        Ersetzt den früheren n8n-Workflow "FreiKI @mention Handler" - Mattermosts Outgoing-
+        Webhook-Konfiguration zeigt direkt hierher. Antwort kommt nicht über die Webhook-
+        Response, sondern per separatem REST-Aufruf mit dem Bot-Access-Token (MATTERMOST_BOT_TOKEN),
+        da die RAG/LLM-Antwort zu lange für die synchrone Webhook-Antwort dauert.
+      security:
+        - mattermostMentionToken: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - token
+                - channel_id
+              properties:
+                token:
+                  type: string
+                  description: Mattermost-Outgoing-Webhook-Token (MATTERMOST_MENTION_TOKEN)
+                text:
+                  type: string
+                  example: "@freiki Was steht im SGB IX über Eingliederungshilfe?"
+                user_name:
+                  type: string
+                channel_id:
+                  type: string
+      responses:
+        "200":
+          description: Sofort leer bestätigt (200, kein Body) - die eigentliche Antwort wird asynchron in den Channel gepostet
+        "403":
+          description: Ungültiges Token
 
   /api/hilfe-chat:
     post:
@@ -1127,6 +3135,214 @@ paths:
                 $ref: "#/components/schemas/BrandConfigUpdate"
         "403":
           description: Nur für Administratoren
+
+  /api/admin/breaking-news:
+    get:
+      tags:
+        - Verwaltung
+      summary: Aktuellen Breaking-News-Hinweis abrufen
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Aktueller Hinweistext + Version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                  version:
+                    type: integer
+                    example: 3
+    post:
+      tags:
+        - Verwaltung
+      summary: Breaking-News-Hinweis veröffentlichen
+      description: Erhöht die breakingNewsVersion, wodurch das Login-Hinweis-Modal automatisch wieder allen Nutzer:innen angezeigt wird, deren zuletzt quittierte Version dahinter liegt.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+      responses:
+        "200":
+          description: Veröffentlicht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: Text erforderlich
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Verwaltung
+      summary: Breaking-News-Hinweis zurückziehen
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Zurückgezogen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+
+  /api/admin/prompts:
+    get:
+      tags:
+        - Verwaltung
+      summary: Werkzeug-Prompts auflisten
+      description: Liste aller Tool-Prompts (prompts/*.md) mit Kurzmetadaten für den Prompt-Editor.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der Prompts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasBase:
+                    type: boolean
+                    description: Ob eine _base.md (gemeinsamer Grund-Prompt) existiert
+                  prompts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          example: stvo
+                        icon:
+                          type: string
+                        title:
+                          type: string
+                        desc:
+                          type: string
+                        hidden:
+                          type: boolean
+
+  /api/admin/prompts/{key}:
+    get:
+      tags:
+        - Verwaltung
+      summary: Einzelnen Prompt lesen
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: stvo
+      responses:
+        "200":
+          description: Frontmatter + Prompt-Text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  meta:
+                    type: object
+                    nullable: true
+                    additionalProperties: true
+                  body:
+                    type: string
+        "404":
+          description: Prompt nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Verwaltung
+      summary: Einzelnen Prompt speichern
+      description: |
+        Nur ein Teil des Frontmatters ist editierbar (Icon, Titel, Beschreibung, Begrüßung,
+        Hinweis, ...) - Sprachvarianten (title_en, hint_fr, ...) werden serverseitig per LLM
+        automatisch aus dem neuen deutschen Stand nachgezogen, nicht vom Client übergeben.
+        Änderungen sind sofort live (kein Container-Neustart nötig).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - body
+              properties:
+                body:
+                  type: string
+                  description: Der eigentliche System-Prompt-Text
+                meta:
+                  type: object
+                  description: Editierbare Frontmatter-Felder (icon, title, desc, welcome, hint, examples, ...)
+                  additionalProperties: true
+      responses:
+        "200":
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: System-Prompt darf nicht leer sein
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Prompt nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/admin/areas:
     get:
@@ -1370,6 +3586,210 @@ paths:
                     example: true
         "404":
           description: Nutzer nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/users/{id}/reset-passkeys:
+    post:
+      tags:
+        - Verwaltung
+      summary: Passkeys eines Nutzers zurücksetzen
+      description: Löscht alle Passkeys des Nutzers (z. B. bei Geräteverlust) - TOTP-Codes funktionieren weiter. Wird im Audit-Log protokolliert.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Passkeys zurückgesetzt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "404":
+          description: Nutzer nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/users/{id}/reset-training:
+    post:
+      tags:
+        - Verwaltung
+      summary: Pflichtschulung eines Nutzers zurücksetzen
+      description: Setzt training_completed=false (und training_completed_at=NULL) für den Nutzer - er muss die Schulungsfolien beim nächsten Login erneut durchlaufen (z. B. nach inhaltlicher Aktualisierung). Nur relevant wenn APP_MANDATORY_TRAINING=true. Wird im Audit-Log protokolliert.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Schulung zurückgesetzt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "404":
+          description: Nutzer nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/registrations:
+    get:
+      tags:
+        - Verwaltung
+      summary: Offene Selbstregistrierungen auflisten
+      description: Nutzer, die sich über POST /api/register angemeldet haben und noch auf Admin-Freischaltung warten (pending_approval=true).
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste offener Registrierungen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  registrations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        username:
+                          type: string
+                        first_name:
+                          type: string
+                        last_name:
+                          type: string
+                        funktion:
+                          type: string
+                        telefon:
+                          type: string
+                        email:
+                          type: string
+                        language:
+                          type: string
+                        dienststelle:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /api/admin/registrations/{id}/approve:
+    post:
+      tags:
+        - Verwaltung
+      summary: Selbstregistrierung freischalten
+      description: Weist Rolle/Bereiche zu, entsperrt den Nutzer, generiert das echte Passwort und verschickt die Willkommensmail.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum:
+                    - default
+                    - manager
+                    - admin
+                    - high_risk
+                use:
+                  type: array
+                  items:
+                    type: string
+                manage:
+                  type: array
+                  items:
+                    type: string
+                use_paperless:
+                  type: boolean
+                use_metacom:
+                  type: boolean
+      responses:
+        "200":
+          description: Freigeschaltet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  mailSent:
+                    type: boolean
+        "404":
+          description: Registrierung nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/registrations/{id}/reject:
+    post:
+      tags:
+        - Verwaltung
+      summary: Selbstregistrierung ablehnen
+      description: Löscht die Registrierungsanfrage ersatzlos.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Abgelehnt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "404":
+          description: Registrierung nicht gefunden
           content:
             application/json:
               schema:
@@ -1653,6 +4073,259 @@ paths:
         "403":
           description: Nur für Administratoren
 
+  /api/admin/jobs:
+    get:
+      tags:
+        - Verwaltung
+      summary: Native Berichts-Jobs auflisten
+      description: Registry der intern geplanten Jobs (Ersatz für die entsprechenden n8n-Workflows, z. B. Tagesbericht, Tageslosung, Wetterwarnung), mit Zeitplan und letztem Lauf.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Job-Liste
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        schedule:
+                          type: string
+                          description: Cron-artige Beschreibung des Zeitplans
+                        lastRun:
+                          type: string
+                          format: date-time
+                          nullable: true
+
+  /api/admin/jobs/{name}/run:
+    post:
+      tags:
+        - Verwaltung
+      summary: Job manuell auslösen
+      description: Führt den benannten Job sofort aus, unabhängig vom Zeitplan. Wird im Audit-Log protokolliert.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job ausgeführt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "400":
+          description: Unbekannter Job-Name oder Job-Fehler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/service-links:
+    get:
+      tags:
+        - Verwaltung
+      summary: Quicklinks zu Infrastruktur-Diensten
+      description: Liefert nur Dienste, deren URL konfiguriert ist (z. B. Beszel, Uptime Kuma, n8n, Dozzle, Portainer, Paperless, Mattermost, Swagger) - unkonfigurierte Dienste fehlen ersatzlos statt einen toten Link zu zeigen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der konfigurierten Quicklinks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          example: n8n
+                        label:
+                          type: string
+                          example: n8n
+                        hint:
+                          type: string
+                          example: Automatisierung
+                        url:
+                          type: string
+                          format: uri
+
+  /api/admin/usage-history:
+    get:
+      tags:
+        - Verwaltung
+      summary: Historische Nutzungsstatistik
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+            minimum: 1
+            maximum: 365
+          description: Zeitraum in Tagen (wird serverseitig auf 1-365 begrenzt)
+      responses:
+        "200":
+          description: Tagesweise aufgeschlüsselte Statistik
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          description: Statistik konnte nicht geladen werden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/pptx-templates:
+    get:
+      tags:
+        - Verwaltung
+      summary: PPTX-Export-Vorlagen auflisten
+      description: Admin-only (anders als Formular-Vorlagen) - eine PPTX-Vorlage prägt das Branding aller Nutzer:innen der Instanz.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste der Vorlagen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        key:
+                          type: string
+                        label:
+                          type: string
+                        filename:
+                          type: string
+    post:
+      tags:
+        - Verwaltung
+      summary: PPTX-Export-Vorlage hochladen
+      description: |
+        Akzeptiert .pptx oder .potx (wird serverseitig konvertiert). Die Vorlage wird durch eine
+        echte Testfolie der Export-Pipeline geschickt, um ein unbrauchbares Titel/Text-Layout
+        vor der Freigabe abzufangen.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - label
+              properties:
+                file:
+                  type: string
+                  format: binary
+                label:
+                  type: string
+                  description: Anzeigename der Vorlage
+                  example: Diakonie Kork Standard
+      responses:
+        "200":
+          description: Vorlage gespeichert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  template:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      key:
+                        type: string
+                      label:
+                        type: string
+        "400":
+          description: Keine Datei, kein Anzeigename, oder Vorlage nicht kompatibel (fehlendes Titel/Text-Layout)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/pptx-templates/{id}:
+    delete:
+      tags:
+        - Verwaltung
+      summary: PPTX-Export-Vorlage löschen
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Gelöscht
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        "404":
+          description: Vorlage nicht gefunden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/admin/stats:
     get:
       tags:
@@ -1772,13 +4445,17 @@ paths:
       tags:
         - Verwaltung
       summary: Tagesbericht manuell auslösen
-      description: Stößt den n8n-Webhook für den Tagesbericht sensibler Anfragen sofort an (statt auf den täglichen Zeitplan zu warten).
+      description: |
+        Führt die drei nativen Tagesbericht-Flows sofort aus (Feedback, Nutzungsstatistik,
+        GPU-Metriken - siehe jobs/feedbackReport.js, usageStatsReport.js, gpuMetricsReport.js),
+        statt auf den täglichen Zeitplan zu warten. Jeder Flow meldet für sich, ob er wegen
+        fehlender Daten stillbleibt.
       security:
         - cookieAuth: []
         - bearerAuth: []
       responses:
         "200":
-          description: Webhook ausgelöst
+          description: Alle drei Flows erfolgreich durchlaufen
           content:
             application/json:
               schema:
@@ -1787,18 +4464,31 @@ paths:
                   ok:
                     type: boolean
                     example: true
-        "501":
-          description: Auf dieser Instanz nicht konfiguriert (kein N8N_DAILY_REPORT_WEBHOOK_URL)
+        "500":
+          description: Mindestens ein Flow ist fehlgeschlagen (Fehlermeldungen zusammengefasst)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-        "502":
-          description: n8n-Webhook nicht erreichbar oder antwortete mit Fehler
+
+  /api/admin/daily-report-preview:
+    get:
+      tags:
+        - Verwaltung
+      summary: Tagesbericht-Vorschau (HTML)
+      description: |
+        Rendert die Nutzungsstatistik-Mail als HTML-Seite mit klickbar sortierbarer Tabelle,
+        ohne etwas zu verschicken oder zu bereinigen - liest denselben Stand wie ein echter Lauf.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: HTML-Vorschau
           content:
-            application/json:
+            text/html:
               schema:
-                $ref: "#/components/schemas/Error"
+                type: string
 
   /api/sicherheitslage:
     get:
@@ -2262,6 +4952,22 @@ components:
       description: |
         Gemeinsamer Bot-Schlüssel aus Env `BOT_API_KEY`. Pflicht für `/api/bot-chat`
         und `/api/bot/sicherheitslage` (n8n/Mattermost).
+    mattermostSlashToken:
+      type: apiKey
+      in: query
+      name: token
+      description: |
+        Von Mattermost im Formularfeld "token" mitgesendetes Slash-Command-Token
+        (MATTERMOST_SLASH_TOKEN) - technisch Teil des application/x-www-form-urlencoded-Bodys,
+        hier nur zur Dokumentation der Auth-Anforderung als apiKey modelliert.
+    mattermostMentionToken:
+      type: apiKey
+      in: query
+      name: token
+      description: |
+        Von Mattermosts Outgoing-Webhook im Formularfeld "token" mitgesendetes Token
+        (MATTERMOST_MENTION_TOKEN) - technisch Teil des application/x-www-form-urlencoded-Bodys,
+        hier nur zur Dokumentation der Auth-Anforderung als apiKey modelliert.
     mattermostOAuth:
       type: http
       scheme: bearer
@@ -2530,6 +5236,127 @@ components:
         documentType:
           type: string
           example: Rechnung
+
+    FormTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+          example: antrag-eingliederungshilfe
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    FormField:
+      type: object
+      description: Ein Eingabefeld auf einer Formularseite mit relativen Koordinaten (0-1).
+      properties:
+        field_key:
+          type: string
+          pattern: '^[a-z][a-z0-9_]{0,49}$'
+          example: nachname
+        field_type:
+          type: string
+          enum:
+            - text
+            - number
+            - date
+            - checkbox
+        question_text:
+          type: string
+          description: Frage, die der Formular-Chat dem Nutzer stellt
+          example: Wie lautet Ihr Nachname?
+        page_number:
+          type: integer
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+        width:
+          type: number
+          minimum: 0
+          maximum: 1
+        height:
+          type: number
+          minimum: 0
+          maximum: 1
+        required:
+          type: boolean
+        group_key:
+          type: string
+          nullable: true
+          description: Nur für Checkbox-Felder - fasst mehrere exklusive Optionen zu einer Auswahlgruppe zusammen (z. B. Familienstand); Felder derselben Gruppe müssen im Array direkt aufeinanderfolgen
+        option_value:
+          type: string
+          nullable: true
+          description: Beschriftung der Option innerhalb einer group_key-Gruppe
+        depends_on_field_key:
+          type: string
+          nullable: true
+          description: Feld wird nur gefragt, wenn dieses (vorherige) Checkbox-Feld angekreuzt wurde
+
+    FormSessionState:
+      type: object
+      description: Antwortform von /api/forms/{slug}/start, /resume und /{sessionId}/answer.
+      properties:
+        ok:
+          type: boolean
+          example: true
+        sessionId:
+          type: string
+          format: uuid
+        pin:
+          type: string
+          description: Nur in der Start-Antwort enthalten - zum späteren Fortsetzen über /api/forms/resume
+          example: "12345678"
+        done:
+          type: boolean
+          description: true, wenn alle Felder beantwortet sind (Download folgt über /{sessionId}/finish)
+        fieldIndex:
+          type: integer
+          nullable: true
+        totalFields:
+          type: integer
+        question:
+          type: string
+          nullable: true
+        fieldType:
+          type: string
+          nullable: true
+          enum:
+            - text
+            - number
+            - date
+            - checkbox
+        options:
+          type: array
+          nullable: true
+          description: Nur bei Auswahlgruppen - die zur Wahl stehenden Optionen
+          items:
+            type: object
+            properties:
+              field_key:
+                type: string
+              label:
+                type: string
+        labels:
+          type: object
+          nullable: true
+          description: Nur in Start-/Resume-Antworten - übersetzte UI-Texte für den Formular-Chat
+          additionalProperties: true
 
     HealthCheck:
       type: object
