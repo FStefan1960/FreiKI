@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { formResumeLimiter } = require('../middlewares/security');
 const templates = require('../../../core/forms/FormTemplateRepository');
@@ -54,6 +55,33 @@ router.get('/api/forms/sessions', asyncHandler(async (req, res) => {
     ok: true,
     sessions: list.map(r => ({ slug: r.slug, title: r.title, username: r.username, updatedAt: r.updated_at })),
   });
+}));
+
+// Seitenvorschau vor dem eigentlichen Start (Thumbnail + Weiter/Zurück im Formular-Chat) -
+// bewusst nur eingeloggt statt admin/manager (im Unterschied zu /api/form-templates/:id in
+// adminFormRoutes.js), da jede Nutzerin/jeder Nutzer die Vorlage anschauen soll, bevor sie
+// den Dialog startet.
+router.get('/api/forms/:slug/pages', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+  const template = await templates.getTemplateBySlug(req.params.slug);
+  if (!template || !template.active) return res.status(404).json({ error: 'Formular nicht gefunden.' });
+  const pages = await templates.listPages(template.id);
+  res.json({
+    ok: true,
+    pages: pages.map(p => ({ pageNumber: p.page_number, url: `/api/forms/${encodeURIComponent(req.params.slug)}/pages/${p.page_number}/image` })),
+  });
+}));
+
+router.get('/api/forms/:slug/pages/:pageNumber/image', asyncHandler(async (req, res) => {
+  const s = getSession(req);
+  if (!s) return res.status(401).json({ error: 'Bitte neu anmelden.' });
+  const template = await templates.getTemplateBySlug(req.params.slug);
+  if (!template || !template.active) return res.status(404).json({ error: 'Formular nicht gefunden.' });
+  const pages = await templates.listPages(template.id);
+  const page = pages.find(p => p.page_number === Number(req.params.pageNumber));
+  if (!page || !fs.existsSync(page.image_path)) return res.status(404).json({ error: 'Seite nicht gefunden.' });
+  res.type('png').sendFile(page.image_path);
 }));
 
 router.post('/api/forms/:slug/start', asyncHandler(async (req, res) => {

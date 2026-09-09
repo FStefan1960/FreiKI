@@ -187,6 +187,24 @@
     .status.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
     .status.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
 
+    .preview-image-wrap { text-align: center; margin-bottom: 12px; }
+    .preview-image-wrap img {
+      max-width: 100%; max-height: 60vh; border: 1px solid #d1d5db; border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .preview-page-indicator { text-align: center; font-size: 12px; color: #9ca3af; margin-bottom: 14px; }
+    .preview-actions { display: flex; gap: 8px; }
+    .preview-actions button { flex: 1; }
+    .btn-outline {
+      padding: 12px; background: #fff; color: #1E3A8A; border: 1px solid #bfdbfe;
+      border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn-outline:hover { background: #f0f9ff; }
+    .btn-blue {
+      padding: 12px; background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff; border: none;
+      border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+
     .back-link {
       position: fixed; bottom: 24px; right: 24px; z-index: 1000;
       display: inline-flex; align-items: center; gap: 8px;
@@ -220,6 +238,15 @@
       <select id="resume-slug"></select>
       <input type="text" id="resume-pin" placeholder="8-stellige PIN" inputmode="numeric" maxlength="8">
       <button type="button" id="resume-submit">Fortsetzen</button>
+    </div>
+  </div>
+
+  <div class="view" id="preview-view">
+    <div class="preview-image-wrap"><img id="preview-image" src="" alt="Formularvorschau"></div>
+    <div class="preview-page-indicator" id="preview-page-indicator"></div>
+    <div class="preview-actions">
+      <button type="button" class="btn-outline" id="preview-back">← Zurück</button>
+      <button type="button" class="btn-blue" id="preview-next">Weiter →</button>
     </div>
   </div>
 
@@ -281,7 +308,12 @@
   })();
 
   const pickerView = document.getElementById('picker-view');
+  const previewView = document.getElementById('preview-view');
   const chatView = document.getElementById('chat-view');
+  const previewImage = document.getElementById('preview-image');
+  const previewPageIndicator = document.getElementById('preview-page-indicator');
+  const previewBackBtn = document.getElementById('preview-back');
+  const previewNextBtn = document.getElementById('preview-next');
   const templateList = document.getElementById('template-list');
   const languageInput = document.getElementById('language-input');
   const resumeToggle = document.getElementById('resume-toggle');
@@ -313,6 +345,13 @@
   let sessionId = null;
   let currentSlug = null;
   let currentPin = null;
+  let previewPages = [];
+  let previewIndex = 0;
+
+  function showView(view) {
+    [pickerView, previewView, chatView].forEach(v => v.classList.remove('visible'));
+    view.classList.add('visible');
+  }
   let currentLabels = {
     send: 'Senden', skip: 'Überspringen', finish: 'PDF erzeugen & herunterladen',
     printOk: 'Ja, fertig', printRetry: 'Nein, nochmal', placeholder: 'Antwort eingeben …',
@@ -382,7 +421,7 @@
         btn.className = 'template-btn';
         btn.innerHTML = '<div class="t-title">' + t.title + '</div>' + (t.description ? '<div class="t-desc"></div>' : '');
         if (t.description) btn.querySelector('.t-desc').textContent = t.description;
-        btn.addEventListener('click', () => startForm(t.slug));
+        btn.addEventListener('click', () => openPreview(t.slug));
         templateList.appendChild(btn);
       });
     } catch (e) {
@@ -455,8 +494,7 @@
     thread.innerHTML = '';
     chatInput.value = '';
     pinBanner.classList.remove('visible');
-    chatView.classList.remove('visible');
-    pickerView.classList.add('visible');
+    showView(pickerView);
     sessionId = null;
     currentPin = null;
     if (statusMsg) showStatus(statusMsg, 'success');
@@ -474,8 +512,7 @@
     currentSlug = slug;
     sessionId = data.sessionId;
     if (pin) currentPin = pin;
-    pickerView.classList.remove('visible');
-    chatView.classList.add('visible');
+    showView(chatView);
     thread.innerHTML = '';
     showStatus('', '');
     printConfirm.style.display = 'none';
@@ -554,6 +591,53 @@
       addMessage('assistant', data.question);
     }
   }
+
+  let previewSlug = null;
+
+  // Zeigt die Formularseiten als Vorschau (Thumbnail), bevor der eigentliche Dialog mit
+  // /start beginnt - bei mehrseitigen Vorlagen (z.B. Kindergeldantrag) blättert "Weiter"
+  // erst durch die Seiten, bevor es auf der letzten Seite den Dialog startet.
+  async function openPreview(slug) {
+    showStatus('', '');
+    try {
+      const res = await fetch('/api/forms/' + encodeURIComponent(slug) + '/pages', { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Laden');
+      if (!data.pages.length) { await startForm(slug); return; }
+      previewSlug = slug;
+      previewPages = data.pages;
+      previewIndex = 0;
+      renderPreviewPage();
+      showView(previewView);
+    } catch (e) {
+      showStatus(currentLabels.connectionError + e.message, 'error');
+    }
+  }
+
+  function renderPreviewPage() {
+    previewImage.src = previewPages[previewIndex].url;
+    previewPageIndicator.textContent = previewPages.length > 1
+      ? 'Seite ' + (previewIndex + 1) + ' von ' + previewPages.length
+      : '';
+  }
+
+  previewBackBtn.addEventListener('click', () => {
+    if (previewIndex === 0) {
+      showView(pickerView);
+    } else {
+      previewIndex -= 1;
+      renderPreviewPage();
+    }
+  });
+
+  previewNextBtn.addEventListener('click', () => {
+    if (previewIndex === previewPages.length - 1) {
+      startForm(previewSlug);
+    } else {
+      previewIndex += 1;
+      renderPreviewPage();
+    }
+  });
 
   async function startForm(slug) {
     showStatus('', '');
@@ -694,8 +778,7 @@
       if (!res.ok || !data.ok) throw new Error(data.error || 'Fehler beim Bestätigen');
       printConfirm.style.display = 'none';
       pinBanner.classList.remove('visible');
-      chatView.classList.remove('visible');
-      pickerView.classList.add('visible');
+      showView(pickerView);
       sessionId = null;
       currentPin = null;
       showStatus(currentLabels.printedSuccess, 'success');
