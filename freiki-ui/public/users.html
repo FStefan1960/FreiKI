@@ -314,7 +314,7 @@ function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 
 function renderTable(users){ USERS=users; renderRows(); }
 
-let sortKey=null, sortDir=1;
+let sortKey='username', sortDir=1;
 function sortValue(u,key){
   switch(key){
     case 'username': return (u.username||'').toLowerCase();
