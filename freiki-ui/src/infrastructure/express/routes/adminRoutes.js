@@ -545,6 +545,17 @@ router.post('/api/admin/users/:id/reset-passkeys', asyncHandler(async (req, res)
   } catch (e) { console.error('reset-passkeys:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
 }));
 
+router.post('/api/admin/users/:id/reset-training', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const target = await users.findById(id);
+    if (!target) return res.status(404).json({ error: 'Nutzer nicht gefunden' });
+    await users.resetTraining(id);
+    auditLog.log(req.admin, 'user.training_reset', { id, username: target.username });
+    res.json({ ok: true });
+  } catch (e) { console.error('reset-training:', e.message); res.status(500).json({ error: 'Fehlgeschlagen' }); }
+}));
+
 router.delete('/api/admin/users/:id', asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (id === req.admin.uid) return res.status(400).json({ error: 'Das eigene Konto kann nicht gelöscht werden.' });

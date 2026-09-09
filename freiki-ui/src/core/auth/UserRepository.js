@@ -239,6 +239,13 @@ async function declineTraining(id) {
   await pool.query('UPDATE freiki_users SET suspended=true WHERE id=$1', [id]);
 }
 
+// Admin-Aktion: Nutzer muss die Pflichtschulung beim nächsten Login erneut durchlaufen
+// (z.B. nach inhaltlicher Aktualisierung der Folien) - training_completed_at wird mit
+// zurückgesetzt, damit kein veraltetes Abschlussdatum stehen bleibt.
+async function resetTraining(id) {
+  await pool.query('UPDATE freiki_users SET training_completed=false, training_completed_at=NULL WHERE id=$1', [id]);
+}
+
 // ── Breaking News (Login-Hinweis, siehe BrandConfig.breakingNewsVersion) ──
 // Speichert die zuletzt quittierte Version statt eines reinen Booleans: eine neue
 // Nachricht erhöht global breakingNewsVersion, wodurch das Modal automatisch wieder für
@@ -256,7 +263,7 @@ module.exports = {
   findByEmailForReset,
   listAll, listPending, create, update, updatePasswordHash, updateLanguage, updateEnterToSend, remove, listAdminEmails,
   generateUniqueUsername,
-  setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes, completeTraining, declineTraining, ackBreakingNews,
+  setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes, completeTraining, declineTraining, resetTraining, ackBreakingNews,
   setResetToken, findByResetTokenHash, clearResetToken,
   isValidUsername, isValidEmail, cleanAreas,
 };
