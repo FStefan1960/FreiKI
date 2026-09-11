@@ -35,7 +35,20 @@ function withLanguageMessage(messages, userLanguage, mode) {
   const lastIdx = messages.length - 1;
   const last = messages[lastIdx];
   const wrapped = { ...last, content: `${instruction}\n\n---\n\n${last.content}` };
-  return [...messages.slice(0, lastIdx), wrapped];
+  const result = [...messages.slice(0, lastIdx), wrapped];
+  // Zusätzlich an den System-Prompt angehängt (nicht nur in die letzte User-Message gewrappt):
+  // Auf FreiKIs Modell (DeepInfra) reicht die reine User-Message-Variante zuverlässig, auf
+  // KorKIs schwächerem lokalen AWQ-Modell verliert sie bei seltenen Zielsprachen (Hindi,
+  // Türkisch) gegen strikte RAG-Zitierpflichten (Wissen-Modus antwortet dann mit der
+  // "keine Information"-Fallback-Zeile statt zu zitieren) und gegen bereits vorhandene
+  // deutschsprachige Chat-Historie (auch im Direct-Modus) - siehe
+  // project_korki_wissen_sprache_seltene_sprachen_2026-09-11. Die doppelte Verankerung behebt
+  // beide Fälle in Tests gegen das echte Modell, ohne das bereits validierte Verhalten auf
+  // FreiKI zu verändern (dort war die Anweisung schon vorher zuverlässig).
+  if (result[0]?.role === 'system') {
+    result[0] = { ...result[0], content: `${result[0].content}\n\n${instruction}` };
+  }
+  return result;
 }
 
 module.exports = { withLanguageMessage };
