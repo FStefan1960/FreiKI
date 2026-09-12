@@ -2,7 +2,10 @@
 function fileSelected(input) {
   if (!input.files.length) return;
   if (State.modes[State.currentMode]?.multifile) {
-    State.selectedFiles = Array.from(input.files);
+    // Dateidialog liefert bei jedem Öffnen nur die neu ausgewählten Dateien - an die
+    // bestehende Auswahl anhängen statt sie zu ersetzen, sonst gehen frühere Uploads
+    // verloren, wenn man die Dateien nicht alle auf einmal markiert (siehe Feedback).
+    State.selectedFiles = [...State.selectedFiles, ...Array.from(input.files)];
     document.getElementById('file-name').textContent =
       State.selectedFiles.length === 1 ? State.selectedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', State.selectedFiles.length);
   } else {
@@ -116,9 +119,9 @@ inputBox.addEventListener('drop', e => {
   if (!droppedFiles.length) return;
 
   if (State.modes[State.currentMode]?.multifile) {
-    State.selectedFiles = droppedFiles;
+    State.selectedFiles = [...State.selectedFiles, ...droppedFiles];
     document.getElementById('file-name').textContent =
-      droppedFiles.length === 1 ? droppedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', droppedFiles.length);
+      State.selectedFiles.length === 1 ? State.selectedFiles[0].name : t('files.n_selected', '{n} Dateien ausgewählt').replace('{n}', State.selectedFiles.length);
   } else {
     State.selectedFile = droppedFiles[0];
     document.getElementById('file-name').textContent = State.selectedFile.name;

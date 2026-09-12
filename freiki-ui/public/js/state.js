@@ -7,6 +7,7 @@ const State = {
   selectedFile: null,
   selectedFiles: [],
   authToken: null,
+  activeAbortController: null, // laufender fetch() von sendMessage(), zum Abbrechen per Stop-Button
 
   currentUsername: '',
   currentRole: '',

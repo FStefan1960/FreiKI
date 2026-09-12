@@ -1,16 +1,34 @@
 // ── Send ──
+// Ob der Nutzer gerade am unteren Rand von #messages ist - nur dann soll ein neuer
+// Streaming-Chunk automatisch nach unten scrollen. Wer während der Generierung
+// hochscrollt, um Vorheriges zu lesen, wird sonst bei jedem Chunk zurückgerissen.
+function nearBottom(el, threshold = 120) {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+}
+
+// Send-Button wird während der Generierung zum Stop-Button (Klick bricht ab statt zu senden,
+// siehe activeAbortController-Check am Anfang von sendMessage()).
+function setSendButtonState(generating) {
+  const btn = document.getElementById('send-btn');
+  btn.setAttribute('aria-label', generating ? t('input.stop_title', 'Generierung abbrechen') : t('input.send_title', 'Nachricht senden'));
+  btn.innerHTML = generating
+    ? MIC_STOP_ICON
+    : '<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+}
+
 // forceSearchAllAreas: nur von retryMessageSearchAllAreas() gesetzt (Button "Auch andere
 // Bereiche durchsuchen" unter einer Wissen-Antwort, siehe message-actions.js) - kein
 // dauerhafter UI-Zustand mehr, gilt nur für genau diesen einen Retry.
 async function sendMessage(forceSearchAllAreas = false) {
+  // Während eine Antwort generiert wird, ist dies der Stop-Button: derselbe Klick
+  // bricht die laufende Anfrage ab, statt eine neue zu senden.
+  if (State.activeAbortController) { State.activeAbortController.abort(); return; }
+
   const input = document.getElementById('message-input');
   const text = input.value.trim();
   const isMulti = !!(State.modes[State.currentMode]?.multifile);
   if (!text && !State.selectedFile && State.selectedFiles.length === 0) return;
   if (text) { State.inputHistory.unshift(text); if (State.inputHistory.length > 50) State.inputHistory.pop(); State.historyIndex = -1; State.historyDraft = ''; }
-
-  const sendBtn = document.getElementById('send-btn');
-  sendBtn.disabled = true;
 
   const fileLabel = isMulti && State.selectedFiles.length > 0
     ? t('chat.n_documents', '{n} Dokument(e)').replace('{n}', State.selectedFiles.length)
@@ -22,6 +40,11 @@ async function sendMessage(forceSearchAllAreas = false) {
   input.value = '';
   input.style.height = 'auto';
   addTyping();
+
+  const controller = new AbortController();
+  State.activeAbortController = controller;
+  setSendButtonState(true);
+  let aborted = false;
 
   try {
     const formData = new FormData();
@@ -40,8 +63,13 @@ async function sendMessage(forceSearchAllAreas = false) {
     }
     removeFile();
 
-    const response = await fetch('/api/chat', { method: 'POST', body: formData });
-    if (response.status === 401) { forceLogout(); return; }
+    const response = await fetch('/api/chat', { method: 'POST', body: formData, signal: controller.signal });
+    if (response.status === 401) {
+      State.activeAbortController = null;
+      setSendButtonState(false);
+      forceLogout();
+      return;
+    }
 
     // Tipp-Animation bleibt sichtbar, bis der erste echte Content-Chunk da ist:
     // response.body ist schon verfuegbar, sobald der Server die Header flusht
@@ -54,9 +82,15 @@ async function sendMessage(forceSearchAllAreas = false) {
     const decoder = new TextDecoder();
     let sseBuffer = '';
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      sseBuffer += decoder.decode(value, { stream: true });
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch (readErr) {
+        if (readErr.name === 'AbortError') { aborted = true; break; }
+        throw readErr;
+      }
+      if (chunk.done) break;
+      sseBuffer += decoder.decode(chunk.value, { stream: true });
       const lines = sseBuffer.split('\n');
       sseBuffer = lines.pop(); // unvollständige letzte Zeile puffern
       for (const line of lines) {
@@ -71,10 +105,12 @@ async function sendMessage(forceSearchAllAreas = false) {
                 document.getElementById('typing')?.remove();
                 bubble = addMessage('ai', '');
               }
+              const msgs = document.getElementById('messages');
+              const stick = nearBottom(msgs);
               fullText += delta;
               bubble.innerHTML = safeMarked(fullText);
               patchPaperlessLinks(bubble);
-              bubble.scrollIntoView({ behavior: 'smooth', block: 'end' });
+              if (stick) bubble.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
           } catch (e) {}
         }
@@ -86,6 +122,7 @@ async function sendMessage(forceSearchAllAreas = false) {
     // Manche Modelle (z.B. Qwen3) liefern leere <think></think>-Bloecke, die im
     // gerenderten HTML unsichtbar sind, aber beim Kopieren/Vorlesen mitgehen.
     fullText = fullText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    if (aborted && fullText) fullText += `\n\n*${t('chat.generation_stopped', 'Generierung abgebrochen.')}*`;
 
     // BGT-Speicher-Warnung: nur für die Rolle "high_risk" (Berufsgeheimnisträger), siehe
     // bgt-welcome.md. Prüft die fertige Antwort (nicht die Frage - die bleibt wie gewohnt
@@ -100,6 +137,8 @@ async function sendMessage(forceSearchAllAreas = false) {
     upsertCurrentConversation(State.currentMode);
     if (fullText) {
       const msgId = bubble.id;
+      const msgs = document.getElementById('messages');
+      const stick = nearBottom(msgs);
       bubble.innerHTML = safeMarked(fullText);
       patchPaperlessLinks(bubble);
       renderMermaidBlocks(bubble, displayText);
@@ -120,15 +159,17 @@ async function sendMessage(forceSearchAllAreas = false) {
         State.currentMode.replace(/^w_/, '') !== 'hilfe';
       addMessageActions(bubble, msgId, !!(State.modes[State.currentMode]?.imagegen || State.modes[State.currentMode]?.qrgen), isWissenNonHilfe && !usedSearchAllAreas);
       addStarRating(bubble, msgId);
-      const msgs = document.getElementById('messages');
-      requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
+      if (stick) requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
     }
 
   } catch (e) {
     document.getElementById('typing')?.remove();
-    addMessage('ai', t('chat.processing_error', '⚠️ Fehler bei der Verarbeitung. Bitte versuchen Sie es erneut.'));
+    if (e.name !== 'AbortError') {
+      addMessage('ai', t('chat.processing_error', '⚠️ Fehler bei der Verarbeitung. Bitte versuchen Sie es erneut.'));
+    }
   }
 
-  sendBtn.disabled = false;
+  State.activeAbortController = null;
+  setSendButtonState(false);
   input.focus();
 }
