@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Literatur-Metasuche</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hanken Grotesk', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      padding: 24px;
+      color: #15294A;
+    }
+    .page { max-width: 900px; margin: 0 auto; }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 32px;
+      margin-bottom: 20px;
+    }
+
+    .header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
+    .header .icon {
+      width: 48px; height: 48px; border-radius: 10px; flex: none;
+      background: linear-gradient(135deg, #1F54C0, #14306B);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+    }
+    .header .icon svg { width: 28px; height: 28px; }
+    .header h1 { font-size: 20px; font-weight: 700; color: #1F54C0; }
+    .header p  { font-size: 13px; color: #6b7280; margin-top: 2px; max-width: 56ch; }
+
+    .field-row { display: flex; gap: 10px; }
+    #q {
+      flex: 1; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 10px;
+      font-size: 15px; font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    #q:focus { border-color: #1F54C0; }
+    .searchbtn {
+      padding: 12px 24px; background: linear-gradient(135deg, #1F54C0, #14306B); color: #fff;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: opacity .2s; white-space: nowrap;
+    }
+    .searchbtn:hover { opacity: 0.9; }
+    .error { margin-top: 8px; font-size: 13px; color: #991b1b; }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eef1f5; }
+    .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-right: 4px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .chip {
+      height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid #d1d5db;
+      background: #fff; color: #4b5563; font-family: inherit; font-size: 13px; cursor: pointer;
+    }
+    .chip[aria-pressed="true"] { background: #EAF0FC; border-color: #1F54C0; color: #14306B; font-weight: 700; }
+    .year-range { display: flex; align-items: center; gap: 6px; }
+    .year-range input {
+      width: 70px; height: 30px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px;
+      font-family: inherit; font-size: 13px; color: #15294A;
+    }
+    .year-range span { color: #9ca3af; font-size: 13px; }
+
+    .sources h2, .results h2 { font-size: 16px; font-weight: 700; color: #1F54C0; margin-bottom: 12px; }
+    .source-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .source-btn {
+      padding: 10px 18px; border-radius: 10px; border: 1px solid #d1d5db; background: #fff;
+      color: #15294A; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+      text-decoration: none; white-space: nowrap;
+    }
+    .source-btn:hover { background: #EAF0FC; border-color: #1F54C0; color: #14306B; }
+
+    .results-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; scroll-margin-top: 16px; }
+    .results-head h2 { margin-bottom: 0; margin-right: 2px; }
+    .status { font-size: 13px; color: #6b7280; }
+    .sitelink { font-size: 12.5px; margin-left: auto; white-space: nowrap; text-decoration: none; color: #1F54C0; font-weight: 700; }
+    .sitelink:hover { text-decoration: underline; }
+    .result-list { list-style: none; border-top: 1px solid #eef1f5; }
+    .result-item { padding: 12px 0; border-bottom: 1px solid #eef1f5; }
+    .result-item .title { font-size: 14.5px; font-weight: 700; line-height: 1.4; text-decoration: none; color: #15294A; }
+    .result-item .title:hover { color: #1F54C0; }
+    .result-item .meta { margin-top: 4px; font-size: 12.5px; color: #6b7280; line-height: 1.5; }
+    .result-item .idrow { margin-top: 5px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: #9ca3af; }
+    .result-item .idrow a { color: #9ca3af; }
+    .result-item .idrow a:hover { color: #1F54C0; }
+    .oa-badge { background: #EAF0FC; color: #14306B; border-radius: 8px; padding: 1px 6px; }
+
+    .note { font-size: 12.5px; color: #6b7280; line-height: 1.6; }
+    .note strong { color: #4b5563; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="header">
+        <div class="icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="242" cy="242" r="120"/>
+            <line x1="327" y1="327" x2="390" y2="390"/>
+            <line x1="242" y1="137" x2="242" y2="347"/>
+            <path d="M192,332 C192,302 292,302 292,272 C292,242 192,242 192,212 C192,187 237,177 254,170 C265,165 272,173 263,181"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Literatur-Metasuche</h1>
+          <p>Ein Suchbegriff, sieben medizinische Datenbanken. PubMed, Europe PMC und ClinicalTrials.gov liefern Live-Treffer direkt hier; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet.</p>
+        </div>
+      </div>
+
+      <form id="searchForm">
+        <div class="field-row">
+          <label for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Suchbegriff</label>
+          <input id="q" type="text" placeholder="z. B. aspirin cardiovascular prevention" autocomplete="off">
+          <button type="submit" class="searchbtn">Suchen</button>
+        </div>
+        <p class="error" id="formError" hidden>Bitte einen Suchbegriff eingeben.</p>
+        <div class="filters">
+          <div>
+            <span class="filter-label">Studientyp</span>
+            <div class="chip-group" role="group" aria-label="Studientyp" id="chipGroup">
+              <button type="button" class="chip" data-id="sr" aria-pressed="false">Systematic review</button>
+              <button type="button" class="chip" data-id="rct" aria-pressed="false">RCT</button>
+              <button type="button" class="chip" data-id="ma" aria-pressed="false">Meta-Analyse</button>
+              <button type="button" class="chip" data-id="gl" aria-pressed="false">Guideline</button>
+            </div>
+          </div>
+          <div class="year-range">
+            <span class="filter-label">Jahr</span>
+            <label for="fromYear" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Von Jahr</label>
+            <input id="fromYear" type="number" placeholder="von" min="1900" max="2100">
+            <span>&ndash;</span>
+            <label for="toYear" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Bis Jahr</label>
+            <input id="toYear" type="number" placeholder="bis" min="1900" max="2100">
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card results" id="pubmedResults">
+      <div class="results-head">
+        <h2>PubMed</h2>
+        <span class="status" id="pubmedStatus">&nbsp;</span>
+        <a class="sitelink" id="pubmedSiteLink" target="_blank" rel="noopener noreferrer">Auf pubmed.gov ansehen &rarr;</a>
+      </div>
+      <ol class="result-list" id="pubmedList"></ol>
+    </div>
+
+    <div class="card results" id="epmcResults">
+      <div class="results-head">
+        <h2>Europe PMC</h2>
+        <span class="status" id="epmcStatus">&nbsp;</span>
+        <a class="sitelink" id="epmcSiteLink" target="_blank" rel="noopener noreferrer">Auf europepmc.org ansehen &rarr;</a>
+      </div>
+      <ol class="result-list" id="epmcList"></ol>
+    </div>
+
+    <div class="card results" id="ctgovResults">
+      <div class="results-head">
+        <h2>ClinicalTrials.gov</h2>
+        <span class="status" id="ctgovStatus">&nbsp;</span>
+        <a class="sitelink" id="ctgovSiteLink" target="_blank" rel="noopener noreferrer">Auf clinicaltrials.gov ansehen &rarr;</a>
+      </div>
+      <ol class="result-list" id="ctgovList"></ol>
+    </div>
+
+    <div class="card sources">
+      <h2>Links zu den Suchmaschinen</h2>
+      <div class="source-row" id="sourceRow"></div>
+    </div>
+
+    <div class="card note">
+      <strong>Warum nicht alle live?</strong> PubMed (NCBI E-Utilities), Europe PMC und ClinicalTrials.gov stellen offene, freie Programmierschnittstellen bereit. Google Scholar bietet keine API und blockt automatisierte Abfragen; Epistemonikos, TRIP Database und Cochrane Library liefern Ergebnisse nur über ihre eigene Weboberfläche. Für diese vier wird der Suchbegriff in die jeweilige Such-URL übersetzt. LIVIVO, Dimensions, Embase und Scopus sind vorerst nicht dabei &ndash; alle vier verlangen ein Konto.
+    </div>
+  </div>
+
+<script>
+const STUDY_TYPES = [
+  {id:'sr', label:'Systematic review', pt:'Systematic Review', text:'systematic review'},
+  {id:'rct', label:'RCT', pt:'Randomized Controlled Trial', text:'randomized controlled trial'},
+  {id:'ma', label:'Meta-Analyse', pt:'Meta-Analysis', text:'meta-analysis'},
+  {id:'gl', label:'Guideline', pt:'Practice Guideline', text:'practice guideline'},
+];
+let selectedTypes = [];
+
+const qEl = document.getElementById('q');
+const fromYEl = document.getElementById('fromYear');
+const toYEl = document.getElementById('toYear');
+const formError = document.getElementById('formError');
+
+document.getElementById('chipGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('.chip');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const pressed = btn.getAttribute('aria-pressed') === 'true';
+  btn.setAttribute('aria-pressed', String(!pressed));
+  selectedTypes = pressed ? selectedTypes.filter(t => t !== id) : [...selectedTypes, id];
+});
+
+function typeObjs(){ return STUDY_TYPES.filter(t => selectedTypes.includes(t.id)); }
+
+function pubmedTerm(q, fromY, toY){
+  let t = q;
+  const types = typeObjs();
+  if (types.length) t += ' AND (' + types.map(x => `"${x.pt}"[pt]`).join(' OR ') + ')';
+  if (fromY || toY) t += ` AND ("${fromY || 1900}"[dp] : "${toY || new Date().getFullYear()}"[dp])`;
+  return t;
+}
+function epmcTerm(q, fromY, toY){
+  let t = q;
+  const types = typeObjs();
+  if (types.length) t += ' AND (' + types.map(x => x.text).join(' OR ') + ')';
+  if (fromY || toY) t += ` AND PUB_YEAR:[${fromY || 1900} TO ${toY || new Date().getFullYear()}]`;
+  return t;
+}
+function genericTerm(q){
+  let t = q;
+  const types = typeObjs();
+  if (types.length) t += ' AND (' + types.map(x => x.text).join(' OR ') + ')';
+  return t;
+}
+
+const SOURCES = [
+  {id:'pubmed', name:'PubMed', domain:'pubmed.ncbi.nlm.nih.gov', live:true, resultsId:'pubmedResults'},
+  {id:'epmc', name:'Europe PMC', domain:'europepmc.org', live:true, resultsId:'epmcResults'},
+  {id:'ctgov', name:'ClinicalTrials.gov', domain:'clinicaltrials.gov', live:true, resultsId:'ctgovResults'},
+  {id:'scholar', name:'Google Scholar', domain:'scholar.google.com', live:false,
+    url:(t,fromY,toY)=>`https://scholar.google.com/scholar?q=${encodeURIComponent(t)}`+(fromY?`&as_ylo=${fromY}`:'')+(toY?`&as_yhi=${toY}`:'')},
+  {id:'epistemonikos', name:'Epistemonikos', domain:'epistemonikos.org', live:false,
+    url:(t)=>`https://www.epistemonikos.org/en/search?q=${encodeURIComponent(t)}`},
+  {id:'trip', name:'TRIP Database', domain:'tripdatabase.com', live:false,
+    url:(t)=>`https://www.tripdatabase.com/search?criteria=${encodeURIComponent(t)}`},
+  {id:'cochrane', name:'Cochrane Library', domain:'cochranelibrary.com', live:false,
+    url:(t)=>`https://www.cochranelibrary.com/search?q=${encodeURIComponent(t)}`},
+];
+
+const sourceRow = document.getElementById('sourceRow');
+SOURCES.forEach(s => {
+  const a = document.createElement('a');
+  a.className = 'source-btn';
+  a.textContent = s.name;
+  if (s.live) {
+    a.href = `#${s.resultsId}`;
+  } else {
+    a.id = `open-${s.id}`;
+    a.href = '#';
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+  }
+  sourceRow.appendChild(a);
+});
+
+function updateExternalLinks(){
+  const q = qEl.value.trim();
+  if (!q) return;
+  const fromY = fromYEl.value, toY = toYEl.value;
+  SOURCES.filter(s => !s.live).forEach(s => {
+    const t = genericTerm(q);
+    document.getElementById(`open-${s.id}`).href = s.url(t, fromY, toY);
+  });
+}
+
+function fmtInt(n){ return Number(n).toLocaleString('de-DE'); }
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function authorNames(list){
+  if (!list || !list.length) return 'Unbekannte Autoren';
+  const names = list.slice(0,3).map(a => esc(a.name)).join(', ');
+  return list.length > 3 ? names + ' et al.' : names;
+}
+
+async function fetchJSON(url, timeoutMs=10000){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {signal: ctrl.signal});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function searchPubMed(term){
+  const statusEl = document.getElementById('pubmedStatus');
+  const listEl = document.getElementById('pubmedList');
+  document.getElementById('pubmedSiteLink').href = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(term)}`;
+  statusEl.textContent = 'Suche läuft …';
+  listEl.innerHTML = '';
+  try {
+    const esearch = await fetchJSON(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(term)}&retmode=json&retmax=8&sort=relevance`);
+    const ids = (esearch.esearchresult && esearch.esearchresult.idlist) || [];
+    const total = esearch.esearchresult ? esearch.esearchresult.count : '0';
+    if (!ids.length){
+      statusEl.textContent = '0 Treffer';
+      listEl.innerHTML = '<li class="result-item"><span class="meta">Keine Treffer für diese Suche.</span></li>';
+      return;
+    }
+    const esummary = await fetchJSON(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`);
+    statusEl.textContent = `${fmtInt(total)} Treffer insgesamt · ${ids.length} angezeigt`;
+    listEl.innerHTML = ids.map(id => {
+      const r = esummary.result[id];
+      if (!r) return '';
+      const doiObj = (r.articleids || []).find(a => a.idtype === 'doi');
+      const year = (r.pubdate || '').slice(0,4);
+      const journal = esc(r.fulljournalname || r.source || '');
+      const pubtypes = esc((r.pubtype || []).join(', '));
+      return `<li class="result-item">
+        <a class="title" href="https://pubmed.ncbi.nlm.nih.gov/${id}/" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>
+        <div class="meta">${authorNames(r.authors)} &middot; ${journal}${year ? ', ' + year : ''}${pubtypes ? ' &middot; ' + pubtypes : ''}</div>
+        <div class="idrow">
+          <span>PMID ${id}</span>
+          ${doiObj ? `<a href="https://doi.org/${encodeURIComponent(doiObj.value)}" target="_blank" rel="noopener noreferrer">doi.org/${esc(doiObj.value)}</a>` : ''}
+        </div>
+      </li>`;
+    }).join('');
+  } catch (err) {
+    statusEl.textContent = 'Fehler beim Laden der PubMed-Treffer.';
+    listEl.innerHTML = '';
+  }
+}
+
+async function searchEuropePMC(term){
+  const statusEl = document.getElementById('epmcStatus');
+  const listEl = document.getElementById('epmcList');
+  document.getElementById('epmcSiteLink').href = `https://europepmc.org/search?query=${encodeURIComponent(term)}`;
+  statusEl.textContent = 'Suche läuft …';
+  listEl.innerHTML = '';
+  try {
+    const data = await fetchJSON(`https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(term)}&format=json&pageSize=8`);
+    const results = (data.resultList && data.resultList.result) || [];
+    statusEl.textContent = results.length ? `${fmtInt(data.hitCount)} Treffer insgesamt · ${results.length} angezeigt` : '0 Treffer';
+    if (!results.length){
+      listEl.innerHTML = '<li class="result-item"><span class="meta">Keine Treffer für diese Suche.</span></li>';
+      return;
+    }
+    listEl.innerHTML = results.map(r => {
+      const link = r.doi ? `https://doi.org/${encodeURIComponent(r.doi)}`
+                 : r.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${r.pmid}/`
+                 : `https://europepmc.org/article/${encodeURIComponent(r.source)}/${encodeURIComponent(r.id)}`;
+      return `<li class="result-item">
+        <a class="title" href="${link}" target="_blank" rel="noopener noreferrer">${esc(r.title) || '(ohne Titel)'}</a>
+        <div class="meta">${esc(r.authorString) || 'Unbekannte Autoren'} &middot; ${esc(r.journalTitle) || ''}${r.pubYear ? ', ' + esc(r.pubYear) : ''}${r.isOpenAccess === 'Y' ? ' <span class="oa-badge">Open Access</span>' : ''}</div>
+        <div class="idrow">
+          <span>${esc(r.source)}:${esc(r.id)}</span>
+          ${r.doi ? `<a href="https://doi.org/${encodeURIComponent(r.doi)}" target="_blank" rel="noopener noreferrer">doi.org/${esc(r.doi)}</a>` : ''}
+        </div>
+      </li>`;
+    }).join('');
+  } catch (err) {
+    statusEl.textContent = 'Fehler beim Laden der Europe-PMC-Treffer.';
+    listEl.innerHTML = '';
+  }
+}
+
+async function searchClinicalTrials(term){
+  const statusEl = document.getElementById('ctgovStatus');
+  const listEl = document.getElementById('ctgovList');
+  document.getElementById('ctgovSiteLink').href = `https://clinicaltrials.gov/search?term=${encodeURIComponent(term)}`;
+  statusEl.textContent = 'Suche läuft …';
+  listEl.innerHTML = '';
+  try {
+    const fields = 'NCTId,BriefTitle,OverallStatus,StartDate,LeadSponsorName,Condition,StudyType';
+    const data = await fetchJSON(`https://clinicaltrials.gov/api/v2/studies?query.term=${encodeURIComponent(term)}&pageSize=8&countTotal=true&sort=@relevance&fields=${fields}`);
+    const studies = data.studies || [];
+    statusEl.textContent = studies.length ? `${fmtInt(data.totalCount)} Treffer insgesamt · ${studies.length} angezeigt` : '0 Treffer';
+    if (!studies.length){
+      listEl.innerHTML = '<li class="result-item"><span class="meta">Keine Treffer für diese Suche.</span></li>';
+      return;
+    }
+    listEl.innerHTML = studies.map(s => {
+      const p = s.protocolSection || {};
+      const nct = p.identificationModule?.nctId || '';
+      const title = p.identificationModule?.briefTitle || '(ohne Titel)';
+      const status = p.statusModule?.overallStatus || '';
+      const startYear = (p.statusModule?.startDateStruct?.date || '').slice(0,4);
+      const sponsor = p.sponsorCollaboratorsModule?.leadSponsor?.name || '';
+      const conditions = (p.conditionsModule?.conditions || []).slice(0,3).join(', ');
+      const studyType = p.designModule?.studyType || '';
+      return `<li class="result-item">
+        <a class="title" href="https://clinicaltrials.gov/study/${encodeURIComponent(nct)}" target="_blank" rel="noopener noreferrer">${esc(title)}</a>
+        <div class="meta">${esc(sponsor) || 'Unbekannter Sponsor'}${studyType ? ' &middot; ' + esc(studyType) : ''}${startYear ? ', ' + startYear : ''}${conditions ? ' &middot; ' + esc(conditions) : ''}</div>
+        <div class="idrow">
+          <span>${esc(status)}</span>
+          <span>${esc(nct)}</span>
+        </div>
+      </li>`;
+    }).join('');
+  } catch (err) {
+    statusEl.textContent = 'Fehler beim Laden der ClinicalTrials.gov-Treffer.';
+    listEl.innerHTML = '';
+  }
+}
+
+async function runSearch(){
+  const q = qEl.value.trim();
+  if (!q){
+    formError.hidden = false;
+    qEl.focus();
+    return;
+  }
+  formError.hidden = true;
+  const fromY = fromYEl.value, toY = toYEl.value;
+  updateExternalLinks();
+  await Promise.all([
+    searchPubMed(pubmedTerm(q, fromY, toY)),
+    searchEuropePMC(epmcTerm(q, fromY, toY)),
+    searchClinicalTrials(q),
+  ]);
+}
+
+document.getElementById('searchForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  runSearch();
+});
+qEl.addEventListener('input', () => { if (!formError.hidden && qEl.value.trim()) formError.hidden = true; });
+
+qEl.value = 'epilepsy';
+runSearch();
+</script>
+</body>
+</html>

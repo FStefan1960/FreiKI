@@ -109,6 +109,10 @@ self.addEventListener('activate', event => {
 });
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+  // Cross-Origin-Requests (z.B. literatur-metasuche.html -> eutils.ncbi.nlm.nih.gov)
+  // unangetastet durchlassen: STATIC_ASSETS sind ohnehin alle Same-Origin, und ein vom
+  // SW aufgefangener Cross-Origin-fetch() ist unnoetiger Umweg ohne Cache-Nutzen.
+  if (url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
   event.respondWith(
     fetch(event.request)

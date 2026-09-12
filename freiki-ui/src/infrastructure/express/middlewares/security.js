@@ -1,5 +1,5 @@
 const rateLimit = require('express-rate-limit');
-const { getSession } = require('../../../core/auth/AuthMiddleware');
+const { getSession, verifyPendingToken } = require('../../../core/auth/AuthMiddleware');
 const { requires2FA } = require('../../../core/auth/TotpService');
 
 function securityHeaders(_req, res, next) {
@@ -33,17 +33,50 @@ const apiLimiter = rateLimit({
 // handler statt message, damit die Sperrfrist als retryAfterSeconds mitgeschickt wird -
 // das Frontend zeigt darauf ein Countdown-Modal (siehe lockout-modal in index.html), statt
 // die Sperre nur als generische Fehlermeldung im Login-Formular anzuzeigen.
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  skip: (req) => isDockerInternalIp(req.ip),
-  handler: (req, res, _next, options) => {
-    const resetTime = req.rateLimit && req.rateLimit.resetTime;
-    const retryAfterSeconds = resetTime
-      ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000))
-      : Math.ceil(options.windowMs / 1000);
-    res.status(options.statusCode).json({ error: 'Zu viele Login-Versuche', retryAfterSeconds });
-  },
+function loginLimiterHandler(req, res, _next, options) {
+  const resetTime = req.rateLimit && req.rateLimit.resetTime;
+  const retryAfterSeconds = resetTime
+    ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000))
+    : Math.ceil(options.windowMs / 1000);
+  res.status(options.statusCode).json({ error: 'Zu viele Login-Versuche', retryAfterSeconds });
+}
+
+// Userbasiert statt IP-basiert (vorher teilten sich z.B. mehrere Kolleg:innen hinter derselben
+// Firmen-IP/NAT einen Zähler), und skipSuccessfulRequests, damit nur fehlgeschlagene Versuche
+// zählen - vorher verbrauchte schon ein ganz normaler erfolgreicher Login (Passwort + 2FA-Code
+// = 2 Requests gegen denselben, geteilten Limiter) einen Großteil des 5er-Kontingents.
+// Jede der drei Login-Routen bekommt außerdem einen eigenen Zähler statt sich einen zu teilen,
+// damit z.B. ein falscher 2FA-Code nicht das Kontingent des Passwort-Schritts mit aufbraucht.
+function makeLoginLimiter(keyGenerator) {
+  return rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    skipSuccessfulRequests: true,
+    skip: (req) => isDockerInternalIp(req.ip),
+    keyGenerator,
+    handler: loginLimiterHandler,
+  });
+}
+
+// Passwort-Schritt: Key ist der eingegebene Benutzername (normalisiert), nicht die IP - fällt
+// auf die IP zurück, falls kein Username im Body steckt (z.B. leere/fehlerhafte Anfrage).
+const loginLimiter = makeLoginLimiter((req) => {
+  const username = String((req.body && req.body.username) || '').trim().toLowerCase();
+  return username || req.ip;
+});
+
+// 2FA-Code-Schritt: kein Username im Body, daher Key = uid aus dem pendingToken (JWT aus dem
+// ersten Schritt, siehe AuthService.login()). Eigener Zähler statt geteilt mit loginLimiter.
+const verify2faLimiter = makeLoginLimiter((req) => {
+  const pending = verifyPendingToken(req.body && req.body.pendingToken);
+  return pending ? `pending:${pending.uid}` : req.ip;
+});
+
+// 2FA-Reinit: Nutzer ist bereits eingeloggt und bestätigt sein aktuelles Passwort erneut - Key
+// ist die Session-uid. Eigener Zähler statt geteilt mit loginLimiter.
+const reinit2faLimiter = makeLoginLimiter((req) => {
+  const s = getSession(req);
+  return s ? `uid:${s.uid}` : req.ip;
 });
 
 // Öffentliches Anmeldeformular: legt DB-Zeilen an und verschickt Mails, daher enger als
@@ -104,6 +137,6 @@ function require2FASetupComplete(req, res, next) {
 }
 
 module.exports = {
-  securityHeaders, apiLimiter, loginLimiter, registrationLimiter, forgotPasswordLimiter, formResumeLimiter, isDockerInternalIp,
+  securityHeaders, apiLimiter, loginLimiter, verify2faLimiter, reinit2faLimiter, registrationLimiter, forgotPasswordLimiter, formResumeLimiter, isDockerInternalIp,
   require2FASetupComplete,
 };

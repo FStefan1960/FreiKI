@@ -28,6 +28,7 @@ const ICON_MAP = {
   '📊': 'chart',
   '📰': 'newspaper',
   '🎵': 'music',
+  '🔬': 'med_suche',
 };
 
 // Emoji, die als Text-Badge dargestellt werden (z. B. Flaggen)

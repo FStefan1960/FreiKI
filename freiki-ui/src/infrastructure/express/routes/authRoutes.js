@@ -3,7 +3,7 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const AuthService = require('../../../core/auth/AuthService');
 const users = require('../../../core/auth/UserRepository');
 const auditLog = require('../../../core/audit/AdminAuditRepository');
-const { loginLimiter, forgotPasswordLimiter } = require('../middlewares/security');
+const { loginLimiter, verify2faLimiter, reinit2faLimiter, forgotPasswordLimiter } = require('../middlewares/security');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { secondsUntilMidnightBerlin } = require('../../../shared/utils/text');
 const { config } = require('../../../shared/config');
@@ -48,7 +48,7 @@ router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
   }
 }));
 
-router.post('/api/login/verify-2fa', loginLimiter, asyncHandler(async (req, res) => {
+router.post('/api/login/verify-2fa', verify2faLimiter, asyncHandler(async (req, res) => {
   const { pendingToken, code } = req.body || {};
   if (!pendingToken || !code) return res.status(400).json({ error: 'Code erforderlich' });
   try {
@@ -152,7 +152,7 @@ router.post('/api/2fa/confirm', asyncHandler(async (req, res) => {
   } catch (e) { console.error('2fa/confirm:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
 
-router.post('/api/2fa/reinit', loginLimiter, asyncHandler(async (req, res) => {
+router.post('/api/2fa/reinit', reinit2faLimiter, asyncHandler(async (req, res) => {
   const s = getSession(req);
   if (!s) return res.status(401).json({ error: 'Nicht angemeldet' });
   const { currentPassword } = req.body || {};
