@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { config } = require('../../shared/config');
-const { normArea } = require('../../shared/utils/text');
+const { normArea, truncationNotice } = require('../../shared/utils/text');
 const kbAreas = require('../knowledge/KBAreaRepository');
 const prompts = require('./PromptService');
 const chatRepo = require('./ChatRepository');
@@ -31,6 +31,7 @@ async function handleChat(req, res) {
   try {
     let fileContent = '';
     let isOcr = false;
+    let contentTruncated = false;
 
     if (file) {
       console.log(`Verarbeite Datei: ${file.originalname}`);
@@ -49,6 +50,7 @@ async function handleChat(req, res) {
         console.log(`Datei gekürzt von ${fileContent.length} auf ${config.MAX_CONTEXT_CHARS} Zeichen`);
         fileContent = fileContent.substring(0, config.MAX_CONTEXT_CHARS) +
           `\n\n[... Text gekürzt – Original hatte ${Math.round(file.size / 1024)}KB ...]`;
+        contentTruncated = true;
       }
     }
 
@@ -59,6 +61,7 @@ async function handleChat(req, res) {
       if (fileContent.length > config.MAX_CONTEXT_CHARS_MULTI) {
         fileContent = fileContent.substring(0, config.MAX_CONTEXT_CHARS_MULTI) +
           '\n\n[... weitere Dokumente gekürzt ...]';
+        contentTruncated = true;
       }
     }
 
@@ -153,6 +156,10 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
     if (isOcr && fileContent) {
       const ocrBlock = `**Erkannter Text (OCR):**\n\`\`\`\n${fileContent}\n\`\`\`\n\n---\n\n`;
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: ocrBlock } }] })}\n\n`);
+    }
+    if (contentTruncated) {
+      const notice = truncationNotice(userLanguage, 'doc');
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: notice } }] })}\n\n`);
     }
 
     const usesVllm = !isImageGen && !isMusicGen && !isQrGen;

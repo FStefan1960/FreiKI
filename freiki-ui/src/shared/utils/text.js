@@ -86,7 +86,27 @@ function secondsUntilMidnightBerlin() {
   return 86400 - secondsPassedToday;
 }
 
+// Sichtbarer Hinweis, wenn Dokumentinhalt/Nachricht/Verlauf wegen des Zeichenlimits
+// (MAX_CONTEXT_CHARS[_MULTI] / MAX_VLLM_CHARS[_MULTI]) gekürzt wurde - vorher landete das
+// nur im Server-Log, der Nutzer bekam nie mit, dass ein Teil seiner Eingabe fehlt (siehe Feedback).
+const TRUNCATION_NOTICES = {
+  de: { doc: 'Der hochgeladene Inhalt war sehr lang und wurde vor der Verarbeitung gekürzt – nicht der komplette Text wurde berücksichtigt.', msg: 'Der Text war zu lang und wurde gekürzt – nicht der komplette Inhalt wurde berücksichtigt.', history: 'Der bisherige Gesprächsverlauf konnte dabei nicht mit einbezogen werden.' },
+  en: { doc: 'The uploaded content was very long and was shortened before processing – not all of the text could be taken into account.', msg: 'The text was too long and was shortened – not all of the content could be taken into account.', history: 'The previous conversation history could not be included.' },
+  fr: { doc: "Le contenu téléversé était très long et a été raccourci avant traitement – tout le texte n'a pas pu être pris en compte.", msg: "Le texte était trop long et a été raccourci – tout le contenu n'a pas pu être pris en compte.", history: "L'historique de conversation précédent n'a pas pu être inclus." },
+  es: { doc: 'El contenido subido era muy largo y se acortó antes de procesarlo – no se pudo tener en cuenta todo el texto.', msg: 'El texto era demasiado largo y se acortó – no se pudo tener en cuenta todo el contenido.', history: 'No se pudo incluir el historial de conversación anterior.' },
+  ru: { doc: 'Загруженный контент был очень длинным и был сокращён перед обработкой – не весь текст удалось учесть.', msg: 'Текст был слишком длинным и был сокращён – не всё содержимое удалось учесть.', history: 'Предыдущую историю разговора не удалось включить.' },
+  id: { doc: 'Konten yang diunggah sangat panjang dan telah dipersingkat sebelum diproses – tidak semua teks dapat dipertimbangkan.', msg: 'Teks terlalu panjang dan telah dipersingkat – tidak semua konten dapat dipertimbangkan.', history: 'Riwayat percakapan sebelumnya tidak dapat disertakan.' },
+  mg: { doc: 'Lava be ny votoaty nalefa ka nohafohezina talohan\'ny nandinihana azy – tsy afaka nodinihina daholo ny lahatsoratra.', msg: 'Lava loatra ny lahatsoratra ka nohafohezina – tsy afaka nodinihana daholo ny votoaty.', history: 'Tsy azo nampidirina ny tantaram-piresahana teo aloha.' },
+};
+
+function truncationNotice(userLanguage, ...keys) {
+  const n = TRUNCATION_NOTICES[userLanguage] || TRUNCATION_NOTICES.de;
+  const text = keys.map(k => n[k]).filter(Boolean).join(' ');
+  return `⚠️ *${text}*\n\n`;
+}
+
 module.exports = {
   fetchWithTimeout, withRetry, parseFrontmatter, toTitle, normArea,
   htmlAttrEscape, generatePassword, secondsUntilMidnightBerlin, slugifyForFilename,
+  truncationNotice,
 };

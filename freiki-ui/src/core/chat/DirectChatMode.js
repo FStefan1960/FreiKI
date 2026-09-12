@@ -1,5 +1,5 @@
 const { config } = require('../../shared/config');
-const { fetchWithTimeout } = require('../../shared/utils/text');
+const { fetchWithTimeout, truncationNotice } = require('../../shared/utils/text');
 const prompts = require('./PromptService');
 const { THINKING_KWARGS } = require('./ThinkingConfig');
 const { withLanguageMessage } = require('./LanguageInstruction');
@@ -29,9 +29,11 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
   // innerhalb von vllmLimit liegt - die History-Trim-Schleife unten rettet das dann nicht
   // mehr, weil sie userMessage selbst nie kürzt (nur Historie entfernen).
   const maxUserMessageChars = Math.max(0, vllmLimit - systemPrompt.length);
+  let messageTruncated = false;
   if (userMessage.length > maxUserMessageChars) {
     console.log(`Nachricht gekürzt von ${userMessage.length} auf ${maxUserMessageChars} Zeichen`);
     userMessage = userMessage.substring(0, maxUserMessageChars) + `\n\n[... Text gekürzt ...]`;
+    messageTruncated = true;
   }
 
   let trimmedHistory = [...chatHistory];
@@ -41,7 +43,8 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
     if (total <= vllmLimit) break;
     trimmedHistory.shift();
   }
-  if (trimmedHistory.length < chatHistory.length) {
+  const historyTrimmed = trimmedHistory.length < chatHistory.length;
+  if (historyTrimmed) {
     console.log(`History gekürzt von ${chatHistory.length} auf ${trimmedHistory.length} Nachrichten`);
   }
 
@@ -75,6 +78,10 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
     res.write('data: [DONE]\n\n');
     res.end();
     return;
+  }
+  if (messageTruncated || historyTrimmed) {
+    const keys = [messageTruncated && 'msg', historyTrimmed && 'history'].filter(Boolean);
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: truncationNotice(userLanguage, ...keys) } }] })}\n\n`);
   }
   vllmResponse.body.pipe(res);
 }
