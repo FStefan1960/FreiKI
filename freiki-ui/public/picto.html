@@ -50,8 +50,16 @@
       gap: 14px;
       margin-bottom: 28px;
     }
-    .header img { width: 48px; height: 48px; border-radius: 10px; }
-    .header h1 { font-size: 20px; font-weight: 700; color: #1E3A8A; }
+    /* Orange wie Medizin-Literatursuche (#F97316/#C2410C) - markiert Werkzeuge, bei denen die
+       Eingabe an einen externen Dienst geht (hier: ARASAAC, siehe .external-notice unten). */
+    .header .icon {
+      width: 48px; height: 48px; border-radius: 10px; flex: none;
+      background: linear-gradient(135deg, #F97316, #C2410C);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+    }
+    .header .icon svg { width: 28px; height: 28px; }
+    .header h1 { font-size: 20px; font-weight: 700; color: #C2410C; }
     .header p  { font-size: 13px; color: #6b7280; margin-top: 2px; }
 
     .search-row {
@@ -87,7 +95,7 @@
 
     .search-row button {
       padding: 12px 24px;
-      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      background: linear-gradient(135deg, #F97316, #C2410C);
       color: #fff;
       border: none;
       border-radius: 10px;
@@ -262,7 +270,13 @@
   <!-- Suchkarte -->
   <div class="card">
     <div class="header">
-      <img src="/icons/app-mark.svg" alt="">
+      <div class="icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="5" width="12" height="10" rx="2"></rect>
+          <circle cx="8" cy="9" r="1.2"></circle>
+          <path d="M5 14l3.5-3.3 2.3 2.2 2.2-2 3 2.8"></path>
+        </svg>
+      </div>
       <div>
         <h1>Piktogramme</h1>
         <p>ARASAAC-Bibliothek mit über 12.000 freien Piktogrammen durchsuchen</p>

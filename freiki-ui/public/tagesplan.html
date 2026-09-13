@@ -46,8 +46,18 @@
       gap: 14px;
       margin-bottom: 28px;
     }
-    .app-header img { width: 44px; height: 44px; border-radius: 10px; }
-    .app-header h1 { font-size: 20px; font-weight: 800; color: #1E3A8A; }
+    /* Orange wie Medizin-Literatursuche (#F97316/#C2410C) - markiert Werkzeuge, bei denen die
+       Eingabe an einen externen Dienst geht (hier: ARASAAC-Symbolsuche je Zeile,
+       siehe .search-btn / .external-notice unten). Der "Zurück"-Button und die Druckansicht
+       bleiben bewusst in Markenblau, da sie keine externe Datenübertragung auslösen. */
+    .app-header .icon {
+      width: 44px; height: 44px; border-radius: 10px; flex: none;
+      background: linear-gradient(135deg, #F97316, #C2410C);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+    }
+    .app-header .icon svg { width: 26px; height: 26px; }
+    .app-header h1 { font-size: 20px; font-weight: 800; color: #C2410C; }
     .app-header p  { font-size: 13px; color: #6b7280; margin-top: 2px; }
 
     .external-notice {
@@ -128,7 +138,7 @@
 
     .search-btn {
       padding: 9px 18px;
-      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      background: linear-gradient(135deg, #F97316, #C2410C);
       color: #fff;
       border: none;
       border-radius: 9px;
@@ -354,7 +364,14 @@
 
   <div class="card">
     <div class="app-header">
-      <img src="/icons/app-mark.svg" alt="">
+      <div class="icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4.5" width="14" height="12.5" rx="1.5"></rect>
+          <path d="M3 8h14"></path>
+          <path d="M6.5 3v3M13.5 3v3"></path>
+          <rect x="6.7" y="10.3" width="2.6" height="2.6" rx="0.4" fill="currentColor" stroke="none"></rect>
+        </svg>
+      </div>
       <div>
         <h1>Tagesplan erstellen</h1>
         <p>Stichwort eingeben, Symbol auswählen – beliebig viele Zeilen, dann drucken.</p>
