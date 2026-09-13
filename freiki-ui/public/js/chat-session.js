@@ -24,8 +24,18 @@ function applyModeChrome(key) {
   const isMulti = !!m.multifile;
   const fi = document.getElementById('file-input');
   if (isMulti) { fi.setAttribute('multiple', ''); } else { fi.removeAttribute('multiple'); }
+  setUploadIcon(isMulti);
   removeFile();
   return m;
+}
+
+// Icon der Anhang-Schaltfläche passend zum Upload-Modus tauschen: gestapelte Blätter bei
+// multifile-Modi (Chat/OCR/MultiDoc), einzelnes Blatt mit Pfeil sonst (siehe applyModeChrome()).
+const UPLOAD_ICON_MULTI = '<path d="M15 3v4a1 1 0 0 0 1 1h4"></path><path d="M18 17h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l5 5v7a2 2 0 0 1-2 2"></path><path d="M16 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"></path><path d="M14 8.5v5"></path><path d="M11.5 11L14 8.5L16.5 11"></path>';
+const UPLOAD_ICON_SINGLE = '<path d="M14 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M12 12v7"></path><path d="m9 16 3-3 3 3"></path>';
+function setUploadIcon(isMulti) {
+  const icon = document.getElementById('upload-icon');
+  if (icon) icon.innerHTML = isMulti ? UPLOAD_ICON_MULTI : UPLOAD_ICON_SINGLE;
 }
 
 function setMode(key) {

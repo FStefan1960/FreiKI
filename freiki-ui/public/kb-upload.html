@@ -332,7 +332,7 @@
 
     <label>Dateien (PDF, TXT, MD)</label>
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <div class="icon">📄</div>
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M15 3v4a1 1 0 0 0 1 1h4"></path><path d="M18 17h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l5 5v7a2 2 0 0 1-2 2"></path><path d="M16 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"></path><path d="M14 8.5v5"></path><path d="M11.5 11L14 8.5L16.5 11"></path></svg></div>
       <div>Dateien hierher ziehen oder klicken zum Auswählen</div>
       <div class="hint">PDF, TXT, MD · max. 50 MB pro Datei</div>
       <input type="file" id="file-input" accept=".pdf,.txt,.md,.docx" multiple onchange="filesSelected(this)">
