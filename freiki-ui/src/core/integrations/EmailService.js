@@ -52,20 +52,25 @@ async function sendBgtWelcomeMail(to, firstName = '', lastName = '') {
   });
 }
 
-async function sendWelcomeMail(to, username, password, firstName = '', lastName = '') {
-  if (!to || !config.SMTP_HOST) return;
-  const brand = getBrandConfig();
-  const transporter = createTransporter();
-  // Gesucht in der App-Wurzel (Docker-Image = freiki-ui/) und – falls das Repo
-  // daneben gemountet ist – unter ../docs/. Bindestrich und Unterstrich, weil die
-  // Quellen in docs/ mit Bindestrich liegen (KorKI-Benutzerhandbuch.pdf).
-  const name = brand.name;
-  const handbuchPath = [
+// Gesucht in der App-Wurzel (Docker-Image = freiki-ui/) und – falls das Repo daneben
+// gemountet ist – unter ../docs/. Bindestrich und Unterstrich, weil die Quellen in docs/
+// mit Bindestrich liegen (KorKI-Benutzerhandbuch.pdf). Auch von brandRoutes.js genutzt,
+// um dieselbe Datei als Download anzubieten (Link im Header der Hilfe-Bubble).
+function findHandbuchPath(name) {
+  return [
     path.join(config.APP_ROOT, `${name}_Benutzerhandbuch.pdf`),
     path.join(config.APP_ROOT, `${name}-Benutzerhandbuch.pdf`),
     path.join(config.APP_ROOT, '..', 'docs', `${name}-Benutzerhandbuch.pdf`),
     path.join(config.APP_ROOT, '..', 'docs', `${name}_Benutzerhandbuch.pdf`),
   ].find((p) => fs.existsSync(p));
+}
+
+async function sendWelcomeMail(to, username, password, firstName = '', lastName = '') {
+  if (!to || !config.SMTP_HOST) return;
+  const brand = getBrandConfig();
+  const transporter = createTransporter();
+  const name = brand.name;
+  const handbuchPath = findHandbuchPath(name);
   const attachments = handbuchPath
     ? [{ filename: `${name}_Benutzerhandbuch.pdf`, path: handbuchPath }]
     : [];
@@ -212,4 +217,4 @@ async function sendReportMail(to, subject, { text, html } = {}) {
   });
 }
 
-module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendPasswordResetMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail };
+module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendPasswordResetMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail, findHandbuchPath };

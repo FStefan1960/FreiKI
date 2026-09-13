@@ -112,6 +112,7 @@
   "teamchat.title": "💬 Buka Obrolan Tim",
   "teamchat.body": "Silakan masuk menggunakan tombol ini –<br>bukan dengan email dan kata sandi.",
   "hilfe_bubble.header": "Bantuan {{APP_NAME}}",
+  "hilfe_bubble.handbuch_link": "Buka panduan pengguna (PDF)",
   "hilfe_bubble.greeting": "Halo! Saya menjawab pertanyaan Anda seputar {{APP_NAME}}. Apa yang ingin Anda ketahui?",
   "hilfe_bubble.input_placeholder": "Masukkan pertanyaan...",
   "hint.flowchart.title": "💡 Opsi Diagram",

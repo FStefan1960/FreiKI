@@ -112,6 +112,7 @@
   "teamchat.title": "💬 Open Team Chat",
   "teamchat.body": "Please sign in using this button –<br>not with email and password.",
   "hilfe_bubble.header": "{{APP_NAME}} Help",
+  "hilfe_bubble.handbuch_link": "Open user manual (PDF)",
   "hilfe_bubble.greeting": "Hello! I answer your questions about {{APP_NAME}}. What would you like to know?",
   "hilfe_bubble.input_placeholder": "Enter question...",
   "hint.flowchart.title": "💡 Diagram Options",

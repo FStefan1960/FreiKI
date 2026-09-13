@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { config } = require('../../../shared/config');
 const { getBrandConfig } = require('../../../shared/config/BrandConfig');
+const { findHandbuchPath } = require('../../../core/integrations/EmailService');
 
 const router = express.Router();
 
@@ -55,6 +56,16 @@ router.get(['/forgot-password.html', '/reset-password.html'], (req, res) => {
   const html = fs.readFileSync(path.join(config.PUBLIC_DIR, req.path), 'utf8')
     .replace(/\{\{APP_NAME\}\}/g, brand.name);
   res.type('html').send(html);
+});
+
+// Für den Handbuch-Link im Header der Hilfe-Bubble (öffnet in neuem Tab) - dieselbe Datei,
+// die auch die Willkommensmail anhängt (siehe findHandbuchPath() in EmailService.js). Liegt
+// in APP_ROOT, nicht in PUBLIC_DIR, daher eine eigene Route statt express.static.
+router.get('/benutzerhandbuch.pdf', (_req, res) => {
+  const brand = getBrandConfig();
+  const handbuchPath = findHandbuchPath(brand.name);
+  if (!handbuchPath) return res.status(404).end();
+  res.download(handbuchPath, `${brand.name}_Benutzerhandbuch.pdf`);
 });
 
 // Dynamisch: Cache-Name + Assets richten sich nach der aktuellen Marke (Name, Logo, swVersion).

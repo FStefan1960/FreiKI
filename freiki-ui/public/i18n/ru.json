@@ -112,6 +112,7 @@
   "teamchat.title": "💬 Открыть командный чат",
   "teamchat.body": "Пожалуйста, войдите с помощью этой кнопки –<br>а не через e-mail и пароль.",
   "hilfe_bubble.header": "Помощь {{APP_NAME}}",
+  "hilfe_bubble.handbuch_link": "Открыть руководство пользователя (PDF)",
   "hilfe_bubble.greeting": "Привет! Я отвечаю на твои вопросы о {{APP_NAME}}. Что бы ты хотел узнать?",
   "hilfe_bubble.input_placeholder": "Введите вопрос...",
   "hint.flowchart.title": "💡 Параметры диаграммы",
