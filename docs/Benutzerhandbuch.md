@@ -20,9 +20,12 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 
 **Anmeldung:** Benutzername und Passwort erhalten Sie in der Regel von Ihrer Administration. Nach dem ersten Login empfehlen wir, das Passwort zu ändern (Konto-Menü → Passwort ändern).
 
+**Passwort vergessen:** Der Link „Passwort vergessen" auf der Anmeldeseite verschickt einen Reset-Link an die im Konto hinterlegte E-Mail-Adresse. Der Link ist **eine Stunde** gültig; danach ein neues Formular anfordern. Ist keine E-Mail-Adresse hinterlegt, hilft nur die Administration weiter.
+
 **Zugang selbst beantragen:** Manche Instanzen bieten ein öffentliches Formular „Zugang beantragen“ (`/register.html`). Dort tragen Sie Name, Dienststelle, Funktion, Telefon und E-Mail ein. Eine Administratorin oder ein Administrator prüft die Anfrage und schaltet Sie frei – erst danach kommen die Zugangsdaten per E-Mail. Ohne Freischaltung gibt es keinen Login. Ist das Formular bei Ihnen nicht erreichbar, ist die Selbstregistrierung für diese Instanz ausgeschaltet.
 
 - Die Sitzung gilt bis **Mitternacht (Europe/Berlin)**. Danach melden Sie sich erneut an.
+- Nach mehreren fehlgeschlagenen Anmeldeversuchen sperrt FreiKI kurzzeitig weitere Versuche für diesen Benutzernamen; ein Countdown zeigt an, wann der nächste Versuch möglich ist.
 - Auf der Anmeldeseite können Sie die **Oberflächensprache** wählen: Deutsch, Englisch, Französisch, Spanisch, Russisch, Indonesisch, Malagasy.
 - Administratoren und Berufsgeheimnisträger (Rolle BGT) müssen **Zwei-Faktor-Authentifizierung** einrichten (Authenticator-App, Backup-Codes, optional Passkey / Face ID / Touch ID / externer Sicherheitsschlüssel wie YubiKey).
 - Wo aktiviert, erscheint beim ersten Login eine **Datenschutz-Schulung**. Alle Folien müssen durchgeklickt werden; die Teilnahme wird dokumentiert.
@@ -48,11 +51,14 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 - **Büroklammer:** Datei anhängen (PDF, DOCX, TXT, Bilder; je nach Werkzeug auch mehrere Dateien). Auf dem Smartphone kann der Upload die Kamera öffnen.
 - **Einfügen:** Inhalt aus der Zwischenablage.
 - **Mikrofon** (falls sichtbar): kurze Spracheingabe direkt in die Eingabezeile (Diktat). Lange Aufnahmen gehören ins Werkzeug *Transkription*.
-- Dateien können per **Drag & Drop** ins Eingabefeld gezogen werden.
+- Dateien können per **Drag & Drop** ins Eingabefeld gezogen werden. Bei Werkzeugen mit Mehrfachdokumenten kommen so angehängte Dateien **hinzu**, statt eine vorherige Auswahl zu ersetzen.
+- **Stopp:** Während eine Antwort noch geschrieben wird, bricht ein Stopp-Button die laufende Generierung sofort ab.
 
 ### 3.2 Verlauf
 
 Der Chatverlauf bleibt **in Ihrem Browser** gespeichert (pro Benutzer und Werkzeug, bis zu 200 Nachrichten). Er wird nicht auf den Server synchronisiert. Nach dem Abmelden bleibt er auf diesem Gerät erhalten; auf einem anderen Gerät oder nach dem Löschen der Browserdaten ist er weg. **+ Neu** startet einen leeren Chat für das aktuelle Werkzeug.
+
+Sind Dokumentinhalt, Nachricht oder Verlauf zusammen zu lang für das Zeichenlimit, kürzt FreiKI automatisch und weist darauf als erster Absatz der Antwort hin, statt den fehlenden Teil stillschweigend wegzulassen.
 
 ### 3.3 Aktionen unter einer Antwort
 
@@ -79,13 +85,13 @@ Die Auswahl erfolgt über den Tab **Werkzeuge** in der Seitenleiste. Welche Eint
 
 Freies Gespräch mit dem lokalen Sprachmodell. Geeignet für Formulieren, Kürzen, Rechnen, Checklisten, Flowcharts, erste Orientierung.
 
-**Datei hochladen:** FreiKI liest PDF, Word, Text und Bilder (inkl. OCR) und bezieht den Inhalt in die Antwort ein.
+**Datei hochladen:** FreiKI liest PDF, Word, Text und Bilder (inkl. OCR) und bezieht den Inhalt in die Antwort ein. Auch mehrere Dateien gleichzeitig sind möglich.
 
 **Wichtig:** Der Chat hat keinen Internetzugang. Kenntnisstand des Modells, kein Live-Web. Für Aktuelles nutzen Sie *Web-Recherche*.
 
 ### 4.2 Zusammenfassen / OCR
 
-Lädt eine Datei, ein Foto oder eingefügten Text und fasst den Inhalt strukturiert zusammen.
+Lädt eine oder mehrere Dateien, ein Foto oder eingefügten Text und fasst den Inhalt strukturiert zusammen.
 
 - Formate: PDF, DOCX, TXT, Bilder (JPG, PNG, WebP), Scans
 - Bei Bildern und gescannten PDFs erkennt FreiKI zuerst den Text, danach folgt die Zusammenfassung
@@ -149,7 +155,7 @@ Im Tab **Wissen** erscheinen nur Bereiche, die Ihre Administration für Sie frei
 
 Beispiel: „Was muss ich tun, wenn ein Bewohner stürzt?“ → Handlungsschritte aus den hinterlegten Unterlagen mit Angabe des Dokuments.
 
-Manager können in freigegebene Bereiche Dokumente hochladen (über die von der Administration vorgesehene Upload-Seite). Sichtbarkeit und Reihenfolge der Bereiche legt die Administration fest. Zusammengehörige Bereiche können in der Seitenleiste zu einer Gruppe zusammengefasst sein (z. B. mehrere Unterkategorien unter einem gemeinsamen Oberbegriff).
+Manager können in freigegebene Bereiche Dokumente hochladen (über die von der Administration vorgesehene Upload-Seite). Sichtbarkeit und Reihenfolge der Bereiche legt die Administration fest. Zusammengehörige Bereiche können in der Seitenleiste zu einer Gruppe zusammengefasst sein (z. B. mehrere Unterkategorien unter einem gemeinsamen Oberbegriff); ein Pfeil-Symbol klappt die Unterkategorien ein oder aus, der Zustand bleibt in diesem Browser gemerkt.
 
 ---
 
@@ -171,7 +177,7 @@ Die Kamera-Berechtigung muss der Browser erlauben.
 
 ### 6.2 Formular-Chat
 
-Wählen Sie eine aktive Vorlage (z. B. einen Antrag) und beantworten Sie die Fragen im Dialog. Am Ende erhalten Sie das ausgefüllte Formular als **PDF** zum Drucken.
+Wählen Sie eine aktive Vorlage (z. B. einen Antrag). Vor dem eigentlichen Dialog zeigt eine **Seitenvorschau** die Formularseiten als Miniaturansicht (Weiter/Zurück), damit Sie sich vorab einen Überblick verschaffen können. Danach beantworten Sie die Fragen im Dialog. Am Ende erhalten Sie das ausgefüllte Formular als **PDF** zum Drucken.
 
 **Zwischenspeichern:** Button *Speichern* erzeugt eine achtstellige PIN. Damit setzen Sie innerhalb von **7 Tagen** unter „Bereits begonnenes Formular fortsetzen“ fort. Danach wird die Sitzung gelöscht.
 
@@ -194,6 +200,7 @@ Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt ha
 | **Tageslosung** | Losung, Lehrtext und Gedanke des Tages |
 | **Piktogramme** | Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über FreiKI ausgeliefert. |
 | **Tagesplan** | druckbarer Tagesplan mit Symbolen |
+| **Medizin-Literatursuche** | Ein Suchbegriff, sieben medizinische Datenbanken: PubMed, Europe PMC und ClinicalTrials.gov liefern Treffer direkt in der App; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet. ⚠️ Der Suchbegriff geht dafür direkt aus dem Browser an diese externen Dienste – keine Patienten- oder Klientendaten eingeben. |
 | **IT-Sicherheitslage** | aktuelle Bedrohungshinweise (sofern eingerichtet) |
 | **Medienspiegel / Gesellschaftstrends** | tägliche Presseschau bzw. Trends (sofern eingerichtet) |
 
@@ -278,6 +285,7 @@ Zweck ist die Rechenschaft nach DSGVO und interner Dienstanweisung, **nicht** Le
 |---|---|
 | Chat, Wissen, Archiv, OCR, TTS, Transkription, Formulare | eigene Infrastruktur (dieser Server) |
 | Web-Recherche | Internetsuche (Anfragetext verlässt das Haus) |
+| Medizin-Literatursuche | Suchbegriff geht direkt aus dem Browser an PubMed/Europe PMC/ClinicalTrials.gov u. a. |
 | Piktogramme | Abfrage der ARASAAC-Bibliothek, Anzeige über FreiKI |
 | Bilder generieren | je nach Instanz eigener oder externer Bilddienst |
 | Diagramm in draw.io | nur nach Ihrer Bestätigung an diagrams.net |
@@ -309,6 +317,9 @@ Die Anmeldung ist bewusst auf den Kalendertag begrenzt.
 
 **Ich habe den Authenticator verloren.**  
 Backup-Codes aus dem 2FA-Setup verwenden oder die Administration um ein Zurücksetzen bitten (erneute Einrichtung nach Passwortbestätigung).
+
+**Ich habe mein Passwort vergessen.**  
+Link „Passwort vergessen" auf der Anmeldeseite nutzen. Der Reset-Link per E-Mail ist eine Stunde gültig. Ohne hinterlegte E-Mail-Adresse hilft nur die Administration.
 
 **Formular-PIN vergessen?**  
 Ohne PIN kein Fortsetzen. Nach 7 Tagen ist die Sitzung ohnehin gelöscht – Formular neu beginnen.

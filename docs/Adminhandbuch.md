@@ -1,6 +1,6 @@
 # FreiKI / KorKI – Administratorhandbuch
 
-**Stand September 2026 (Version 0.8.7)**
+**Stand September 2026 (Version 0.8.10)**
 
 > Dieses Handbuch richtet sich an Personen mit SSH-Zugang zum Server und Admin-Zugang in der Oberfläche. Grundkenntnisse in Linux und Docker werden vorausgesetzt.
 
@@ -186,6 +186,24 @@ Diese Dateien werden bei `git pull` nicht überschrieben (in `.gitignore`).
 
 > **Wichtig:** Nach Farb- oder Logo-Änderungen die Cache-Version um 1 erhöhen, damit PWA-Nutzer die Änderungen sofort sehen.
 
+### 3.1 Extras (public/extras/\*.json)
+
+Jede Datei in `public/extras/` erzeugt einen Eintrag im Tab **Extras**. Sofort aktiv, kein Neustart nötig.
+
+```json
+{ "key": "literatur-metasuche", "title": "Medizin-Literatursuche", "icon": "🔬",
+  "desc": "PubMed, Europe PMC & ClinicalTrials.gov durchsuchen",
+  "panel": "/literatur-metasuche.html", "external": true }
+```
+
+| Feld | Bedeutung |
+|---|---|
+| `key` | eindeutiger Schlüssel, taucht z. B. in Logs/Tracking wieder auf |
+| `title` / `icon` / `desc` | Anzeige im Menü |
+| `api` | Extra lädt Inhalt server-seitig über diesen Endpunkt (z. B. Tageslosung) |
+| `panel` + `external: true` | Extra ist eine eigenständige Seite (`public/<panel>`), die – wie bei `literatur-metasuche.html` – auch direkt mit externen Diensten spricht, ohne Server-Proxy |
+| `roles` | optional: Array erlaubter Rollen; ohne dieses Feld für alle sichtbar (serverseitig durchgesetzt in `/api/extras`, nicht nur im Frontend) |
+
 ---
 
 ## 4. Benutzerverwaltung
@@ -216,6 +234,10 @@ Diese Dateien werden bei `git pull` nicht überschrieben (in `.gitignore`).
 **Passwort-Logik:**
 - Kein Passwort + E-Mail → Zufallspasswort per Mail
 - Passwort angegeben → dieses wird verwendet (min. 6 Zeichen)
+
+Die Liste in der Benutzerverwaltung ist standardmäßig nach **Benutzername** sortiert.
+
+**Pflichtschulung erneut anfordern:** Button in der Benutzerverwaltung setzt `training_completed` für ein Konto zurück, sodass die Datenschutz-Schulungsfolien beim nächsten Login erneut durchlaufen werden müssen (z. B. nach inhaltlicher Aktualisierung der Folien). Gilt für alle Rollen, nicht nur `admin`/`high_risk`, da `APP_MANDATORY_TRAINING` rollenunabhängig greift.
 
 ### 4.3 Sichtbarkeitslogik
 
@@ -260,6 +282,14 @@ CREATE TABLE korki_users (
 ```
 
 Wird beim ersten Start automatisch angelegt (`ensureSchema()` in `UserRepository.js`, selbstbootstrappend per `CREATE TABLE IF NOT EXISTS` + `ADD COLUMN IF NOT EXISTS`).
+
+### 4.5 Passwort-Reset (Selbstservice)
+
+Seit Version 0.8.9: `forgot-password.html` fordert per E-Mail einen Reset-Link an, `reset-password.html` nimmt darüber ein neues Passwort entgegen.
+
+- Server speichert nur den **SHA-256-Hash** eines zufälligen Einmal-Tokens, gültig **1 Stunde**.
+- `POST /api/forgot-password` antwortet **immer** mit `{ok:true}` – absichtlich, gegen E-Mail-Enumeration (verrät nicht, ob die Adresse existiert).
+- Voraussetzung: funktionierender SMTP-Versand (siehe Kapitel 7) und eine im Konto hinterlegte E-Mail-Adresse. Ohne E-Mail-Adresse bleibt nur der manuelle Reset (Kapitel 13, „Nutzer-Passwort (Notfall)“).
 
 ---
 
@@ -799,6 +829,8 @@ chat_template_kwargs: { enable_thinking: false }
 - JWT-Token liegen seit der Security-Härtung (0.5.0) in einem **HttpOnly-Cookie** (kein `localStorage` mehr, damit per JS/XSS nicht auslesbar) und laufen **um Mitternacht (Europe/Berlin)** ab, nicht mehr nach fester Stundenzahl (`secondsUntilMidnightBerlin()` in `AuthMiddleware.js`).
 - **Pflicht-2FA** für die Rollen `admin` und `high_risk` (BGT): Authenticator-App + Backup-Codes, optional Passkey/WebAuthn inkl. externer Sicherheitsschlüssel (YubiKey). Ein Reset (verlorener Authenticator) erfordert erneute Passwortbestätigung.
 - **Sensible-Inhalte-Protokollierung:** Eingaben in Chat/Excel-Chat werden auf Stichworte (Diagnosen, Medikamente, psychische Erkrankungen, Sucht, Behinderung/Pflege) geprüft. Bei Treffer wird nur Zeitstempel, Benutzername, Werkzeug und Kategorie protokolliert – nie der Inhalt. Für Rolle `high_risk` ist ein Treffer im Rahmen der fachlichen Aufgabe als dokumentierte Ausnahme zulässig.
+- **Login-Rate-Limiter (seit 0.8.10):** je Login-Schritt ein eigener, schlüsselbasierter Zähler statt eines geteilten IP-Zählers – Passwort-Schritt nach Benutzername, 2FA-Schritt nach der `pendingToken`-UID, 2FA-Reinit nach der Session-UID (`security.js`). Verhindert, dass mehrere Kolleg:innen hinter derselben Firmen-IP sich einen Zähler teilen, und zählt nur fehlgeschlagene Versuche (`skipSuccessfulRequests`). Limit: 5 Versuche / 15 Minuten je Schlüssel. Bei Sperre zeigt das Frontend ein Countdown-Modal mit der verbleibenden Sperrzeit (`retryAfterSeconds`), keine generische Fehlermeldung.
+- **Request-Timeout:** Node killt HTTP-Requests standardmäßig nach 5 Minuten. Für große synchrone Uploads (`kb-ingest-text`) ist der Server-Timeout auf **20 Minuten** hochgesetzt (`server.requestTimeout`/`headersTimeout` in `app.js`), sonst lief der Handler nach einem `paperless-sync`-Timeout im Hintergrund weiter und der Tag wechselte nie auf `ki-synced`.
 - Das eigene Admin-Konto kann weder gesperrt noch gelöscht werden.
 - **IMAP (native Jobs/Paperless-Sync):** `markSeen` niemals auf `true` setzen.
 - Alle `/api/*`-Antworten für authentifizierte Endpunkte: `Cache-Control: no-store`.
@@ -822,4 +854,4 @@ sudo fail2ban-client set korki-app unbanip <IP>
 
 ---
 
-*Stand: September 2026 (Version 0.8.7) – FreiKI/KorKI mit pgvector-RAG, eigenem Mailserver, Mattermost, Paperless, nativer Job-Automatisierung (n8n abgelöst, siehe Kapitel 9).*
+*Stand: September 2026 (Version 0.8.10) – FreiKI/KorKI mit pgvector-RAG, eigenem Mailserver, Mattermost, Paperless, nativer Job-Automatisierung (n8n abgelöst, siehe Kapitel 9).*
