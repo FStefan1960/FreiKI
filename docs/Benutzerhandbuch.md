@@ -35,7 +35,7 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 
 | Bereich | Inhalt |
 |---|---|
-| **Seitenleiste links** | Tabs *Werkzeuge*, *Wissen* und (falls vorhanden) *Extras* |
+| **Seitenleiste links** | Tabs *Werkzeuge*, *Wissen*, *Verlauf* und (falls vorhanden) *Extras* |
 | **Kopfzeile** | aktuelles Werkzeug, Button **+ Neu**, Hilfe **?**, ggf. Team-Chat |
 | **Chatfenster** | Verlauf, Eingabezeile, Datei-Upload |
 | **Konto unten links** | Avatar/Name öffnet das Konto-Menü; daneben der Abmelden-Button |
@@ -56,7 +56,9 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 
 ### 3.2 Verlauf
 
-Der Chatverlauf bleibt **in Ihrem Browser** gespeichert (pro Benutzer und Werkzeug, bis zu 200 Nachrichten). Er wird nicht auf den Server synchronisiert. Nach dem Abmelden bleibt er auf diesem Gerät erhalten; auf einem anderen Gerät oder nach dem Löschen der Browserdaten ist er weg. **+ Neu** startet einen leeren Chat für das aktuelle Werkzeug.
+Der Chatverlauf bleibt **in Ihrem Browser** gespeichert (pro Benutzer, bis zu 50 Unterhaltungen mit je bis zu 200 Nachrichten). Er wird nicht auf den Server synchronisiert. Nach dem Abmelden bleibt er auf diesem Gerät erhalten; auf einem anderen Gerät oder nach dem Löschen der Browserdaten ist er weg. **+ Neu** startet einen leeren Chat für das aktuelle Werkzeug, die bisherige Unterhaltung bleibt dabei erhalten.
+
+Im Tab **Verlauf** in der Seitenleiste stehen alle gespeicherten Unterhaltungen, neueste zuerst, mit Titel (aus der ersten Frage abgeleitet), Werkzeug und Datum. Klick öffnet die Unterhaltung wieder dort, wo sie aufgehört hat. Der Papierkorb-Button an einer Zeile löscht nur diese eine Unterhaltung, nach Rückfrage. Enthielt eine Antwort möglicherweise schützenswerte Inhalte (siehe Kapitel 11, „Automatisierte Prüfung auf sensible Inhalte“), wird sie im Verlauf durch einen Platzhalter ersetzt statt gespeichert.
 
 Sind Dokumentinhalt, Nachricht oder Verlauf zusammen zu lang für das Zeichenlimit, kürzt FreiKI automatisch und weist darauf als erster Absatz der Antwort hin, statt den fehlenden Teil stillschweigend wegzulassen.
 
