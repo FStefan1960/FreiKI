@@ -34,19 +34,12 @@ JOBS = [
         "subtitle": "Benutzerhandbuch",
         "cover_note": "Stand Version 0.8.10 · September 2026",
     },
-    {
-        "src": ROOT / "KorKI-Benutzerhandbuch.md",
-        "out": ROOT / "KorKI-Benutzerhandbuch.pdf",
-        "brand": "KorKI",
-        "color": colors.HexColor("#0d9488"),
-        "navy": colors.HexColor("#0f172a"),
-        "light": colors.HexColor("#f0fdfa"),
-        "runtime": REPO / "freiki-ui" / "KorKI_Benutzerhandbuch.pdf",
-        "alias": None,
-        "subtitle": "Benutzerhandbuch",
-        "cover_note": "Stand Version 0.8.10 · September 2026",
-    },
 ]
+# KorKI hatte hier früher einen zweiten Job (Quelle KorKI-Benutzerhandbuch.md) - dieser Job
+# lief aber nie in Produktion. KorKIs echtes Benutzerhandbuch-PDF wird in korki-repo über
+# setup/create_benutzerhandbuch_pdf.py (hartkodierter ReportLab-Inhalt, keine Markdown-Quelle)
+# erzeugt. Die verwaiste .md/.pdf-Kopie hier täuschte eine zweite, in Wahrheit nie benutzte
+# Quelle vor und wurde deshalb entfernt, statt sie weiter mitzupflegen.
 
 
 def styles(brand_color, navy):
