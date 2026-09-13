@@ -143,6 +143,42 @@ bash ~/freiki-package/setup/restore.sh
 
 Vollständige Historie in den Commit-Messages (`git log`). Auszug der Release-Meilensteine (Version aus `freiki-ui/package.json`):
 
+**0.8.10** (2026-09-12)
+- Multi-Doc jetzt auch bei Chat und Zusammenfassen nutzbar (nicht mehr nur im eigenen Werkzeug), Sequenz-Upload-Fix
+- Stopp-Button für laufende Antworten, Scroll-Fix im Chatfenster
+- Login-Rate-Limiter auf schlüsselbasierte Zähler umgestellt (Countdown-Anzeige bei Sperre statt geteiltem IP-Zähler)
+
+**0.8.9** (2026-09-09)
+- "Passwort vergessen": Selbstservice-Reset per E-Mail-Link
+
+**0.8.8** (2026-09-07)
+- Wissenskategorien: Unterkategorien ein-/ausklappbar (Fileexplorer-Stil)
+- Admin- und Benutzerhandbuch auf aktuellen Stand nachgezogen
+- Extras serverseitig nach Rolle gefiltert; AGPL-Quellcode-Link instanzspezifisch statt fest verdrahtet
+
+**0.8.7** (2026-09-06)
+- Formular-Chat: Kombifelder (exklusive Checkbox-Gruppen), Feld-Editor per Drag verschieb- und größenveränderbar
+- Wissen-Suche: automatische Übersetzung fremdsprachiger Fragen vor dem Retrieval, NFC-Normalisierung gegen Umlaut-Dubletten
+- Passkey-Registrierung erlaubt jetzt auch externe Sicherheitsschlüssel (YubiKey u. ä.)
+
+**0.8.4** (2026-08-28)
+- Breaking-News-Login-Hinweis, ziehbare Sidebar-Breite, vLLM-Kontext-Fix
+- Wissen-Kategorien: Hierarchie-Unterstützung (Unterkategorie schaltet automatisch die Elternkategorie frei)
+- GPU-Koordination (Lock-Hinweise im Chat bei Bild-/Musikgenerierung) von KorKI übernommen
+
+**0.8.1** (2026-08-21)
+- BGT-Zusatzmail mit 2FA-Anleitung, Musikgenerierung als Demo-Hinweis markiert
+- Admin-Userliste: Spalte mit Anzahl freigeschalteter Wissensbereiche
+
+**0.8.0** (2026-08-20)
+- History-Leiste: mehrere gespeicherte Unterhaltungen statt nur einer pro Modus
+- Admin-UI: einzelne Wissens-Dokumente löschen; Paperless-Sync bereinigt Dokument-Dubletten beim Re-Ingest
+- Benutzerverwaltung und Prompt-Verwaltung ins Admin-Panel verschoben
+
+**0.7.10** (2026-08-19)
+- PPTX-Export: Vorlage zur Laufzeit wählbar (Diakonie Kork oder generisch), Admin-Uploader für eigene Vorlagen
+- Login-Härtung: A11y-Labels, Zugang-beantragen-Link ergänzt, `PAPERLESS_ADMIN_URL` aus dem öffentlichen HTML entfernt
+
 **0.7.8** (2026-08-18)
 - ChatService.js in 6 fokussierte Module aufgeteilt (764 → ~165 Zeilen)
 - In-App Admin-Dashboard: Nutzungsstatistik-Verlauf, Prompt-Editor mit automatischer LLM-Übersetzung in alle 6 UI-Sprachen
