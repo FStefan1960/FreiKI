@@ -433,4 +433,5 @@ async function answerBotChat(message, username) {
 module.exports = {
   chunkText, insertChunks, clearTable, deleteBySource, listSources, ingestText,
   retrieveWissenChunks, retrieveWissenChunksMulti, answerHilfeChat, answerBotChat,
+  mergeChunksByDistance, // exportiert für Unit-Tests der reinen Ranking-/Dedup-Logik
 };
