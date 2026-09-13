@@ -6,10 +6,15 @@ const { markdownToSlideData, markdownToPptxBuffer } = require('../../src/core/do
 describe('PptxExportService', () => {
   describe('markdownToSlideData', () => {
     it('sollte #/##-Ueberschriften als neue Folien erkennen', () => {
+      // Folie 1 traegt Body-Text, wird also per Titelfolien-Aufteilung in eine
+      // titelnur-Folie plus eine Inhaltsfolie mit gleichem Titel gesplittet.
       const slides = markdownToSlideData('# Folie 1\nText A\n## Folie 2\nText B');
-      assert.strictEqual(slides.length, 2);
+      assert.strictEqual(slides.length, 3);
       assert.strictEqual(slides[0].title, 'Folie 1');
-      assert.strictEqual(slides[1].title, 'Folie 2');
+      assert.strictEqual(slides[0].body.length, 0);
+      assert.strictEqual(slides[1].title, 'Folie 1');
+      assert.strictEqual(slides[1].body[0].text, 'Text A');
+      assert.strictEqual(slides[2].title, 'Folie 2');
     });
 
     it('sollte ---/***/___ als Folientrenner behandeln, auch ohne Ueberschrift', () => {
@@ -20,8 +25,11 @@ describe('PptxExportService', () => {
     });
 
     it('sollte Bullet- und nummerierte Listen als Body-Items mit Einrueckung erfassen', () => {
+      // Folie 1 ist immer titelnur (siehe Titelfolien-Aufteilung in markdownToSlideData);
+      // der Inhalt der ersten Ueberschrift landet auf der zweiten Folie mit gleichem Titel.
       const slides = markdownToSlideData('# Titel\n- Punkt eins\n  - Unterpunkt\n1. Erster\n2. Zweiter');
-      const body = slides[0].body;
+      assert.strictEqual(slides[0].body.length, 0);
+      const body = slides[1].body;
       assert.strictEqual(body[0].bullet, true);
       assert.strictEqual(body[0].indent, 0);
       assert.strictEqual(body[1].indent, 1);
@@ -32,7 +40,7 @@ describe('PptxExportService', () => {
     it('sollte **fett** und `code`-Markierungen entfernen statt sie umzusetzen', () => {
       const slides = markdownToSlideData('# **Titel** mit `code`\n- **fett** und `code` im Text');
       assert.strictEqual(slides[0].title, 'Titel mit code');
-      assert.strictEqual(slides[0].body[0].text, 'fett und code im Text');
+      assert.strictEqual(slides[1].body[0].text, 'fett und code im Text');
     });
 
     it('sollte bei leerem Input eine leere Folie liefern statt zu crashen', () => {
@@ -56,15 +64,20 @@ describe('PptxExportService', () => {
       const slideFiles = Object.keys(zip.files)
         .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
         .sort();
-      assert.strictEqual(slideFiles.length, 2);
+      // 3 statt 2: Folie 1 ist die titelnur-Folie ("Erste Folie"), Folie 2 traegt
+      // deren Inhalt mit gleichem Titel, Folie 3 ist "Zweite Folie".
+      assert.strictEqual(slideFiles.length, 3);
 
       const slide1Xml = await zip.file('ppt/slides/slide1.xml').async('string');
       assert.match(slide1Xml, /Erste Folie/);
-      assert.match(slide1Xml, /Punkt eins/);
 
       const slide2Xml = await zip.file('ppt/slides/slide2.xml').async('string');
-      assert.match(slide2Xml, /Zweite Folie/);
-      assert.match(slide2Xml, /Fliesstext hier/);
+      assert.match(slide2Xml, /Erste Folie/);
+      assert.match(slide2Xml, /Punkt eins/);
+
+      const slide3Xml = await zip.file('ppt/slides/slide3.xml').async('string');
+      assert.match(slide3Xml, /Zweite Folie/);
+      assert.match(slide3Xml, /Fliesstext hier/);
     });
   });
 });
