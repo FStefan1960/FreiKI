@@ -1,6 +1,6 @@
 # FreiKI – Hilfe / Häufige Fragen
 
-Stand: Benutzerhandbuch 0.7.8 (August 2026). Jeder Abschnitt ist ein eigener Hilfe-Chunk.
+Stand: Benutzerhandbuch 0.8.10 (September 2026). Jeder Abschnitt ist ein eigener Hilfe-Chunk.
 
 ## Was ist FreiKI?
 
@@ -48,7 +48,7 @@ Wo aktiviert, erscheint beim ersten Login eine Datenschutz-Schulung. Alle Folien
 
 ## Wie ist die App aufgebaut?
 
-Links die Seitenleiste mit den Tabs Werkzeuge, Wissen und (falls vorhanden) Extras. Oben die Kopfzeile mit aktuellem Werkzeug, Button „+ Neu“, Hilfe „?“ und ggf. Team-Chat. In der Mitte das Chatfenster mit Verlauf, Eingabezeile und Datei-Upload. Unten links öffnet Avatar/Name das Konto-Menü; daneben der Abmelden-Button. Die Hilfe (Fragezeichen oben rechts) öffnet einen kleinen Assistenten zu Bedienung und Funktionen.
+Links die Seitenleiste mit den Tabs Werkzeuge, Wissen, Verlauf und (falls vorhanden) Extras. Oben die Kopfzeile mit aktuellem Werkzeug, Button „+ Neu“, Hilfe „?“ und ggf. Team-Chat. In der Mitte das Chatfenster mit Verlauf, Eingabezeile und Datei-Upload. Unten links öffnet Avatar/Name das Konto-Menü; daneben der Abmelden-Button. Die Hilfe (Fragezeichen oben rechts) öffnet einen kleinen Assistenten zu Bedienung und Funktionen.
 
 ## Wie sende ich eine Nachricht im Chat?
 
@@ -64,7 +64,11 @@ Das Mikrofon in der Eingabezeile (falls sichtbar) ist für kurze Spracheingabe /
 
 ## Wo wird der Chatverlauf gespeichert?
 
-Der Chatverlauf bleibt in Ihrem Browser gespeichert (pro Benutzer und Werkzeug, bis zu 200 Nachrichten). Er wird nicht auf den Server synchronisiert. Nach dem Abmelden bleibt er auf diesem Gerät erhalten; auf einem anderen Gerät oder nach dem Löschen der Browserdaten ist er weg. „+ Neu“ startet einen leeren Chat für das aktuelle Werkzeug.
+Der Chatverlauf bleibt in Ihrem Browser gespeichert (pro Benutzer, bis zu 50 Unterhaltungen mit je bis zu 200 Nachrichten). Er wird nicht auf den Server synchronisiert. Nach dem Abmelden bleibt er auf diesem Gerät erhalten; auf einem anderen Gerät oder nach dem Löschen der Browserdaten ist er weg. „+ Neu“ startet einen leeren Chat für das aktuelle Werkzeug, die bisherige Unterhaltung bleibt dabei erhalten.
+
+## Wie finde ich eine frühere Unterhaltung wieder?
+
+Im Tab Verlauf in der Seitenleiste stehen alle gespeicherten Unterhaltungen, neueste zuerst, mit Titel (aus der ersten Frage abgeleitet), Werkzeug und Datum. Klick öffnet die Unterhaltung wieder dort, wo sie aufgehört hat. Der Papierkorb-Button an einer Zeile löscht nur diese eine Unterhaltung, nach Rückfrage. Enthielt eine Antwort möglicherweise schützenswerte Inhalte (siehe „Prüft FreiKI sensible Inhalte?“), wird sie im Verlauf durch einen Platzhalter ersetzt statt gespeichert.
 
 ## Wie lasse ich mir eine Antwort vorlesen?
 
