@@ -6,6 +6,7 @@ const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
 const { searchLinks } = require('../../../core/integrations/SearXNGService');
 const { THINKING_KWARGS } = require('../../../core/chat/ThinkingConfig');
+const { recordChatEvent } = require('../../../jobs/usageStatsReport');
 
 const router = express.Router();
 router.use(express.json({ limit: '20kb' }));
@@ -21,10 +22,15 @@ const KNOWN_ACTION_TYPES = new Set(['open_url', 'ean_lookup', 'save_contact', 's
 // das Modell schlägt nur Buttons vor, die eigentliche Aktion (externer Link, Produkt-Lookup)
 // übernimmt fest verdrahteter Frontend-/Backend-Code.
 router.post('/api/scanner/analyze', asyncHandler(async (req, res) => {
-  if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Nicht angemeldet' });
   const text = String(req.body?.text || '').trim().slice(0, 2000);
   const format = String(req.body?.format || '').trim().slice(0, 40);
   if (!text) return res.status(400).json({ error: 'Kein Text' });
+
+  // Für den Tagesbericht (siehe usageStatsReport.js) - Scanner ist ein "builtinTool" (modes.js),
+  // kein regulärer Chat-Modus, und lief bisher an recordChatEvent() vorbei.
+  recordChatEvent({ user: session.username, mode: 'scanner', title: 'QR/Barcode-Scanner', hasFile: false });
 
   try {
     const r = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {

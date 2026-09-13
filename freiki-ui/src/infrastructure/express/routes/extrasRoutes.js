@@ -10,6 +10,7 @@ const { PDFDocument } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 const { symbolsToDocxBuffer } = require('../../../core/documents/DocxExportService');
 const { THINKING_KWARGS } = require('../../../core/chat/ThinkingConfig');
+const { recordChatEvent } = require('../../../jobs/usageStatsReport');
 
 // Siehe FormFillService.js für die ausführliche Begründung (echte Unicode-Schrift statt
 // pdf-lib-Standardfonts, wegen Zeichenumrissen/Mehrsprachigkeit).
@@ -38,10 +39,15 @@ router.get('/api/extras', (req, res) => {
   } catch (e) { res.json([]); }
 });
 
-function jsonFileRoute(routePath, filename) {
+// title wird für recordChatEvent() gebraucht (siehe usageStatsReport.js) - jeder Panel-Öffnen-
+// Klick (openExtraPanel() in ui-chrome.js) landet hier als GET, war aber bisher für den
+// Tagesbericht unsichtbar, weil diese vier Extras nie durch ChatService liefen.
+function jsonFileRoute(routePath, filename, mode, title) {
   const filePath = path.join(config.APP_ROOT, filename);
   router.get(routePath, (req, res) => {
-    if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Nicht angemeldet' });
+    recordChatEvent({ user: session.username, mode, title, hasFile: false });
     try {
       if (!fs.existsSync(filePath)) return res.json({ date: null });
       res.json(JSON.parse(fs.readFileSync(filePath, 'utf8')));
@@ -49,10 +55,32 @@ function jsonFileRoute(routePath, filename) {
   });
 }
 
-jsonFileRoute('/api/medienspiegel', 'medienspiegel.json');
-jsonFileRoute('/api/gesellschaftstrends', 'gesellschaftstrends.json');
-jsonFileRoute('/api/losung', 'losung.json');
-jsonFileRoute('/api/sicherheitslage', 'sicherheitslage.json');
+jsonFileRoute('/api/medienspiegel', 'medienspiegel.json', 'medienspiegel', 'Medienspiegel');
+jsonFileRoute('/api/gesellschaftstrends', 'gesellschaftstrends.json', 'gesellschaftstrends', 'Gesellschaftstrends');
+jsonFileRoute('/api/losung', 'losung.json', 'losung', 'Tageslosung');
+jsonFileRoute('/api/sicherheitslage', 'sicherheitslage.json', 'sicherheitslage', 'IT-Sicherheitslage');
+
+// Client-only Extras (siehe public/extras/*.json, "external": true) rufen nie einen
+// eigenen Server-Endpunkt auf, sondern reden direkt mit externen APIs (z.B. PubMed) oder
+// teilen sich einen Endpunkt mit einem anderen Extra (z.B. /api/pictograms bei Piktogramme
+// UND Tagesplan) - ohne diesen Ping bleiben sie für recordChatEvent() unsichtbar und
+// tauchen nie im Tagesbericht/Nutzungs-Dashboard auf (siehe usageStatsReport.js). Titel
+// kommt fest aus dieser Liste statt aus dem Request-Body, damit der Bericht keinen
+// beliebigen Text zeigt.
+const TRACKABLE_EXTRAS = {
+  'literatur-metasuche': 'Medizin-Literatursuche',
+  'picto': 'Piktogramme',
+  'tagesplan': 'Tagesplan',
+};
+router.post('/api/extras/track', express.json({ limit: '1kb' }), (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Nicht angemeldet' });
+  const key = String(req.body?.key || '');
+  const title = TRACKABLE_EXTRAS[key];
+  if (!title) return res.status(400).json({ error: 'Unbekanntes Extra' });
+  recordChatEvent({ user: session.username, mode: `extra_${key}`, title, hasFile: false });
+  res.json({ ok: true });
+});
 
 // Piktogramm-Suche (ARASAAC)
 // Bilder als data:-URLs ausliefern: die CSP erlaubt img-src 'self' data: https:,
@@ -87,7 +115,8 @@ router.get('/api/pictograms', asyncHandler(async (req, res) => {
 
     res.json({ results });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('Piktogramm-Suche fehlgeschlagen:', e.message);
+    res.status(500).json({ error: 'Interner Fehler' });
   }
 }));
 

@@ -465,6 +465,15 @@
     const q = input.value.trim();
     if (!q) { input.focus(); return; }
 
+    // Meldet echte Nutzer-Suchen an den Tagesbericht (siehe extrasRoutes.js /api/extras/track) -
+    // /api/pictograms selbst trackt nicht, weil sich Tagesplan und Piktogramme denselben
+    // Endpunkt teilen. Fire-and-forget: ein Fehlschlag darf die Suche nie blockieren.
+    fetch('/api/extras/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'tagesplan' }),
+    }).catch(() => {});
+
     const btn  = document.getElementById(`sbtn-${id}`);
     const grid = document.getElementById(`grid-${id}`);
     const smsg = document.getElementById(`smsg-${id}`);

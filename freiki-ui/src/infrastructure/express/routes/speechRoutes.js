@@ -6,6 +6,7 @@ const users = require('../../../core/auth/UserRepository');
 const { transcribeAndEmail, transcribeAudio } = require('../../../core/speech/TranscriptionService');
 const TTSService = require('../../../core/speech/TTSService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const { recordChatEvent } = require('../../../jobs/usageStatsReport');
 
 const router = express.Router();
 router.use(express.json({ limit: '256kb' }));
@@ -26,6 +27,10 @@ router.post('/api/transcribe', uploadAudio.single('audio'), asyncHandler(async (
     fs.unlink(file.path, () => {});
     return res.status(400).json({ error: 'Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.' });
   }
+
+  // Für den Tagesbericht (siehe usageStatsReport.js) - Transkription ist ein "builtinTool"
+  // (modes.js), kein regulärer Chat-Modus, und lief bisher an recordChatEvent() vorbei.
+  recordChatEvent({ user: s.username, mode: 'transkription', title: 'Transkription', hasFile: true });
 
   // Sofort antworten – Verarbeitung läuft async
   res.json({ ok: true, message: 'Datei empfangen. Das Transkript wird per E-Mail gesendet.' });

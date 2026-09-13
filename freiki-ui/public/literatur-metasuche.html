@@ -66,15 +66,16 @@
     .searchbtn:hover { opacity: 0.9; }
     .error { margin-top: 8px; font-size: 13px; color: #991b1b; }
 
-    .filters { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eef1f5; }
-    .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; margin-right: 4px; }
-    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .filters { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: flex-start; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eef1f5; }
+    .filter-group { display: flex; flex-direction: column; gap: 8px; }
+    .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #9ca3af; height: 14px; line-height: 14px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; height: 30px; }
     .chip {
       height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid #d1d5db;
       background: #fff; color: #4b5563; font-family: inherit; font-size: 13px; cursor: pointer;
     }
     .chip[aria-pressed="true"] { background: #EAF0FC; border-color: #1F54C0; color: #14306B; font-weight: 700; }
-    .year-range { display: flex; align-items: center; gap: 6px; }
+    .year-range { display: flex; align-items: center; gap: 6px; height: 30px; }
     .year-range input {
       width: 70px; height: 30px; padding: 0 8px; border: 1px solid #d1d5db; border-radius: 8px;
       font-family: inherit; font-size: 13px; color: #15294A;
@@ -123,7 +124,7 @@
         </div>
         <div>
           <h1>Medizin-Literatursuche</h1>
-          <p>Ein Suchbegriff, sieben medizinische Datenbanken. PubMed, Europe PMC und ClinicalTrials.gov liefern Live-Treffer direkt hier; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet.</p>
+          <p>Ein Suchbegriff, sieben medizinische Datenbanken. PubMed, Europe PMC und ClinicalTrials.gov liefern Live-Treffer direkt hier; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet.<br><br>Mit Anführungszeichen suchen Sie nach der exakten Wortfolge (z.&nbsp;B. "Diakonie Kork"), mit AND / OR (groß geschrieben) verknüpfen Sie mehrere Begriffe.</p>
         </div>
       </div>
 
@@ -135,7 +136,7 @@
         </div>
         <p class="error" id="formError" hidden>Bitte einen Suchbegriff eingeben.</p>
         <div class="filters">
-          <div>
+          <div class="filter-group">
             <span class="filter-label">Studientyp</span>
             <div class="chip-group" role="group" aria-label="Studientyp" id="chipGroup">
               <button type="button" class="chip" data-id="sr" aria-pressed="false">Systematic review</button>
@@ -144,13 +145,15 @@
               <button type="button" class="chip" data-id="gl" aria-pressed="false">Guideline</button>
             </div>
           </div>
-          <div class="year-range">
+          <div class="filter-group">
             <span class="filter-label">Jahr</span>
-            <label for="fromYear" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Von Jahr</label>
-            <input id="fromYear" type="number" placeholder="von" min="1900" max="2100">
-            <span>&ndash;</span>
-            <label for="toYear" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Bis Jahr</label>
-            <input id="toYear" type="number" placeholder="bis" min="1900" max="2100">
+            <div class="year-range">
+              <label for="fromYear" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Von Jahr</label>
+              <input id="fromYear" type="number" placeholder="von" min="1900" max="2100">
+              <span>&ndash;</span>
+              <label for="toYear" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Bis Jahr</label>
+              <input id="toYear" type="number" placeholder="bis" min="1900" max="2100">
+            </div>
           </div>
         </div>
       </form>
@@ -184,7 +187,7 @@
     </div>
 
     <div class="card sources">
-      <h2>Links zu den Suchmaschinen</h2>
+      <h2>Ausformulierte Links zu den Suchmaschinen</h2>
       <div class="source-row" id="sourceRow"></div>
     </div>
 
@@ -206,6 +209,8 @@ const qEl = document.getElementById('q');
 const fromYEl = document.getElementById('fromYear');
 const toYEl = document.getElementById('toYear');
 const formError = document.getElementById('formError');
+fromYEl.value = 2020;
+toYEl.value = new Date().getFullYear();
 
 document.getElementById('chipGroup').addEventListener('click', (e) => {
   const btn = e.target.closest('.chip');
@@ -431,8 +436,20 @@ async function runSearch(){
   ]);
 }
 
+// Meldet echte Nutzer-Suchen an den Tagesbericht (siehe extrasRoutes.js /api/extras/track) -
+// bewusst hier statt in runSearch(), damit die Platzhalter-Suche "epilepsy" beim Laden der
+// Seite (unten) nicht mitgezählt wird. Fire-and-forget: ein Fehlschlag darf die Suche nie blockieren.
+function trackUsage(){
+  fetch('/api/extras/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'literatur-metasuche' }),
+  }).catch(() => {});
+}
+
 document.getElementById('searchForm').addEventListener('submit', (e) => {
   e.preventDefault();
+  trackUsage();
   runSearch();
 });
 qEl.addEventListener('input', () => { if (!formError.hidden && qEl.value.trim()) formError.hidden = true; });

@@ -8,6 +8,7 @@ const { translateLabels, buildQuestionPayload, DEFAULT_LANGUAGE } = require('../
 const { buildSteps, locateStep } = require('../../../core/forms/FormFieldGrouping');
 const { fillFormToPdfBuffer } = require('../../../core/forms/FormFillService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
+const { recordChatEvent } = require('../../../jobs/usageStatsReport');
 
 const router = express.Router();
 router.use(express.json({ limit: '1mb' }));
@@ -91,6 +92,12 @@ router.post('/api/forms/:slug/start', asyncHandler(async (req, res) => {
   if (!template || !template.active) return res.status(404).json({ error: 'Formular nicht gefunden.' });
   const fields = await templates.listFields(template.id);
   if (fields.length === 0) return res.status(400).json({ error: 'Dieses Formular hat noch keine Felder.' });
+
+  // Für den Tagesbericht (siehe usageStatsReport.js) - Formular-Chat ist ein eigenständiges
+  // Extra (extras/formular-chat.json), lief bisher an recordChatEvent() vorbei. Titel je
+  // Formular-Vorlage (nicht nur "Formular-Chat"), damit sich einzelne Vorlagen im Bericht
+  // unterscheiden lassen.
+  recordChatEvent({ user: s.username, mode: `formular_${template.slug}`, title: `Formular: ${template.title}`, hasFile: false });
 
   const language = sanitizeLanguage(req.body?.language);
   const { id, pin } = await sessions.create(template.id, language, s.username);

@@ -335,6 +335,15 @@
     const lang = document.getElementById('lang-select').value;
     if (!q) return;
 
+    // Meldet echte Nutzer-Suchen an den Tagesbericht (siehe extrasRoutes.js /api/extras/track) -
+    // /api/pictograms selbst trackt nicht, weil sich Piktogramme und Tagesplan denselben
+    // Endpunkt teilen. Fire-and-forget: ein Fehlschlag darf die Suche nie blockieren.
+    fetch('/api/extras/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'picto' }),
+    }).catch(() => {});
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Suche …';
     statusMsg.className = 'status-msg';
