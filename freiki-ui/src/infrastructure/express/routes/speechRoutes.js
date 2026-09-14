@@ -84,7 +84,7 @@ router.post('/api/extract-audio', uploadVideo.single('video'), asyncHandler(asyn
 
   const downloadName = file.originalname.replace(/\.[^.]+$/, '').replace(/["\r\n]/g, '') + '.mp3';
 
-  // Button "Audio danach transkribieren" (audio-extrahieren.html, Gegenstück zu "Audio
+  // Button "Audio direkt transkribieren" (audio-extrahieren.html, Gegenstück zu "Audio
   // extrahieren (Warten)"): statt die MP3 zum Download zurückzugeben, direkt in die
   // bestehende /api/transcribe-Pipeline einspeisen (fire-and-forget, Antwort per E-Mail) -
   // erspart den Umweg über einen zweiten, manuellen Upload-Klick samt Warten in der UI.

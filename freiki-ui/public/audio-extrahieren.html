@@ -307,7 +307,7 @@
     </div>
 
     <button type="button" id="extract-btn" class="primary-btn">Audio extrahieren (Warten)</button>
-    <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio danach transkribieren</button>
+    <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio direkt transkribieren</button>
 
   </form>
 
@@ -342,7 +342,7 @@
   const progressLabel = document.getElementById('progress-label');
 
   const EXTRACT_LABEL = 'Audio extrahieren (Warten)';
-  const TRANSCRIBE_START_LABEL = 'Audio danach transkribieren';
+  const TRANSCRIBE_START_LABEL = 'Audio direkt transkribieren';
 
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) showFile(fileInput.files[0]);
@@ -371,7 +371,7 @@
   // tatsächlich lange dauert (ffmpeg-Extraktion selbst ist im Vergleich schnell).
   //
   // Zwei Buttons statt einer Checkbox: "Audio extrahieren (Warten)" liefert die MP3 synchron
-  // zum Download zurück (Nutzer wartet und sieht das Ergebnis), "Audio danach transkribieren"
+  // zum Download zurück (Nutzer wartet und sieht das Ergebnis), "Audio direkt transkribieren"
   // schickt transcribe=1 mit - der Server hängt die Transkription server-seitig fire-and-forget
   // an (siehe speechRoutes.js) und antwortet sofort, das Transkript kommt später per E-Mail.
   function startUpload(alsoTranscribe) {

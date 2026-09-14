@@ -152,11 +152,11 @@ Nur Admins und Manager unter „Formular-Vorlagen“: Scan hochladen (PDF/JPG/PN
 
 ## Wie transkribiere ich eine Audiodatei?
 
-Lange Aufnahmen im Werkzeug Transkription hochladen. FreiKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows). Kurzes Diktieren geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug. Beides verlässt bei einer produktiven Instanz nicht Ihre Infrastruktur.
+Lange Aufnahmen im Werkzeug Transkription hochladen. Akzeptiert werden M4A, MP3, WAV, MP4, MOV, WEBM und MKV bis 200 MB – auch Videos können direkt hochgeladen werden, FreiKI zieht automatisch nur die Tonspur heraus. FreiKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows). Kurzes Diktieren geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug. Beides verlässt bei einer produktiven Instanz nicht Ihre Infrastruktur. Ist die Videodatei größer als 200 MB, hilft das Extras-Werkzeug „Audio extrahieren" weiter (siehe nächste Frage).
 
 ## Welche Extras und Piktogramme gibt es?
 
-Der Tab Extras erscheint nur, wenn Zusatzangebote hinterlegt sind. Typisch: Tageslosung; IT-Sicherheitslage; Medienspiegel; Gesellschaftstrends; Piktogramme; Tagesplan (druckbar mit Symbolen). Piktogramme: Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über FreiKI ausgeliefert. Manche Extras sind auf bestimmte Rollen beschränkt.
+Der Tab Extras erscheint nur, wenn Zusatzangebote hinterlegt sind. Typisch: Tageslosung; IT-Sicherheitslage; Medienspiegel; Gesellschaftstrends; Piktogramme; Tagesplan (druckbar mit Symbolen); Audio extrahieren. Piktogramme: Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über FreiKI ausgeliefert. Audio extrahieren: reines Werkzeug ohne KI, zieht per ffmpeg die Tonspur aus einer Video- oder Audiodatei bis 1 GB. Button „Audio extrahieren (Warten)" liefert die MP3 direkt zum Herunterladen, Button „Audio direkt transkribieren" schickt sie ohne Umweg über Download und erneuten Upload gleich ans Transkriptions-Werkzeug weiter – das Transkript kommt wie gewohnt per E-Mail. Manche Extras sind auf bestimmte Rollen beschränkt.
 
 ## Was ist der Team-Chat und wie spreche ich FreiKI dort an?
 
