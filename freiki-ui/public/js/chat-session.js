@@ -31,11 +31,16 @@ function applyModeChrome(key) {
 
 // Icon der Anhang-Schaltfläche passend zum Upload-Modus tauschen: gestapelte Blätter bei
 // multifile-Modi (Chat/OCR/MultiDoc), einzelnes Blatt mit Pfeil sonst (siehe applyModeChrome()).
-const UPLOAD_ICON_MULTI = '<path d="M15 3v4a1 1 0 0 0 1 1h4"></path><path d="M18 17h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l5 5v7a2 2 0 0 1-2 2"></path><path d="M16 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"></path><path d="M14 8.5v5"></path><path d="M11.5 11L14 8.5L16.5 11"></path>';
+// Das Multi-Icon hat ein eigenes (nicht-quadratisches) viewBox, daher wird das mitgetauscht.
+const UPLOAD_ICON_MULTI_VIEWBOX = '0 0 20.05084 24.067789';
+const UPLOAD_ICON_MULTI = '<path d="m 12.322032,2.8305048 v 4 a 1,1 0 0 0 1,1 h 4"></path><path d="M 16.277624,18.81157 H 7.468134 A 2.5169972,2.507907 0 0 1 4.9511371,16.303662 V 3.7641271 A 2.5169972,2.507907 0 0 1 7.468134,1.25622 h 5.033995 l 6.292493,6.2697676 v 8.7776744 a 2.5169972,2.507907 0 0 1 -2.516998,2.507908" style="stroke-width:2.51244"></path><path d="m 15.077058,18.933749 0.101695,1.266569 c 0.11442,1.42506 -1.131489,2.588603 -2.527252,2.588603 H 3.8061216 c -1.3957624,0 -2.5272515,-1.158957 -2.5272516,-2.588603 V 7.2573019 c 1e-7,-1.4296461 1.1314891,-2.5886031 2.5272516,-2.5886031 h 1.0018278" style="stroke-width:2.55774"></path><path d="M 10.508473,11.164707 V 22.39461" style="stroke-width:2.60525"></path><path d="m 8.008473,11.949149 2.5,-2.5000001 2.5,2.5000001"></path>';
+const UPLOAD_ICON_SINGLE_VIEWBOX = '0 0 24 24';
 const UPLOAD_ICON_SINGLE = '<path d="M14 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M12 12v7"></path><path d="m9 16 3-3 3 3"></path>';
 function setUploadIcon(isMulti) {
   const icon = document.getElementById('upload-icon');
-  if (icon) icon.innerHTML = isMulti ? UPLOAD_ICON_MULTI : UPLOAD_ICON_SINGLE;
+  if (!icon) return;
+  icon.setAttribute('viewBox', isMulti ? UPLOAD_ICON_MULTI_VIEWBOX : UPLOAD_ICON_SINGLE_VIEWBOX);
+  icon.innerHTML = isMulti ? UPLOAD_ICON_MULTI : UPLOAD_ICON_SINGLE;
 }
 
 function setMode(key) {
