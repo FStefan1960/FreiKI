@@ -187,9 +187,11 @@ Neue Vorlagen legen **Admins und Manager** unter *Formular-Vorlagen* an: Scan ho
 
 ### 6.3 Transkription (Audio → Text per E-Mail)
 
-Lange Aufnahmen hier hochladen. FreiKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows).
+Lange Aufnahmen hier hochladen. FreiKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows). Akzeptiert werden M4A, MP3, WAV, MP4, MOV, WEBM und MKV bis 200 MB – auch Videos können direkt hochgeladen werden, FreiKI zieht automatisch nur die Tonspur heraus.
 
 Kurzes Diktieren in den Chat geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug.
+
+Ist die Videodatei größer als 200 MB (z. B. ein mehrminütiger 4K-Clip vom Smartphone), hilft das Extras-Werkzeug **Audio extrahieren** (siehe Abschnitt 7) weiter: Es akzeptiert bis zu 1 GB, schneidet die Tonspur per ffmpeg heraus und bietet die deutlich kleinere MP3 direkt zum Herunterladen an – oder per Knopfdruck gleich zur Transkription weiter, ohne Download und erneuten Upload.
 
 ---
 
@@ -205,6 +207,7 @@ Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt ha
 | **Medizin-Literatursuche** | Ein Suchbegriff, sieben medizinische Datenbanken: PubMed, Europe PMC und ClinicalTrials.gov liefern Treffer direkt in der App; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet. Anführungszeichen suchen die exakte Wortfolge (z. B. „Diakonie Kork"), AND/OR (groß geschrieben) verknüpfen mehrere Begriffe. ⚠️ Der Suchbegriff geht dafür direkt aus dem Browser an diese externen Dienste – keine Patienten- oder Klientendaten eingeben. |
 | **IT-Sicherheitslage** | aktuelle Bedrohungshinweise (sofern eingerichtet) |
 | **Medienspiegel / Gesellschaftstrends** | tägliche Presseschau bzw. Trends (sofern eingerichtet) |
+| **Audio extrahieren** | Reines Werkzeug ohne KI: Tonspur aus Video-/Audiodatei (bis 1 GB) per ffmpeg extrahieren, als MP3 herunterladen oder direkt an die Transkription weiterreichen |
 
 Manche Extras sind auf bestimmte Rollen beschränkt.
 

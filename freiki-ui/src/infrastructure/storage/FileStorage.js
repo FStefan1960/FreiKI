@@ -20,14 +20,34 @@ const upload = multer({
   }
 });
 
-// Für Sprachaufnahmen (Transkription)
+// Für Sprachaufnahmen (Transkription) - akzeptiert bewusst auch Video-Container (video/mp4,
+// video/quicktime, video/webm, video/x-matroska): ffmpeg in TranscriptionService.transcribeAudio()
+// wandelt jede Eingabedatei nach WAV um und verwirft dabei automatisch die Videospur, ein
+// separater Audio-Extraktionsschritt ist also nicht nötig.
 const uploadAudio = multer({
   dest: '/tmp/uploads/',
   limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['audio/mpeg','audio/wav','audio/ogg','audio/webm','audio/mp4','audio/x-m4a','audio/aac'];
+    const allowed = ['audio/mpeg','audio/wav','audio/ogg','audio/webm','audio/mp4','audio/x-m4a','audio/aac',
+      'video/mp4','video/quicktime','video/webm','video/x-matroska'];
     if (allowed.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Ungültiger Dateityp für Audio. Erlaubt: MP3, WAV, OGG, WEBM, M4A, AAC'), false);
+    else cb(new Error('Ungültiger Dateityp für Audio. Erlaubt: MP3, WAV, OGG, WEBM, M4A, AAC, MP4, MOV, MKV'), false);
+  }
+});
+
+// Für "Audio extrahieren" (reines ffmpeg-Utility, siehe AudioExtractionService.js) - eigenes,
+// deutlich höheres Limit als uploadAudio: Whisper-Transkription braucht die 200MB-Deckelung
+// wegen der Verarbeitungszeit, aber ein Rohvideo-Upload, aus dem nur die (kleine) Tonspur
+// gezogen wird, ist ein leichtgewichtiger ffmpeg-Durchlauf ohne diese Einschränkung - ein
+// paar Minuten iPhone-4K-Video sprengen die 200MB sonst locker.
+const uploadVideo = multer({
+  dest: '/tmp/uploads/',
+  limits: { fileSize: 1024 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['audio/mpeg','audio/wav','audio/ogg','audio/webm','audio/mp4','audio/x-m4a','audio/aac',
+      'video/mp4','video/quicktime','video/webm','video/x-matroska'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Ungültiger Dateityp. Erlaubt: MP3, WAV, OGG, WEBM, M4A, AAC, MP4, MOV, MKV'), false);
   }
 });
 
@@ -96,4 +116,4 @@ function startUploadCleanupSchedule() {
   setInterval(cleanupUploads, 6 * 60 * 60 * 1000).unref();
 }
 
-module.exports = { upload, uploadAudio, uploadDictation, uploadKB, uploadFormScan, uploadPptxTemplate, cleanupUploads, startUploadCleanupSchedule };
+module.exports = { upload, uploadAudio, uploadVideo, uploadDictation, uploadKB, uploadFormScan, uploadPptxTemplate, cleanupUploads, startUploadCleanupSchedule };

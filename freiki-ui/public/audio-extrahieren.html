@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transkription</title>
+  <title>Audio extrahieren</title>
   <link rel="icon" type="image/png" href="/app-icon-192.png">
   <style>
     @font-face {
@@ -118,52 +118,9 @@
 
     .file-selected.visible { display: flex; }
 
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 6px;
-    }
-
-    .email-row {
-      display: flex;
-      align-items: center;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 20px;
-      transition: border-color 0.2s;
-      background: #fff;
-    }
-
-    .email-row:focus-within { border-color: #2B9CD8; }
-
-    .email-row input[type="text"] {
-      flex: 1;
-      padding: 10px 12px;
-      border: none;
-      outline: none;
-      font-size: 14px;
-      font-family: inherit;
-      min-width: 0;
-    }
-
-    .email-suffix {
-      padding: 10px 12px;
-      background: #f3f4f6;
-      color: #6b7280;
-      font-size: 14px;
-      font-family: inherit;
-      white-space: nowrap;
-      border-left: 1px solid #d1d5db;
-      user-select: none;
-    }
-
     .hint {
       font-size: 12px;
       color: #9ca3af;
-      margin-top: -14px;
       margin-bottom: 20px;
     }
 
@@ -246,6 +203,24 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .action-btn {
+      display: inline-block;
+      margin-top: 12px;
+      margin-right: 8px;
+      padding: 9px 16px;
+      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .action-btn:hover:not(:disabled) { opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -255,27 +230,27 @@
   <div class="header">
     <img src="/icons/app-mark.svg" alt="">
     <div>
-      <h1>Transkription</h1>
-      <p>Audiodatei hochladen → Transkript per E-Mail</p>
+      <h1>Audio extrahieren</h1>
+      <p>Video-/Audiodatei hochladen → Tonspur als MP3 herunterladen</p>
     </div>
   </div>
 
-  <form id="transcribe-form">
+  <form id="extract-form">
 
     <div class="drop-zone" id="drop-zone">
-      <input type="file" id="audio-file" name="audio" accept=".m4a,.mp3,.wav,.mp4,.mov,.ogg,.webm,.mkv,.aac">
-      <div class="drop-icon">🎙️</div>
-      <div class="drop-text">Audiodatei hier ablegen oder klicken</div>
-      <div class="drop-sub">M4A, MP3, WAV, MP4, MOV, WEBM, MKV · max. 200 MB</div>
+      <input type="file" id="video-file" name="video" accept=".mp4,.mov,.webm,.mkv,.m4a,.mp3,.wav,.ogg,.aac">
+      <div class="drop-icon">🎵</div>
+      <div class="drop-text">Datei hier ablegen oder klicken</div>
+      <div class="drop-sub">MP4, MOV, WEBM, MKV, M4A, MP3, WAV · max. 1 GB</div>
     </div>
 
     <div class="file-selected" id="file-selected">
-      🎵 <span id="file-name"></span>
+      🎬 <span id="file-name"></span>
     </div>
 
-    <div class="hint" id="mail-hint">Das Transkript wird an Ihre hinterlegte E-Mail-Adresse gesendet.</div>
+    <div class="hint">Reines Werkzeug ohne KI: Die Tonspur wird per ffmpeg extrahiert und als MP3 direkt zum Download angeboten.</div>
 
-    <button type="submit" id="submit-btn">Transkription starten</button>
+    <button type="submit" id="submit-btn">Audio extrahieren</button>
 
   </form>
 
@@ -285,30 +260,23 @@
 </div>
 
 <script>
-  // Auth-Guard + hinterlegte E-Mail-Adresse anzeigen. Session-Cookie ist HttpOnly, daher
-  // entscheidet /api/me (Server-Rundruf) statt eines lokal gespeicherten Tokens.
+  // Auth-Guard: Session-Cookie ist HttpOnly, daher entscheidet /api/me (Server-Rundruf)
+  // statt eines lokal gespeicherten Tokens - anders als whisper.html brauchen wir hier
+  // keine hinterlegte E-Mail-Adresse, nur die Anmeldung selbst.
   (async function() {
     try {
       const r = await fetch('/api/me', { cache: 'no-store' });
       if (!r.ok) throw new Error('not logged in');
-      const me = await r.json();
-      const hint = document.getElementById('mail-hint');
-      if (me.email) {
-        hint.innerHTML = 'Das Transkript wird an <strong>' + me.email + '</strong> gesendet.';
-      } else {
-        hint.innerHTML = '⚠️ Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.';
-        document.getElementById('submit-btn').disabled = true;
-      }
     } catch (e) {
       if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
     }
   })();
 
   const dropZone = document.getElementById('drop-zone');
-  const fileInput = document.getElementById('audio-file');
+  const fileInput = document.getElementById('video-file');
   const fileSelected = document.getElementById('file-selected');
   const fileName = document.getElementById('file-name');
-  const form = document.getElementById('transcribe-form');
+  const form = document.getElementById('extract-form');
   const submitBtn = document.getElementById('submit-btn');
   const status = document.getElementById('status');
 
@@ -334,36 +302,88 @@
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const file = fileInput.files[0];
-    if (!file) { showStatus('error', 'Bitte eine Audiodatei auswählen.'); return; }
+    if (!file) { showStatus('error', 'Bitte eine Datei auswählen.'); return; }
 
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span>Wird hochgeladen…';
+    submitBtn.innerHTML = '<span class="spinner"></span>Wird verarbeitet…';
     status.className = 'status';
 
     const formData = new FormData();
-    formData.append('audio', file);
+    formData.append('video', file);
 
     try {
-      const res = await fetch('/api/transcribe', {
+      const res = await fetch('/api/extract-audio', {
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
 
-      if (res.ok && data.ok) {
-        showStatus('success', `✅ Datei empfangen!\n\nDas Transkript wird per E-Mail an Ihre hinterlegte Adresse gesendet. Je nach Länge der Aufnahme kann das 15–30 Minuten dauern.`);
+      const contentType = res.headers.get('Content-Type') || '';
+      if (!res.ok || contentType.includes('application/json')) {
+        const data = await res.json().catch(() => ({}));
+        showStatus('error', data.error || 'Unbekannter Fehler');
+      } else {
+        const blob = await res.blob();
+        const cd = res.headers.get('Content-Disposition') || '';
+        const match = cd.match(/filename="?([^"]+)"?/);
+        const downloadName = match ? match[1] : file.name.replace(/\.[^.]+$/, '') + '.mp3';
+
+        showResult(blob, downloadName);
         form.reset();
         fileSelected.classList.remove('visible');
-      } else {
-        showStatus('error', data.error || 'Unbekannter Fehler');
       }
     } catch (err) {
       showStatus('error', 'Verbindungsfehler: ' + err.message);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Transkription starten';
+      submitBtn.textContent = 'Audio extrahieren';
     }
   });
+
+  // Bewusst kein Auto-Download: die extrahierte MP3 liegt hier bereits als Blob im
+  // Speicher, "An Transkription senden" schickt genau dieses Blob per FormData an
+  // /api/transcribe weiter - kein Umweg über Download + erneuten Upload nötig.
+  function showResult(blob, filename) {
+    status.className = 'status success';
+    status.innerHTML = `✅ Fertig! „${escapeHtml(filename)}" ist bereit.<br>` +
+      `<button type="button" id="download-btn" class="action-btn">⬇️ Herunterladen</button>` +
+      `<button type="button" id="transcribe-btn" class="action-btn">🎙️ An Transkription senden</button>`;
+
+    document.getElementById('download-btn').onclick = () => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById('transcribe-btn').onclick = async () => {
+      const btn = document.getElementById('transcribe-btn');
+      btn.disabled = true;
+      btn.textContent = 'Wird gesendet…';
+      try {
+        const fd = new FormData();
+        fd.append('audio', blob, filename);
+        const r = await fetch('/api/transcribe', { method: 'POST', body: fd });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.ok) {
+          showStatus('success', '✅ An Transkription gesendet. Das Transkript wird per E-Mail an Ihre hinterlegte Adresse gesendet.');
+        } else {
+          showStatus('error', data.error || 'Unbekannter Fehler');
+        }
+      } catch (err) {
+        showStatus('error', 'Verbindungsfehler: ' + err.message);
+      }
+    };
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
 
   function showStatus(type, msg) {
     status.className = `status ${type}`;

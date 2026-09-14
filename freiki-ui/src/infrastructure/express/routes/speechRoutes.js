@@ -1,9 +1,10 @@
 const express = require('express');
 const fs = require('fs');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
-const { uploadAudio, uploadDictation } = require('../../../infrastructure/storage/FileStorage');
+const { uploadAudio, uploadVideo, uploadDictation } = require('../../../infrastructure/storage/FileStorage');
 const users = require('../../../core/auth/UserRepository');
 const { transcribeAndEmail, transcribeAudio } = require('../../../core/speech/TranscriptionService');
+const { extractAudioToMp3 } = require('../../../core/speech/AudioExtractionService');
 const TTSService = require('../../../core/speech/TTSService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
 const { recordChatEvent } = require('../../../jobs/usageStatsReport');
@@ -58,6 +59,37 @@ router.post('/api/dictate', uploadDictation.single('audio'), asyncHandler(async 
   } finally {
     fs.unlink(file.path, () => {});
   }
+}));
+
+// Extras-Menüpunkt "Audio extrahieren" - reines ffmpeg-Utility ohne KI/Whisper: liefert die
+// Tonspur synchron als MP3-Download zurück statt wie /api/transcribe per E-Mail. Eigenes
+// uploadVideo-Limit (1GB) statt uploadAudio (200MB), siehe FileStorage.js.
+router.post('/api/extract-audio', uploadVideo.single('video'), asyncHandler(async (req, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'Keine Datei' });
+
+  const s = getSession(req);
+  if (!s) { fs.unlink(file.path, () => {}); return res.status(401).json({ error: 'Bitte neu anmelden.' }); }
+
+  let mp3Path;
+  try {
+    mp3Path = await extractAudioToMp3(file.path);
+  } catch (e) {
+    console.error('Audio-Extraktion Fehler:', e.message);
+    fs.unlink(file.path, () => {});
+    return res.status(502).json({ error: 'Audio-Extraktion fehlgeschlagen' });
+  }
+
+  recordChatEvent({ user: s.username, mode: 'audio-extraktion', title: 'Audio extrahieren', hasFile: true });
+
+  const downloadName = file.originalname.replace(/\.[^.]+$/, '').replace(/["\r\n]/g, '') + '.mp3';
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+
+  const stream = fs.createReadStream(mp3Path);
+  stream.on('close', () => { fs.unlink(file.path, () => {}); fs.unlink(mp3Path, () => {}); });
+  stream.on('error', (e) => { console.error('extract-audio stream:', e.message); if (!res.headersSent) res.status(500).end(); });
+  stream.pipe(res);
 }));
 
 router.post('/api/tts', asyncHandler(async (req, res) => {
