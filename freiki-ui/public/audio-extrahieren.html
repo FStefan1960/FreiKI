@@ -221,6 +221,46 @@
     }
     .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .action-btn:hover:not(:disabled) { opacity: 0.9; }
+
+    .progress-wrap {
+      display: none;
+      margin-top: -6px;
+      margin-bottom: 20px;
+    }
+    .progress-wrap.visible { display: block; }
+
+    .progress-track {
+      background: #e5e7eb;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      height: 100%;
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    .progress-fill.indeterminate {
+      width: 100% !important;
+      background: linear-gradient(90deg, #bfdbfe, #2B9CD8, #bfdbfe);
+      background-size: 200% 100%;
+      animation: progress-slide 1.2s linear infinite;
+    }
+
+    @keyframes progress-slide {
+      from { background-position: 200% 0; }
+      to { background-position: -200% 0; }
+    }
+
+    .progress-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 6px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -249,6 +289,11 @@
     </div>
 
     <div class="hint">Reines Werkzeug ohne KI: Die Tonspur wird per ffmpeg extrahiert und als MP3 direkt zum Download angeboten.</div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-label" id="progress-label"></div>
+    </div>
 
     <button type="submit" id="submit-btn">Audio extrahieren</button>
 
@@ -279,6 +324,9 @@
   const form = document.getElementById('extract-form');
   const submitBtn = document.getElementById('submit-btn');
   const status = document.getElementById('status');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressFill = document.getElementById('progress-fill');
+  const progressLabel = document.getElementById('progress-label');
 
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) showFile(fileInput.files[0]);
@@ -299,45 +347,89 @@
     fileSelected.classList.add('visible');
   }
 
-  form.addEventListener('submit', async e => {
+  // XMLHttpRequest statt fetch: nur XHR liefert Upload-Fortschritt (xhr.upload.onprogress) -
+  // bei bis zu 1GB großen Videos über eine normale Internetleitung ist das der Teil, der
+  // tatsächlich lange dauert (ffmpeg-Extraktion selbst ist im Vergleich schnell).
+  form.addEventListener('submit', e => {
     e.preventDefault();
     const file = fileInput.files[0];
     if (!file) { showStatus('error', 'Bitte eine Datei auswählen.'); return; }
 
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span>Wird verarbeitet…';
+    submitBtn.innerHTML = '<span class="spinner"></span>Wird hochgeladen…';
     status.className = 'status';
+    status.innerHTML = '';
+    progressWrap.classList.add('visible');
+    setProgress(0, 'Wird hochgeladen… 0 %');
 
     const formData = new FormData();
     formData.append('video', file);
 
-    try {
-      const res = await fetch('/api/extract-audio', {
-        method: 'POST',
-        body: formData,
-      });
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/extract-audio');
+    xhr.responseType = 'blob';
 
-      const contentType = res.headers.get('Content-Type') || '';
-      if (!res.ok || contentType.includes('application/json')) {
-        const data = await res.json().catch(() => ({}));
-        showStatus('error', data.error || 'Unbekannter Fehler');
-      } else {
-        const blob = await res.blob();
-        const cd = res.headers.get('Content-Disposition') || '';
-        const match = cd.match(/filename="?([^"]+)"?/);
-        const downloadName = match ? match[1] : file.name.replace(/\.[^.]+$/, '') + '.mp3';
-
-        showResult(blob, downloadName);
-        form.reset();
-        fileSelected.classList.remove('visible');
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        const pct = Math.round((ev.loaded / ev.total) * 100);
+        setProgress(pct, `Wird hochgeladen… ${pct} %`);
       }
-    } catch (err) {
-      showStatus('error', 'Verbindungsfehler: ' + err.message);
-    } finally {
+    };
+
+    xhr.upload.onload = () => {
+      // Upload fertig, Server verarbeitet jetzt (ffmpeg) - kein Byte-Fortschritt dafür
+      // verfügbar, daher unbestimmter Lade-Balken statt einer erfundenen Prozentzahl.
+      progressFill.classList.add('indeterminate');
+      progressLabel.textContent = 'Wird verarbeitet…';
+      submitBtn.innerHTML = '<span class="spinner"></span>Wird verarbeitet…';
+    };
+
+    xhr.onload = () => {
+      progressWrap.classList.remove('visible');
+      progressFill.classList.remove('indeterminate');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Audio extrahieren';
-    }
+
+      const contentType = xhr.getResponseHeader('Content-Type') || '';
+      const isError = xhr.status < 200 || xhr.status >= 300 || contentType.includes('application/json');
+
+      if (isError) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          let data = {};
+          try { data = JSON.parse(reader.result); } catch (_) {}
+          showStatus('error', data.error || 'Unbekannter Fehler');
+        };
+        reader.onerror = () => showStatus('error', 'Unbekannter Fehler');
+        reader.readAsText(xhr.response);
+        return;
+      }
+
+      const blob = xhr.response;
+      const cd = xhr.getResponseHeader('Content-Disposition') || '';
+      const match = cd.match(/filename="?([^"]+)"?/);
+      const downloadName = match ? match[1] : file.name.replace(/\.[^.]+$/, '') + '.mp3';
+
+      showResult(blob, downloadName);
+      form.reset();
+      fileSelected.classList.remove('visible');
+    };
+
+    xhr.onerror = () => {
+      progressWrap.classList.remove('visible');
+      progressFill.classList.remove('indeterminate');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Audio extrahieren';
+      showStatus('error', 'Verbindungsfehler');
+    };
+
+    xhr.send(formData);
   });
+
+  function setProgress(pct, label) {
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = label;
+  }
 
   // Bewusst kein Auto-Download: die extrahierte MP3 liegt hier bereits als Blob im
   // Speicher, "An Transkription senden" schickt genau dieses Blob per FormData an
