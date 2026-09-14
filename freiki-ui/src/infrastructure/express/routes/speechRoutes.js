@@ -83,6 +83,32 @@ router.post('/api/extract-audio', uploadVideo.single('video'), asyncHandler(asyn
   recordChatEvent({ user: s.username, mode: 'audio-extraktion', title: 'Audio extrahieren', hasFile: true });
 
   const downloadName = file.originalname.replace(/\.[^.]+$/, '').replace(/["\r\n]/g, '') + '.mp3';
+
+  // Button "Audio danach transkribieren" (audio-extrahieren.html, Gegenstück zu "Audio
+  // extrahieren (Warten)"): statt die MP3 zum Download zurückzugeben, direkt in die
+  // bestehende /api/transcribe-Pipeline einspeisen (fire-and-forget, Antwort per E-Mail) -
+  // erspart den Umweg über einen zweiten, manuellen Upload-Klick samt Warten in der UI.
+  if (req.body && (req.body.transcribe === '1' || req.body.transcribe === 'true')) {
+    // Video-Temp-Datei hier löschen - transcribeAndEmail() räumt nur die ihr übergebene
+    // Datei (hier: die MP3) auf, siehe TranscriptionService.js.
+    fs.unlink(file.path, () => {});
+
+    let email = '';
+    try {
+      const profile = await users.findProfileById(s.uid);
+      email = (profile?.email || '').trim().toLowerCase();
+    } catch (e) { console.error('extract-audio email lookup:', e.message); }
+    if (!email) {
+      fs.unlink(mp3Path, () => {});
+      return res.status(400).json({ error: 'Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.' });
+    }
+
+    recordChatEvent({ user: s.username, mode: 'transkription', title: 'Transkription', hasFile: true });
+    res.json({ ok: true, message: 'Datei empfangen. Audio wird extrahiert, das Transkript per E-Mail gesendet.' });
+    transcribeAndEmail({ path: mp3Path, originalname: downloadName }, email); // fire-and-forget
+    return;
+  }
+
   res.setHeader('Content-Type', 'audio/mpeg');
   res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
 

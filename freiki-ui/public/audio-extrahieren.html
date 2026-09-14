@@ -124,12 +124,9 @@
       margin-bottom: 20px;
     }
 
-    button[type="submit"] {
+    .primary-btn, .secondary-btn {
       width: 100%;
       padding: 12px;
-      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
-      color: #fff;
-      border: none;
       border-radius: 10px;
       font-size: 15px;
       font-weight: 700;
@@ -138,8 +135,21 @@
       transition: opacity 0.2s;
     }
 
-    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
-    button[type="submit"]:hover:not(:disabled) { opacity: 0.9; }
+    .primary-btn {
+      background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
+      color: #fff;
+      border: none;
+      margin-bottom: 10px;
+    }
+
+    .secondary-btn {
+      background: #fff;
+      color: #1E3A8A;
+      border: 2px solid #bfdbfe;
+    }
+
+    .primary-btn:disabled, .secondary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .primary-btn:hover:not(:disabled), .secondary-btn:hover:not(:disabled) { opacity: 0.9; }
 
     .status {
       display: none;
@@ -261,6 +271,7 @@
       margin-top: 6px;
       text-align: center;
     }
+
   </style>
 </head>
 <body>
@@ -295,7 +306,8 @@
       <div class="progress-label" id="progress-label"></div>
     </div>
 
-    <button type="submit" id="submit-btn">Audio extrahieren</button>
+    <button type="button" id="extract-btn" class="primary-btn">Audio extrahieren (Warten)</button>
+    <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio danach transkribieren</button>
 
   </form>
 
@@ -322,11 +334,15 @@
   const fileSelected = document.getElementById('file-selected');
   const fileName = document.getElementById('file-name');
   const form = document.getElementById('extract-form');
-  const submitBtn = document.getElementById('submit-btn');
+  const extractBtn = document.getElementById('extract-btn');
+  const transcribeStartBtn = document.getElementById('transcribe-start-btn');
   const status = document.getElementById('status');
   const progressWrap = document.getElementById('progress-wrap');
   const progressFill = document.getElementById('progress-fill');
   const progressLabel = document.getElementById('progress-label');
+
+  const EXTRACT_LABEL = 'Audio extrahieren (Warten)';
+  const TRANSCRIBE_START_LABEL = 'Audio danach transkribieren';
 
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) showFile(fileInput.files[0]);
@@ -347,16 +363,25 @@
     fileSelected.classList.add('visible');
   }
 
+  extractBtn.addEventListener('click', () => startUpload(false));
+  transcribeStartBtn.addEventListener('click', () => startUpload(true));
+
   // XMLHttpRequest statt fetch: nur XHR liefert Upload-Fortschritt (xhr.upload.onprogress) -
   // bei bis zu 1GB großen Videos über eine normale Internetleitung ist das der Teil, der
   // tatsächlich lange dauert (ffmpeg-Extraktion selbst ist im Vergleich schnell).
-  form.addEventListener('submit', e => {
-    e.preventDefault();
+  //
+  // Zwei Buttons statt einer Checkbox: "Audio extrahieren (Warten)" liefert die MP3 synchron
+  // zum Download zurück (Nutzer wartet und sieht das Ergebnis), "Audio danach transkribieren"
+  // schickt transcribe=1 mit - der Server hängt die Transkription server-seitig fire-and-forget
+  // an (siehe speechRoutes.js) und antwortet sofort, das Transkript kommt später per E-Mail.
+  function startUpload(alsoTranscribe) {
     const file = fileInput.files[0];
     if (!file) { showStatus('error', 'Bitte eine Datei auswählen.'); return; }
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span>Wird hochgeladen…';
+    const activeBtn = alsoTranscribe ? transcribeStartBtn : extractBtn;
+    extractBtn.disabled = true;
+    transcribeStartBtn.disabled = true;
+    activeBtn.innerHTML = '<span class="spinner"></span>Wird hochgeladen…';
     status.className = 'status';
     status.innerHTML = '';
     progressWrap.classList.add('visible');
@@ -364,6 +389,7 @@
 
     const formData = new FormData();
     formData.append('video', file);
+    if (alsoTranscribe) formData.append('transcribe', '1');
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/extract-audio');
@@ -377,33 +403,47 @@
     };
 
     xhr.upload.onload = () => {
-      // Upload fertig, Server verarbeitet jetzt (ffmpeg) - kein Byte-Fortschritt dafür
-      // verfügbar, daher unbestimmter Lade-Balken statt einer erfundenen Prozentzahl.
+      // Upload fertig, Server verarbeitet jetzt (ffmpeg, ggf. + Transkriptions-Start) - kein
+      // Byte-Fortschritt dafür verfügbar, daher unbestimmter Lade-Balken statt einer
+      // erfundenen Prozentzahl.
       progressFill.classList.add('indeterminate');
       progressLabel.textContent = 'Wird verarbeitet…';
-      submitBtn.innerHTML = '<span class="spinner"></span>Wird verarbeitet…';
+      activeBtn.innerHTML = '<span class="spinner"></span>Wird verarbeitet…';
     };
 
     xhr.onload = () => {
       progressWrap.classList.remove('visible');
       progressFill.classList.remove('indeterminate');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Audio extrahieren';
+      extractBtn.disabled = false;
+      transcribeStartBtn.disabled = false;
+      extractBtn.textContent = EXTRACT_LABEL;
+      transcribeStartBtn.textContent = TRANSCRIBE_START_LABEL;
 
       const contentType = xhr.getResponseHeader('Content-Type') || '';
-      const isError = xhr.status < 200 || xhr.status >= 300 || contentType.includes('application/json');
+      const ok2xx = xhr.status >= 200 && xhr.status < 300;
 
-      if (isError) {
+      // JSON kommt in zwei Fällen zurück: Fehlermeldung (immer) ODER die sofortige
+      // Erfolgsbestätigung des Hintergrund-Transkriptionspfads (nur bei alsoTranscribe) -
+      // Content-Type allein unterscheidet das nicht, deshalb zusätzlich data.ok prüfen.
+      if (contentType.includes('application/json')) {
         const reader = new FileReader();
         reader.onload = () => {
           let data = {};
           try { data = JSON.parse(reader.result); } catch (_) {}
-          showStatus('error', data.error || 'Unbekannter Fehler');
+          if (ok2xx && data.ok) {
+            showStatus('success', '✅ ' + (data.message || 'Wird im Hintergrund verarbeitet.'));
+            form.reset();
+            fileSelected.classList.remove('visible');
+          } else {
+            showStatus('error', data.error || 'Unbekannter Fehler');
+          }
         };
         reader.onerror = () => showStatus('error', 'Unbekannter Fehler');
         reader.readAsText(xhr.response);
         return;
       }
+
+      if (!ok2xx) { showStatus('error', 'Unbekannter Fehler'); return; }
 
       const blob = xhr.response;
       const cd = xhr.getResponseHeader('Content-Disposition') || '';
@@ -418,13 +458,15 @@
     xhr.onerror = () => {
       progressWrap.classList.remove('visible');
       progressFill.classList.remove('indeterminate');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Audio extrahieren';
+      extractBtn.disabled = false;
+      transcribeStartBtn.disabled = false;
+      extractBtn.textContent = EXTRACT_LABEL;
+      transcribeStartBtn.textContent = TRANSCRIBE_START_LABEL;
       showStatus('error', 'Verbindungsfehler');
     };
 
     xhr.send(formData);
-  });
+  }
 
   function setProgress(pct, label) {
     progressFill.style.width = pct + '%';
