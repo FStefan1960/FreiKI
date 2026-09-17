@@ -189,10 +189,10 @@ Beim ersten Start legt die App die Tabelle `freiki_users` selbst an (`CREATE TAB
 
 ### Schritt 8a: Native Berichts-Module (optional)
 
-Wetterwarnungen (DWD), NINA-Gefahrenwarnungen, Tageslosung, IT-Sicherheitslage-Digest, Ressourcen-Alert, synthetischer Health-Check, Tagesbericht, vLLM-Signal-Monitor und Docker-Update-Check laufen als eingebaute Module (`freiki-ui/src/jobs/`), nicht mehr über n8n. Aktivierung ausschließlich per `.env` (siehe Feature-Flag-Tabelle oben):
+Wetterwarnungen (DWD), NINA-Gefahrenwarnungen, Tageslosung, IT-Sicherheitslage-Digest, Ressourcen-Alert, synthetischer Health-Check, Tagesbericht, vLLM-Telegram-Monitor und Docker-Update-Check laufen als eingebaute Module (`freiki-ui/src/jobs/`), nicht mehr über n8n. Aktivierung ausschließlich per `.env` (siehe Feature-Flag-Tabelle oben):
 - Wetterwarnungen/NINA: nur aktiv, wenn Koordinaten/AGS **und** Empfängerliste gesetzt sind
 - Tageslosung/IT-Sicherheitslage/synthetischer Health-Check/Docker-Update-Check: laufen automatisch, sobald `VLLM_URL`/`VLLM_MODEL` konfiguriert sind
-- vLLM-Signal-Monitor: nur aktiv, wenn `SIGNAL_PHONE` **und** `SIGNAL_APIKEY` gesetzt sind
+- vLLM-Telegram-Monitor: nur aktiv, wenn `TELEGRAM_BOT_TOKEN` **und** `TELEGRAM_CHAT_ID` gesetzt sind (Bot via @BotFather anlegen); synthetischer Health-Check nutzt bei Fehlern denselben Kanal zusätzlich zur E-Mail
 - Synthetischer Health-Check braucht zusätzlich einen dedizierten `healthcheck`-Testnutzer (`HEALTHCHECK_PASSWORD`) und testet echten Login+RAG-Chat über den eigenen HTTP-Endpunkt
 - Docker-Update-Check braucht `docker-compose.yml` lesbar im Container (siehe `docker-compose.example.yml`: Mount `./docker-compose.yml:/data/docker-compose.yml:ro` bei `freiki-ui`) sowie eine vorab angelegte leere `freiki-ui/docker-update-state.json` (Inhalt `{"digests":{}}`) auf dem Host — sonst legt Docker beim ersten Start ein Verzeichnis statt einer Datei an
 - Status/manueller Trigger: `GET /api/admin/jobs`, `POST /api/admin/jobs/:name/run` (Admin-Session nötig)

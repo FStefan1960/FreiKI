@@ -53,10 +53,12 @@ const config = {
   SMTP_PASS: process.env.SMTP_PASS || '',
   SMTP_FROM: process.env.SMTP_FROM || process.env.SMTP_USER || '',
 
-  // Signal-Alert bei vLLM-Ausfall (CallMeBot, siehe jobs/vllmSignalMonitor.js) - optional,
-  // Monitor bleibt inaktiv ohne beide Werte. Vorher hartkodiert im n8n-Workflow-JSON.
-  SIGNAL_PHONE: process.env.SIGNAL_PHONE || '',
-  SIGNAL_APIKEY: process.env.SIGNAL_APIKEY || '',
+  // Sofort-Alarm per Telegram (Bot API, siehe TelegramService.js) bei vLLM-Ausfall und
+  // fehlgeschlagenem synthetischem Health-Check - optional, Jobs bleiben inaktiv ohne beide
+  // Werte. Ersetzt einen nie scharf geschalteten Signal/CallMeBot-Versuch (SIGNAL_PHONE/
+  // SIGNAL_APIKEY fehlten auf KorKI in der Config, Monitor lief seither ins Leere).
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+  TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '',
 
   // Feste Adresse für Benachrichtigungen über neue Selbstregistrierungen (zusätzlich zu
   // allen Admin-Konten mit hinterlegter E-Mail, siehe UserRepository.listAdminEmails()) -

@@ -583,9 +583,9 @@ Nutzer mit `use_paperless = true` können das Archiv über den „Archiv durchsu
 | `statusReport.js` | Tagesbericht: Dienststatus → Mattermost |
 | `usageStatsReport.js` | Nutzungsstatistik-Auswertung fürs Admin-Dashboard |
 | `resourceHealthAlert.js` | Disk-/RAM-Warnung → Mattermost |
-| `syntheticHealthCheck.js` | Health-Check LLM/Embedding/RAG/Login/Archiv per echtem HTTP-Call gegen den eigenen Server; meldet nur bei Fehler |
+| `syntheticHealthCheck.js` | Health-Check LLM/Embedding/RAG/Login/Archiv per echtem HTTP-Call gegen den eigenen Server; meldet nur bei Fehler, per E-Mail und Telegram |
 | `workflowHealthCheck.js` | Prüft die Job-Registry: Mail an alle Admins bei überfälligem oder fehlgeschlagenem Job |
-| `vllmSignalMonitor.js` | vLLM-Down/Up-Alert per Signal (CallMeBot), braucht `SIGNAL_PHONE`/`SIGNAL_APIKEY` in `.env`, sonst inaktiv |
+| `vllmTelegramMonitor.js` | vLLM-Down/Up-Alert per Telegram, braucht `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` in `.env`, sonst inaktiv |
 | `gpuMetricsReport.js` | GPU-Momentaufnahme für den Tagesbericht (läuft auf Instanzen ohne lokales vLLM leer durch) |
 | `tageslosung.js` | Tageslosung-Extra, mehrsprachig |
 | `medienspiegel.js` / `gesellschaftstrends.js` | Content-Extras, instanzspezifisch |

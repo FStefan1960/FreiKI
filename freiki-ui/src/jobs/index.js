@@ -11,7 +11,7 @@ const sicherheitslage = require('./sicherheitslage');
 const resourceHealthAlert = require('./resourceHealthAlert');
 const syntheticHealthCheck = require('./syntheticHealthCheck');
 const statusReport = require('./statusReport');
-const vllmSignalMonitor = require('./vllmSignalMonitor');
+const vllmTelegramMonitor = require('./vllmTelegramMonitor');
 const dockerUpdateCheck = require('./dockerUpdateCheck');
 const feedbackReport = require('./feedbackReport');
 const usageStatsReport = require('./usageStatsReport');
@@ -32,9 +32,9 @@ function startJobs() {
   // syntheticHealthCheck.js (testLLM + testLoginAndRag sind reale Token-Roundtrips).
   scheduleEvery('syntheticHealthCheck', 60, syntheticHealthCheck.run);
   scheduleDaily('statusReport', 7, 0, statusReport.run);
-  scheduleEvery('vllmSignalMonitor', 5, vllmSignalMonitor.checkStatus);
-  scheduleDaily('vllmHeartbeat-morgens', 7, 30, vllmSignalMonitor.sendHeartbeat);
-  scheduleDaily('vllmHeartbeat-abends', 17, 30, vllmSignalMonitor.sendHeartbeat);
+  scheduleEvery('vllmTelegramMonitor', 5, vllmTelegramMonitor.checkStatus);
+  scheduleDaily('vllmHeartbeat-morgens', 7, 30, vllmTelegramMonitor.sendHeartbeat);
+  scheduleDaily('vllmHeartbeat-abends', 17, 30, vllmTelegramMonitor.sendHeartbeat);
   // Vereinheitlicht auf wöchentlich Fr 08:00 (Original: FreiKI wöchentlich, KorKI werktäglich -
   // täglich wäre für einen Update-Hinweis unnötig häufig und mehr externe API-Last).
   scheduleWeekly('dockerUpdateCheck', 5, 8, 0, dockerUpdateCheck.run);

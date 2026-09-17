@@ -8,6 +8,7 @@ const { fetchWithTimeout } = require('../shared/utils/text');
 const { getEmbeddings } = require('../core/knowledge/EmbeddingService');
 const users = require('../core/auth/UserRepository');
 const { sendReportMail } = require('../core/integrations/EmailService');
+const { sendTelegramMessage } = require('../core/integrations/TelegramService');
 const { getBrandConfig } = require('../shared/config/BrandConfig');
 
 const SELF_URL = `http://127.0.0.1:${config.PORT}`;
@@ -82,9 +83,11 @@ async function run() {
   }
   if (!errors.length) return;
 
+  const appName = getBrandConfig().name;
+  await sendTelegramMessage(`🚨 ${appName} Health-Check: ${errors.length} Problem(e)\n\n${errors.join('\n')}`);
+
   const recipients = await users.listAdminEmails();
   if (!recipients.length) return;
-  const appName = getBrandConfig().name;
   await sendReportMail(
     recipients,
     `[FEHLER] ${appName} Health-Check: ${errors.length} Problem(e)`,
