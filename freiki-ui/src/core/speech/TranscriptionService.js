@@ -70,6 +70,9 @@ async function transcribeAudio(filePath) {
 
 // Läuft asynchron im Hintergrund (fire-and-forget vom Route-Handler aus aufgerufen):
 // konvertiert Audio, transkribiert per Whisper, formatiert per vLLM, verschickt per Mail.
+// Die Originaldatei wird nur bei erfolgreichem Mailversand sofort gelöscht - schlägt
+// irgendein Schritt fehl, bleibt sie liegen (z.B. für einen manuellen Retry) und wird
+// spätestens nach 24h vom generischen Upload-Cleanup (FileStorage.cleanupUploads) entsorgt.
 async function transcribeAndEmail(file, email) {
   try {
     console.log(`Transkription gestartet: ${file.originalname}`);
@@ -81,6 +84,7 @@ async function transcribeAndEmail(file, email) {
 
     await sendTranscriptMail(email, file.originalname, formatted);
     console.log('Transkript gesendet.');
+    fs.unlink(file.path, () => {});
   } catch (e) {
     console.error('Transkription Fehler:', e.message);
     try {
@@ -88,8 +92,6 @@ async function transcribeAndEmail(file, email) {
     } catch (mailErr) {
       console.error('Fehler-Mail fehlgeschlagen:', mailErr.message);
     }
-  } finally {
-    fs.unlink(file.path, () => {});
   }
 }
 
