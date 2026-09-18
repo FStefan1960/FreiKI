@@ -3,7 +3,7 @@ const fs = require('fs');
 const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { uploadAudio, uploadVideo, uploadDictation } = require('../../../infrastructure/storage/FileStorage');
 const users = require('../../../core/auth/UserRepository');
-const { transcribeAndEmail, transcribeAudio } = require('../../../core/speech/TranscriptionService');
+const { transcribeAndEmail, transcribeStructureAndEmail, transcribeAudio } = require('../../../core/speech/TranscriptionService');
 const { extractAudioToMp3 } = require('../../../core/speech/AudioExtractionService');
 const TTSService = require('../../../core/speech/TTSService');
 const { asyncHandler } = require('../../../shared/utils/asyncHandler');
@@ -103,9 +103,18 @@ router.post('/api/extract-audio', uploadVideo.single('video'), asyncHandler(asyn
       return res.status(400).json({ error: 'Für Ihr Konto ist keine E-Mail-Adresse hinterlegt. Bitte an die Administration wenden.' });
     }
 
-    recordChatEvent({ user: s.username, mode: 'transkription', title: 'Transkription', hasFile: true });
-    res.json({ ok: true, message: 'Datei empfangen. Audio wird extrahiert, das Transkript per E-Mail gesendet.' });
-    transcribeAndEmail({ path: mp3Path, originalname: downloadName }, email); // fire-and-forget
+    // Dritter Button "Extrahieren, Transkribieren & Formatieren" schickt zusätzlich format=1 -
+    // eigener recordChatEvent-Modus, damit der Tagesbericht die beiden Varianten unterscheidet.
+    const wantsFormat = req.body.format === '1' || req.body.format === 'true';
+    if (wantsFormat) {
+      recordChatEvent({ user: s.username, mode: 'transkription-formatiert', title: 'Transkription (formatiert)', hasFile: true });
+      res.json({ ok: true, message: 'Datei empfangen. Audio wird extrahiert, Transkript und formatiertes Word-Dokument werden per E-Mail gesendet.' });
+      transcribeStructureAndEmail({ path: mp3Path, originalname: downloadName }, email); // fire-and-forget
+    } else {
+      recordChatEvent({ user: s.username, mode: 'transkription', title: 'Transkription', hasFile: true });
+      res.json({ ok: true, message: 'Datei empfangen. Audio wird extrahiert, das Transkript per E-Mail gesendet.' });
+      transcribeAndEmail({ path: mp3Path, originalname: downloadName }, email); // fire-and-forget
+    }
     return;
   }
 

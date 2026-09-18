@@ -135,11 +135,13 @@
       transition: opacity 0.2s;
     }
 
+    .primary-btn, .secondary-btn { margin-bottom: 10px; }
+    .primary-btn:last-of-type, .secondary-btn:last-of-type { margin-bottom: 0; }
+
     .primary-btn {
       background: linear-gradient(135deg, #1E3A8A, #2B9CD8);
       color: #fff;
       border: none;
-      margin-bottom: 10px;
     }
 
     .secondary-btn {
@@ -299,7 +301,7 @@
       🎬 <span id="file-name"></span>
     </div>
 
-    <div class="hint">Reines Werkzeug ohne KI: Die Tonspur wird per ffmpeg extrahiert und als MP3 direkt zum Download angeboten.</div>
+    <div class="hint">Die Tonspur wird per ffmpeg extrahiert (ohne KI). „Extrahieren, Transkribieren &amp; Formatieren" nutzt zusätzlich das Sprachmodell, um Themen, Termine und ToDos herauszuarbeiten.</div>
 
     <div class="progress-wrap" id="progress-wrap">
       <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
@@ -308,6 +310,7 @@
 
     <button type="button" id="extract-btn" class="primary-btn">Audio extrahieren (Warten)</button>
     <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio direkt transkribieren</button>
+    <button type="button" id="format-start-btn" class="secondary-btn">Extrahieren, Transkribieren &amp; Formatieren</button>
 
   </form>
 
@@ -336,13 +339,16 @@
   const form = document.getElementById('extract-form');
   const extractBtn = document.getElementById('extract-btn');
   const transcribeStartBtn = document.getElementById('transcribe-start-btn');
+  const formatStartBtn = document.getElementById('format-start-btn');
   const status = document.getElementById('status');
   const progressWrap = document.getElementById('progress-wrap');
   const progressFill = document.getElementById('progress-fill');
   const progressLabel = document.getElementById('progress-label');
 
+  const ALL_BUTTONS = [extractBtn, transcribeStartBtn, formatStartBtn];
   const EXTRACT_LABEL = 'Audio extrahieren (Warten)';
   const TRANSCRIBE_START_LABEL = 'Audio direkt transkribieren';
+  const FORMAT_START_LABEL = 'Extrahieren, Transkribieren & Formatieren';
 
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) showFile(fileInput.files[0]);
@@ -363,24 +369,33 @@
     fileSelected.classList.add('visible');
   }
 
-  extractBtn.addEventListener('click', () => startUpload(false));
-  transcribeStartBtn.addEventListener('click', () => startUpload(true));
+  extractBtn.addEventListener('click', () => startUpload('extract'));
+  transcribeStartBtn.addEventListener('click', () => startUpload('transcribe'));
+  formatStartBtn.addEventListener('click', () => startUpload('format'));
+
+  function resetButtonLabels() {
+    extractBtn.textContent = EXTRACT_LABEL;
+    transcribeStartBtn.textContent = TRANSCRIBE_START_LABEL;
+    formatStartBtn.textContent = FORMAT_START_LABEL;
+  }
 
   // XMLHttpRequest statt fetch: nur XHR liefert Upload-Fortschritt (xhr.upload.onprogress) -
   // bei bis zu 1GB großen Videos über eine normale Internetleitung ist das der Teil, der
   // tatsächlich lange dauert (ffmpeg-Extraktion selbst ist im Vergleich schnell).
   //
-  // Zwei Buttons statt einer Checkbox: "Audio extrahieren (Warten)" liefert die MP3 synchron
-  // zum Download zurück (Nutzer wartet und sieht das Ergebnis), "Audio direkt transkribieren"
-  // schickt transcribe=1 mit - der Server hängt die Transkription server-seitig fire-and-forget
-  // an (siehe speechRoutes.js) und antwortet sofort, das Transkript kommt später per E-Mail.
-  function startUpload(alsoTranscribe) {
+  // Drei Buttons statt einer Checkbox: "Audio extrahieren (Warten)" liefert die MP3 synchron
+  // zum Download zurück (Nutzer wartet und sieht das Ergebnis). "Audio direkt transkribieren"
+  // und "Extrahieren, Transkribieren & Formatieren" schicken transcribe=1 (bzw. zusätzlich
+  // format=1) mit - der Server hängt Transkription bzw. Transkription+Themen-/Termine-/ToDo-
+  // Gliederung+Word-Export server-seitig fire-and-forget an (siehe speechRoutes.js) und
+  // antwortet sofort, das Ergebnis kommt später per E-Mail (bei "Formatieren" als zwei
+  // separate Mails: Rohtranskript zuerst, danach das Word-Dokument).
+  function startUpload(mode) {
     const file = fileInput.files[0];
     if (!file) { showStatus('error', 'Bitte eine Datei auswählen.'); return; }
 
-    const activeBtn = alsoTranscribe ? transcribeStartBtn : extractBtn;
-    extractBtn.disabled = true;
-    transcribeStartBtn.disabled = true;
+    const activeBtn = mode === 'format' ? formatStartBtn : mode === 'transcribe' ? transcribeStartBtn : extractBtn;
+    ALL_BUTTONS.forEach(b => { b.disabled = true; });
     activeBtn.innerHTML = '<span class="spinner"></span>Wird hochgeladen…';
     status.className = 'status';
     status.innerHTML = '';
@@ -389,7 +404,8 @@
 
     const formData = new FormData();
     formData.append('video', file);
-    if (alsoTranscribe) formData.append('transcribe', '1');
+    if (mode === 'transcribe' || mode === 'format') formData.append('transcribe', '1');
+    if (mode === 'format') formData.append('format', '1');
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/extract-audio');
@@ -403,8 +419,8 @@
     };
 
     xhr.upload.onload = () => {
-      // Upload fertig, Server verarbeitet jetzt (ffmpeg, ggf. + Transkriptions-Start) - kein
-      // Byte-Fortschritt dafür verfügbar, daher unbestimmter Lade-Balken statt einer
+      // Upload fertig, Server verarbeitet jetzt (ffmpeg, ggf. + Transkription/Formatierung) -
+      // kein Byte-Fortschritt dafür verfügbar, daher unbestimmter Lade-Balken statt einer
       // erfundenen Prozentzahl.
       progressFill.classList.add('indeterminate');
       progressLabel.textContent = 'Wird verarbeitet…';
@@ -414,17 +430,15 @@
     xhr.onload = () => {
       progressWrap.classList.remove('visible');
       progressFill.classList.remove('indeterminate');
-      extractBtn.disabled = false;
-      transcribeStartBtn.disabled = false;
-      extractBtn.textContent = EXTRACT_LABEL;
-      transcribeStartBtn.textContent = TRANSCRIBE_START_LABEL;
+      ALL_BUTTONS.forEach(b => { b.disabled = false; });
+      resetButtonLabels();
 
       const contentType = xhr.getResponseHeader('Content-Type') || '';
       const ok2xx = xhr.status >= 200 && xhr.status < 300;
 
       // JSON kommt in zwei Fällen zurück: Fehlermeldung (immer) ODER die sofortige
-      // Erfolgsbestätigung des Hintergrund-Transkriptionspfads (nur bei alsoTranscribe) -
-      // Content-Type allein unterscheidet das nicht, deshalb zusätzlich data.ok prüfen.
+      // Erfolgsbestätigung eines Hintergrund-Pfads (transcribe/format) - Content-Type allein
+      // unterscheidet das nicht, deshalb zusätzlich data.ok prüfen.
       if (contentType.includes('application/json')) {
         const reader = new FileReader();
         reader.onload = () => {
@@ -458,10 +472,8 @@
     xhr.onerror = () => {
       progressWrap.classList.remove('visible');
       progressFill.classList.remove('indeterminate');
-      extractBtn.disabled = false;
-      transcribeStartBtn.disabled = false;
-      extractBtn.textContent = EXTRACT_LABEL;
-      transcribeStartBtn.textContent = TRANSCRIBE_START_LABEL;
+      ALL_BUTTONS.forEach(b => { b.disabled = false; });
+      resetButtonLabels();
       showStatus('error', 'Verbindungsfehler');
     };
 

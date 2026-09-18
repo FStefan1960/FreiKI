@@ -125,6 +125,32 @@ async function sendTranscriptFailureMail(to, errorMessage) {
   });
 }
 
+// Zweite, eigenständige Mail für den Button "Extrahieren, Transkribieren & Formatieren"
+// (audio-extrahieren.html) - kommt zusätzlich zur normalen Transkript-Mail (sendTranscriptMail),
+// nicht statt ihr, siehe transcribeStructureAndEmail() in TranscriptionService.js.
+async function sendStructuredTranscriptMail(to, originalFilename, docxBuffer) {
+  const brand = getBrandConfig();
+  const transporter = createTransporter();
+  const filename = (originalFilename || 'aufnahme').replace(/\.[^.]+$/, '') + '_Protokoll.docx';
+  await transporter.sendMail({
+    from: `${brand.name} Transkription <${config.SMTP_FROM}>`,
+    to,
+    subject: `Protokoll (formatiert): ${originalFilename || 'Aufnahme'}`,
+    text: `Hallo,\n\nanbei die strukturierte Word-Fassung deiner Aufnahme mit Termine- und ToDo-Übersicht.\n\nDas Rohtranskript hast du bereits in einer separaten E-Mail erhalten.\n\nViele Grüße\n${brand.name}`,
+    attachments: [{ filename, content: docxBuffer, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }]
+  });
+}
+
+async function sendStructureFailureMail(to, errorMessage) {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `${getBrandConfig().name} Transkription <${config.SMTP_FROM}>`,
+    to,
+    subject: 'Formatierte Fassung konnte nicht erstellt werden',
+    text: `Das Rohtranskript deiner Aufnahme hast du bereits per E-Mail erhalten. Die zusätzliche strukturierte Word-Fassung (Themen, Termine, ToDos) konnte leider nicht erstellt werden.\n\nFehler: ${errorMessage}\n\nBitte wende dich an den Administrator, falls das öfter passiert.`
+  });
+}
+
 async function sendSensitiveQueryReportMail(to, entries) {
   if (!to || !to.length || !config.SMTP_HOST) return;
   const brand = getBrandConfig();
@@ -217,4 +243,4 @@ async function sendReportMail(to, subject, { text, html } = {}) {
   });
 }
 
-module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendPasswordResetMail, sendTranscriptMail, sendTranscriptFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail, findHandbuchPath };
+module.exports = { sendWelcomeMail, sendBgtWelcomeMail, sendPasswordResetMail, sendTranscriptMail, sendTranscriptFailureMail, sendStructuredTranscriptMail, sendStructureFailureMail, sendSensitiveQueryReportMail, sendRegistrationNotificationMail, sendReportMail, findHandbuchPath };
