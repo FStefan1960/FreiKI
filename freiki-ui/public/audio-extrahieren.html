@@ -309,8 +309,8 @@
     </div>
 
     <button type="button" id="extract-btn" class="primary-btn">Audio extrahieren (Warten)</button>
-    <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio direkt transkribieren</button>
-    <button type="button" id="format-start-btn" class="secondary-btn">Extrahieren, Transkribieren &amp; Formatieren</button>
+    <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio direkt transkribieren (Ergebnis per Mail)</button>
+    <button type="button" id="format-start-btn" class="secondary-btn">Extrahieren, Transkribieren &amp; Formatieren (Ergebnis per Mail)</button>
 
   </form>
 
@@ -347,8 +347,8 @@
 
   const ALL_BUTTONS = [extractBtn, transcribeStartBtn, formatStartBtn];
   const EXTRACT_LABEL = 'Audio extrahieren (Warten)';
-  const TRANSCRIBE_START_LABEL = 'Audio direkt transkribieren';
-  const FORMAT_START_LABEL = 'Extrahieren, Transkribieren & Formatieren';
+  const TRANSCRIBE_START_LABEL = 'Audio direkt transkribieren (Ergebnis per Mail)';
+  const FORMAT_START_LABEL = 'Extrahieren, Transkribieren & Formatieren (Ergebnis per Mail)';
 
   fileInput.addEventListener('change', () => {
     if (fileInput.files[0]) showFile(fileInput.files[0]);
