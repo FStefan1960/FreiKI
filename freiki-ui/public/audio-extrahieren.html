@@ -274,6 +274,40 @@
       text-align: center;
     }
 
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 24px;
+    }
+    .modal-overlay.visible { display: flex; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px;
+      max-width: 380px;
+      width: 100%;
+      box-shadow: 0 12px 40px rgba(15,23,42,0.25);
+    }
+    .modal-box .modal-icon { font-size: 28px; margin-bottom: 10px; }
+    .modal-box h2 {
+      font-size: 16px;
+      color: #1E3A8A;
+      margin-bottom: 10px;
+    }
+    .modal-box p {
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .modal-box .primary-btn { margin-bottom: 0; }
+
   </style>
 </head>
 <body>
@@ -309,14 +343,23 @@
     </div>
 
     <button type="button" id="extract-btn" class="primary-btn">Audio extrahieren (Warten)</button>
-    <button type="button" id="transcribe-start-btn" class="secondary-btn">Audio direkt transkribieren (Ergebnis per Mail)</button>
-    <button type="button" id="format-start-btn" class="secondary-btn">Extrahieren, Transkribieren &amp; Formatieren (Ergebnis per Mail)</button>
+    <button type="button" id="transcribe-start-btn" class="primary-btn">Audio direkt transkribieren (Ergebnis per Mail)</button>
+    <button type="button" id="format-start-btn" class="primary-btn">Extrahieren, Transkribieren &amp; Formatieren (Ergebnis per Mail)</button>
 
   </form>
 
   <div class="status" id="status"></div>
 
   <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<div class="modal-overlay" id="gpu-modal-overlay">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <h2>Funktion nicht verfügbar</h2>
+    <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
+    <button type="button" class="primary-btn" id="gpu-modal-close">Verstanden</button>
+  </div>
 </div>
 
 <script>
@@ -369,9 +412,16 @@
     fileSelected.classList.add('visible');
   }
 
+  const gpuModalOverlay = document.getElementById('gpu-modal-overlay');
+  const showGpuModal = () => { gpuModalOverlay.classList.add('visible'); };
+  document.getElementById('gpu-modal-close').addEventListener('click', () => { gpuModalOverlay.classList.remove('visible'); });
+  gpuModalOverlay.addEventListener('click', (e) => { if (e.target === gpuModalOverlay) gpuModalOverlay.classList.remove('visible'); });
+
   extractBtn.addEventListener('click', () => startUpload('extract'));
-  transcribeStartBtn.addEventListener('click', () => startUpload('transcribe'));
-  formatStartBtn.addEventListener('click', () => startUpload('format'));
+  // Transkription braucht Whisper mit GPU (siehe KorKI) - dieser Testserver hat keine GPU,
+  // CPU-only-Transkription blockiert bei längeren Dateien den ganzen Whisper-Dienst.
+  transcribeStartBtn.addEventListener('click', showGpuModal);
+  formatStartBtn.addEventListener('click', showGpuModal);
 
   function resetButtonLabels() {
     extractBtn.textContent = EXTRACT_LABEL;
@@ -505,24 +555,7 @@
       URL.revokeObjectURL(url);
     };
 
-    document.getElementById('transcribe-btn').onclick = async () => {
-      const btn = document.getElementById('transcribe-btn');
-      btn.disabled = true;
-      btn.textContent = 'Wird gesendet…';
-      try {
-        const fd = new FormData();
-        fd.append('audio', blob, filename);
-        const r = await fetch('/api/transcribe', { method: 'POST', body: fd });
-        const data = await r.json().catch(() => ({}));
-        if (r.ok && data.ok) {
-          showStatus('success', '✅ An Transkription gesendet. Das Transkript wird per E-Mail an Ihre hinterlegte Adresse gesendet.');
-        } else {
-          showStatus('error', data.error || 'Unbekannter Fehler');
-        }
-      } catch (err) {
-        showStatus('error', 'Verbindungsfehler: ' + err.message);
-      }
-    };
+    document.getElementById('transcribe-btn').onclick = showGpuModal;
   }
 
   function escapeHtml(s) {

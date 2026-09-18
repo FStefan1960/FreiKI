@@ -3,7 +3,6 @@ Anda juga dapat mengunggah foto – {{APP_NAME}} akan membaca teksnya melalui OC
 Di bawah setiap jawaban Anda akan menemukan "🔊 Bacakan" – {{APP_NAME}} akan membacakan jawabannya dalam bahasa yang Anda pilih.
 Dengan "Bahasa Sederhana", Anda dapat meminta teks ditulis ulang secara sederhana dan mudah dipahami.
 Di "Piktogram" Anda akan menemukan kartu gambar untuk diunduh atau dicetak (ARASAAC).
-Rekaman audio dapat diubah menjadi teks melalui "Transkripsi" – hasilnya akan dikirim melalui email.
 Dengan "MultiDoc" Anda dapat membandingkan atau meringkas beberapa dokumen sekaligus.
 Anda dapat menambahkan {{APP_NAME}} ke layar utama dan menjalankannya seperti aplikasi.
 Gunakan ikon gembok di kiri bawah untuk mengubah kata sandi Anda.

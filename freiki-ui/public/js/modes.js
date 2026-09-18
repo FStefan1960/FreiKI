@@ -214,7 +214,6 @@ async function loadModes() {
     // Fest eingebaute Panel-Werkzeuge (bei allen Instanzen gleich)
     const builtinTools = [
       { panel: '/scanner.html', icon: '📷', title: t('tools.scanner.title', 'QR/Barcode-Scanner'), desc: t('tools.scanner.desc', 'Code mit der Kamera scannen') },
-      { panel: '/whisper.html', icon: '🎙️', title: t('tools.transcription.title', 'Transkription'), desc: t('tools.transcription.desc', 'Audio → Text per E-Mail') },
       { panel: '/formular-chat.html', icon: '📋', title: t('tools.form_chat.title', 'Formular-Chat'), desc: t('tools.form_chat.desc', 'Formular per Dialog ausfüllen & drucken') },
     ];
     if (['admin', 'manager'].includes(State.currentRole)) {

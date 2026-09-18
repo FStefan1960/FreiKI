@@ -3,7 +3,6 @@ Azonao atao ihany koa ny mampiditra sary – ny {{APP_NAME}} dia mamaky ny sorat
 Eo ambanin'ny valiny tsirairay dia hahita ianao ny "🔊 Vakio mafy" – ny {{APP_NAME}} dia mamaky aminao ny valiny amin'ny fiteny nofidianao.
 Amin'ny alalan'ny "Fiteny tsotra" dia azonao atao ny mangataka soratra averina amin'ny fomba tsotra sy mazava.
 Ao amin'ny "Pictogramme" dia hahita sary kaarty azo alaina na aprinty ianao (ARASAAC).
-Ny rakitra feo dia azo ovaina ho soratra amin'ny alalan'ny "Transcription" – ny valiny dia alefa aminao amin'ny mailaka.
 Amin'ny alalan'ny "MultiDoc" dia azonao atao ny mampitaha na manao famintinana antontan-taratasy maromaro miaraka.
 Azonao atao ny manampy ny {{APP_NAME}} amin'ny efijery fandraisana ary manomboka azy toy ny rindrankajy.
 Ampiasao ny kisarisary kavina eo ambany havia mba hanovana ny tenimiafinao.

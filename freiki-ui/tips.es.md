@@ -3,7 +3,6 @@ También puede subir fotos – {{APP_NAME}} extrae el texto mediante OCR.
 Debajo de cada respuesta encontrará «🔊 Leer en voz alta» – {{APP_NAME}} le lee la respuesta en el idioma seleccionado.
 Con «Lenguaje sencillo» puede hacer que los textos se reescriban de forma clara y comprensible.
 En «Pictogramas» encontrará tarjetas ilustradas para descargar o imprimir (ARASAAC).
-Una grabación de audio se puede convertir en texto con «Transcripción» – recibirá el resultado por correo electrónico.
 Con «MultiDoc» puede comparar o resumir varios documentos a la vez.
 Puede añadir {{APP_NAME}} a su pantalla de inicio e iniciarlo como una aplicación.
 Use el icono del candado abajo a la izquierda para cambiar su contraseña.

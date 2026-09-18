@@ -3,7 +3,6 @@ You can also upload photos – {{APP_NAME}} extracts the text using OCR.
 Under every answer you'll find "🔊 Read aloud" – {{APP_NAME}} reads the answer to you in your selected language.
 With "Simple language" you can have texts rewritten in an easy, clear style.
 Under "Pictograms" you'll find picture cards to download or print (ARASAAC).
-An audio recording can be turned into text via "Transcription" – you'll receive the result by email.
 With "MultiDoc" you can compare or summarize several documents at once.
 You can add {{APP_NAME}} to your home screen and launch it like an app.
 Use the lock icon in the bottom left to change your password.

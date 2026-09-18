@@ -128,8 +128,6 @@
   "js.png_export_failed": "Tsy nahomby ny fanondranana PNG. Jereo ny console navigateur mba hahazoana antsipiriany.",
   "tools.scanner.title": "Mpamaky QR/Barcode",
   "tools.scanner.desc": "Hamaky kaody amin'ny kamera",
-  "tools.transcription.title": "Fandikan-teny",
-  "tools.transcription.desc": "Feo → lahatsoratra amin'ny mailaka",
   "tools.form_chat.title": "Resadresaka Taratasy",
   "tools.form_chat.desc": "Fenoy sy tontay taratasy amin'ny alalan'ny resadresaka",
   "tools.form_templates.title": "Modely Taratasy",

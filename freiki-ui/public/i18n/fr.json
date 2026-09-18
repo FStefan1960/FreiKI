@@ -128,8 +128,6 @@
   "js.png_export_failed": "L'exportation en PNG a échoué. Veuillez consulter la console du navigateur pour plus de détails.",
   "tools.scanner.title": "Scanner QR/code-barres",
   "tools.scanner.desc": "Scanner un code avec l'appareil photo",
-  "tools.transcription.title": "Transcription",
-  "tools.transcription.desc": "Audio → texte par e-mail",
   "tools.form_chat.title": "Chat de formulaire",
   "tools.form_chat.desc": "Remplir et imprimer un formulaire par dialogue",
   "tools.form_templates.title": "Modèles de formulaires",

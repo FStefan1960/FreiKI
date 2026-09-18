@@ -128,8 +128,6 @@
   "js.png_export_failed": "PNG export failed. Please check the browser console for details.",
   "tools.scanner.title": "QR/Barcode Scanner",
   "tools.scanner.desc": "Scan a code with the camera",
-  "tools.transcription.title": "Transcription",
-  "tools.transcription.desc": "Audio → text by email",
   "tools.form_chat.title": "Form Chat",
   "tools.form_chat.desc": "Fill out and print a form via dialogue",
   "tools.form_templates.title": "Form Templates",

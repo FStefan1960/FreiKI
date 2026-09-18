@@ -50,7 +50,7 @@ FreiKI läuft im Browser – keine Installation notwendig. Unterstützte Browser
 - **Shift+Enter** erzeugt immer einen Absatz.
 - **Büroklammer:** Datei anhängen (PDF, DOCX, TXT, Bilder; je nach Werkzeug auch mehrere Dateien). Auf dem Smartphone kann der Upload die Kamera öffnen.
 - **Einfügen:** Inhalt aus der Zwischenablage.
-- **Mikrofon** (falls sichtbar): kurze Spracheingabe direkt in die Eingabezeile (Diktat). Lange Aufnahmen gehören ins Werkzeug *Transkription*.
+- **Mikrofon** (falls sichtbar): kurze Spracheingabe direkt in die Eingabezeile (Diktat).
 - Dateien können per **Drag & Drop** ins Eingabefeld gezogen werden. Bei Werkzeugen mit Mehrfachdokumenten kommen so angehängte Dateien **hinzu**, statt eine vorherige Auswahl zu ersetzen.
 - **Stopp:** Während eine Antwort noch geschrieben wird, bricht ein Stopp-Button die laufende Generierung sofort ab.
 
@@ -161,9 +161,9 @@ Manager können in freigegebene Bereiche Dokumente hochladen (über die von der 
 
 ---
 
-## 6. Scanner, Formular-Chat und Transkription
+## 6. Scanner und Formular-Chat
 
-Diese drei Einträge sitzen fest unter **Werkzeuge** (eigene Bildschirmseiten, nicht der normale Chat).
+Diese Einträge sitzen fest unter **Werkzeuge** (eigene Bildschirmseiten, nicht der normale Chat).
 
 ### 6.1 QR-/Barcode-Scanner
 
@@ -185,14 +185,6 @@ Wählen Sie eine aktive Vorlage (z. B. einen Antrag). Vor dem eigentlichen Dialo
 
 Neue Vorlagen legen **Admins und Manager** unter *Formular-Vorlagen* an: Scan hochladen (PDF/JPG/PNG), Felder auf dem Scan markieren, Fragen formulieren, Haken „Formular ist aktiv“.
 
-### 6.3 Transkription (Audio → Text per E-Mail)
-
-Lange Aufnahmen hier hochladen. FreiKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows). Akzeptiert werden M4A, MP3, WAV, MP4, MOV, WEBM und MKV bis 200 MB – auch Videos können direkt hochgeladen werden, FreiKI zieht automatisch nur die Tonspur heraus.
-
-Kurzes Diktieren in den Chat geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug.
-
-Ist die Videodatei größer als 200 MB (z. B. ein mehrminütiger 4K-Clip vom Smartphone), hilft das Extras-Werkzeug **Audio extrahieren** (siehe Abschnitt 7) weiter: Es akzeptiert bis zu 1 GB und schneidet die Tonspur per ffmpeg heraus. Button „Audio extrahieren (Warten)" liefert die MP3 direkt zum Herunterladen, Button „Audio direkt transkribieren (Ergebnis per Mail)" schickt sie ohne Download und erneuten Upload gleich zur Transkription weiter. Button „Extrahieren, Transkribieren & Formatieren (Ergebnis per Mail)" geht noch einen Schritt weiter: Zusätzlich zum Rohtranskript kommt eine zweite E-Mail mit einer nach Themen gegliederten Word-Datei, die erkannte Termine und ToDos als eigene Listen zusammenfasst (echte Sprechertrennung ist technisch nicht möglich, bei erkennbarem Dialog kennzeichnet das Sprachmodell Redebeiträge bestenfalls mit generischen Labels wie „Sprecher A/B").
-
 ---
 
 ## 7. Extras
@@ -207,7 +199,7 @@ Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt ha
 | **Medizin-Literatursuche** | Ein Suchbegriff, sieben medizinische Datenbanken: PubMed, Europe PMC und ClinicalTrials.gov liefern Treffer direkt in der App; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet. Anführungszeichen suchen die exakte Wortfolge (z. B. „Diakonie Kork"), AND/OR (groß geschrieben) verknüpfen mehrere Begriffe. ⚠️ Der Suchbegriff geht dafür direkt aus dem Browser an diese externen Dienste – keine Patienten- oder Klientendaten eingeben. |
 | **IT-Sicherheitslage** | aktuelle Bedrohungshinweise (sofern eingerichtet) |
 | **Medienspiegel / Gesellschaftstrends** | tägliche Presseschau bzw. Trends (sofern eingerichtet) |
-| **Audio extrahieren** | Tonspur aus Video-/Audiodatei (bis 1 GB) per ffmpeg extrahieren. „Audio extrahieren (Warten)“ zum Herunterladen, „Audio direkt transkribieren (Ergebnis per Mail)“ zur sofortigen Weitergabe an die Transkription, „Extrahieren, Transkribieren & Formatieren (Ergebnis per Mail)“ zusätzlich mit KI-gestützter Themen-/Termine-/ToDo-Gliederung als Word-Dokument per zweiter E-Mail |
+| **Audio extrahieren** | Tonspur aus Video-/Audiodatei (bis 1 GB) per ffmpeg extrahieren, „Audio extrahieren (Warten)“ zum Herunterladen. Die Transkriptions-Buttons („Audio direkt transkribieren“, „Extrahieren, Transkribieren & Formatieren“) sind auf diesem Testserver ohne GPU nicht verfügbar – ein Klick zeigt einen entsprechenden Hinweis-Dialog statt die Datei zu verarbeiten. |
 
 Manche Extras sind auf bestimmte Rollen beschränkt.
 
@@ -312,7 +304,7 @@ Nur wenn Ihre Instanz die Selbstregistrierung anbietet. Dann ist das ein Antrag 
 Ja. Der Chat versteht und antwortet in vielen Sprachen. Zusätzlich: Oberflächensprache auf der Anmeldeseite, feste Antwortsprache im Konto-Menü.
 
 **Was passiert mit einer Audiodatei?**  
-Lange Dateien: lokale Transkription, Versand per E-Mail. Kurzes Diktat: direkt in die Eingabezeile. Beides verlässt Ihre Infrastruktur nicht.
+Kurzes Diktat: direkt in die Eingabezeile, verlässt Ihre Infrastruktur nicht. Der E-Mail-Versand langer Transkriptionen ist auf diesem Testserver ohne GPU nicht verfügbar.
 
 **Ist die Archivsuche dasselbe wie das Archiv-System?**  
 Nein. FreiKI zeigt Treffer und Text. Verwalten der Dokumente bleibt im Archiv (Paperless).

@@ -128,8 +128,6 @@
   "js.png_export_failed": "La exportación a PNG ha fallado. Consulte la consola del navegador para más detalles.",
   "tools.scanner.title": "Escáner QR/código de barras",
   "tools.scanner.desc": "Escanear un código con la cámara",
-  "tools.transcription.title": "Transcripción",
-  "tools.transcription.desc": "Audio → texto por correo electrónico",
   "tools.form_chat.title": "Chat de formulario",
   "tools.form_chat.desc": "Rellenar e imprimir un formulario mediante diálogo",
   "tools.form_templates.title": "Plantillas de formularios",

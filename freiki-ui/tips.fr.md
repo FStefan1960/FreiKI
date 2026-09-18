@@ -3,7 +3,6 @@ Vous pouvez aussi importer des photos – {{APP_NAME}} en extrait le texte par O
 Sous chaque réponse, vous trouverez « 🔊 Lire à voix haute » – {{APP_NAME}} vous lit la réponse dans la langue sélectionnée.
 Avec « Langage simplifié », vous pouvez faire reformuler des textes de façon simple et claire.
 Dans « Pictogrammes », vous trouverez des cartes images à télécharger ou imprimer (ARASAAC).
-Un enregistrement audio peut être converti en texte via « Transcription » – vous recevez le résultat par e-mail.
 Avec « MultiDoc », vous pouvez comparer ou résumer plusieurs documents à la fois.
 Vous pouvez ajouter {{APP_NAME}} à votre écran d'accueil et le lancer comme une application.
 Utilisez l'icône du cadenas en bas à gauche pour changer votre mot de passe.
