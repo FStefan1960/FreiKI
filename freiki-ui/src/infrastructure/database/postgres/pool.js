@@ -15,4 +15,11 @@ const pool = new Pool({
   connectionTimeoutMillis: 10_000,
 });
 
+// pg emittiert 'error' auf dem Pool, wenn ein idle Client die Verbindung verliert
+// (z.B. Postgres-Neustart bei einem Update). Ohne Listener wird das zur uncaughtException
+// und reißt den ganzen Prozess mit runter – siehe https://node-postgres.com/apis/pool.
+pool.on('error', (err) => {
+  console.error('PG Pool: idle client error (Verbindung wird beim nächsten Query neu aufgebaut):', err.message);
+});
+
 module.exports = pool;
