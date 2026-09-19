@@ -77,14 +77,21 @@ async function computeReadiness() {
     diskSpace: diskCheck,
   };
   if (config.PAPERLESS_TOKEN) checks.paperless = await checkServiceHealth(`${config.PAPERLESS_INTERNAL_URL}/api/`);
+
+  // Whisper bewusst NICHT im allOk-Gate: openai-whisper-asr-webservice verarbeitet /asr
+  // synchron im einzigen Worker und blockiert dabei auch den eigenen GET /-Healthcheck (siehe
+  // TranscriptionService.js) - eine ganz normale, laufende Transkription sähe hier sonst wie
+  // ein kompletter Ausfall aus und löste bei JEDER Transkription einen Uptime-Kuma-Fehlalarm
+  // aus, obwohl /api/transcribe bewusst fire-and-forget ist und den Rest der App nicht
+  // beeinträchtigt. Status bleibt trotzdem sichtbar im Response-Body für Diagnosezwecke; echte,
+  // dauerhafte Whisper-Ausfälle fängt stattdessen syntheticHealthCheck.js (alle 15 Min, Telegram).
   if (config.WHISPER_URL) checks.whisper = await checkServiceHealth(`${config.WHISPER_URL}/`);
 
-  const allOk = Object.values(checks).every(c => c.ok);
-  if (!allOk) {
-    const failed = Object.entries(checks)
-      .filter(([, c]) => !c.ok)
-      .map(([name, c]) => `${name}: ${c.error || `status ${c.status}`}`)
-      .join(', ');
+  const NON_CRITICAL = new Set(['whisper']);
+  const allOk = Object.entries(checks).every(([name, c]) => NON_CRITICAL.has(name) || c.ok);
+  const failedChecks = Object.entries(checks).filter(([, c]) => !c.ok);
+  if (failedChecks.length) {
+    const failed = failedChecks.map(([name, c]) => `${name}: ${c.error || `status ${c.status}`}`).join(', ');
     console.warn(`[health] Check fehlgeschlagen - ${failed}`);
   }
   const body = {

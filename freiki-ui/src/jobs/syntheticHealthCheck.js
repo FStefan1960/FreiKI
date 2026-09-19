@@ -70,12 +70,25 @@ async function testArchive() {
   if (!d.count) throw new Error('Keine Ergebnisse');
 }
 
+// Whisper bewusst NICHT mehr im request-time /api/health (siehe healthRoutes.js) - dessen
+// 5s-Timeout kippte bei JEDER laufenden Transkription auf "down", weil
+// openai-whisper-asr-webservice /asr synchron im einzigen Worker verarbeitet und dabei den
+// eigenen GET /-Healthcheck blockiert. Hier stattdessen mit großzügigem Timeout (läuft eh nur
+// alle 15 Min): eine normale, auch mehrminütige Transkription ist bis dahin i.d.R. fertig,
+// ein wirklich gehängter Container (siehe historischer Whisper-Hang) fällt trotzdem auf.
+async function testWhisper() {
+  if (!config.WHISPER_URL) return; // optional pro Instanz
+  const r = await fetchWithTimeout(`${config.WHISPER_URL}/`, {}, 45000);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+}
+
 async function run() {
   const checks = [
     ['LLM', testLLM],
     ['Embedding', testEmbedding],
     ['Login + RAG-Chat', testLoginAndRag],
     ['Archiv', testArchive],
+    ['Whisper', testWhisper],
   ];
   const errors = [];
   for (const [label, fn] of checks) {
