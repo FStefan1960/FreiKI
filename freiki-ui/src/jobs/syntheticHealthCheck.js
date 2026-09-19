@@ -10,6 +10,7 @@ const users = require('../core/auth/UserRepository');
 const { sendReportMail } = require('../core/integrations/EmailService');
 const { sendTelegramMessage } = require('../core/integrations/TelegramService');
 const { getBrandConfig } = require('../shared/config/BrandConfig');
+const { isTranscribing } = require('../core/speech/TranscriptionService');
 
 const SELF_URL = `http://127.0.0.1:${config.PORT}`;
 
@@ -73,12 +74,17 @@ async function testArchive() {
 // Whisper bewusst NICHT mehr im request-time /api/health (siehe healthRoutes.js) - dessen
 // 5s-Timeout kippte bei JEDER laufenden Transkription auf "down", weil
 // openai-whisper-asr-webservice /asr synchron im einzigen Worker verarbeitet und dabei den
-// eigenen GET /-Healthcheck blockiert. Hier stattdessen mit großzügigem Timeout (läuft eh nur
-// alle 15 Min): eine normale, auch mehrminütige Transkription ist bis dahin i.d.R. fertig,
-// ein wirklich gehängter Container (siehe historischer Whisper-Hang) fällt trotzdem auf.
+// eigenen GET /-Healthcheck blockiert. Statt eines Timeout-Ratespiels (Whisper läuft auf
+// FreiKI zwangsläufig CPU-only, IONOS-VPS ohne GPU - eine reale Transkription kann jeden
+// fixen Timeout überschreiten) hier stattdessen: Check komplett aussetzen, solange laut
+// TranscriptionService.isTranscribing() eine echte Transkription aktiv ist - dann läuft
+// Whisper erwartungsgemäß beschäftigt, kein Fehlalarm nötig. Ist gerade nichts aktiv, sollte
+// Whisper sofort antworten (auch auf CPU, GET / braucht keine Inferenz), daher genügt ein
+// kurzer Timeout, um einen wirklich gehängten Container zuverlässig zu erkennen.
 async function testWhisper() {
   if (!config.WHISPER_URL) return; // optional pro Instanz
-  const r = await fetchWithTimeout(`${config.WHISPER_URL}/`, {}, 45000);
+  if (isTranscribing()) return; // aktive Transkription - kein Fehlalarm, siehe Kommentar oben
+  const r = await fetchWithTimeout(`${config.WHISPER_URL}/`, {}, 15000);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
 }
 

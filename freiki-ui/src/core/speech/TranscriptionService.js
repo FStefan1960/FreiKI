@@ -65,6 +65,16 @@ async function structureTranscript(formattedTranscript) {
   return result;
 }
 
+// Zählt laufende Whisper-Aufrufe - syntheticHealthCheck.js überspringt seinen eigenen
+// Whisper-Reachability-Test, solange hier eine echte Transkription aktiv ist (siehe
+// isTranscribing()). Vermeidet Timeout-Rätselraten (CPU vs. GPU, kurze vs. lange Aufnahme):
+// der Check wird nur ausgeführt, wenn Whisper laut eigener Buchführung eigentlich frei sein
+// sollte, und kann dann mit einem kurzen Timeout auf echten Ausfall statt auf Verarbeitung testen.
+let activeTranscriptions = 0;
+function isTranscribing() {
+  return activeTranscriptions > 0;
+}
+
 // Konvertiert eine Audiodatei zu 16kHz-Mono-WAV und transkribiert sie per Whisper. Wirft bei
 // Fehlern (kein try/catch) - Aufrufer entscheiden selbst, wie sie damit umgehen (E-Mail-Fehler-
 // Benachrichtigung vs. HTTP-Fehlerantwort). Geteilt zwischen der E-Mail-Transkription (lange
@@ -77,12 +87,18 @@ async function transcribeAudio(filePath) {
     const form = new FormData();
     form.append('audio_file', fs.createReadStream(wavPath), { filename: 'audio.wav', contentType: 'audio/wav' });
 
-    const whisperRes = await fetch(`${config.WHISPER_URL}/asr?task=transcribe&language=de&output=json`, {
-      method: 'POST',
-      body: form,
-      headers: form.getHeaders(),
-      timeout: 7200000 // 2 Stunden - deckt auch lange Datei-Uploads ab, kurze Diktate sind ohnehin in Sekunden fertig
-    });
+    activeTranscriptions++;
+    let whisperRes;
+    try {
+      whisperRes = await fetch(`${config.WHISPER_URL}/asr?task=transcribe&language=de&output=json`, {
+        method: 'POST',
+        body: form,
+        headers: form.getHeaders(),
+        timeout: 7200000 // 2 Stunden - deckt auch lange Datei-Uploads ab, kurze Diktate sind ohnehin in Sekunden fertig
+      });
+    } finally {
+      activeTranscriptions--;
+    }
     if (!whisperRes.ok) {
       const errBody = await whisperRes.text();
       throw new Error(`Whisper Fehler: ${whisperRes.status} – ${errBody}`);
@@ -171,4 +187,4 @@ async function transcribeStructureAndEmail(file, email) {
   }
 }
 
-module.exports = { transcribeAndEmail, transcribeStructureAndEmail, transcribeAudio };
+module.exports = { transcribeAndEmail, transcribeStructureAndEmail, transcribeAudio, isTranscribing };
