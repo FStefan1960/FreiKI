@@ -95,6 +95,7 @@ a.back:hover{color:#1f54c0}
       <div id="bn-current" style="font-size:12px;color:#5a6b82;margin-bottom:8px"></div>
       <textarea id="bn-text" rows="4" style="width:100%;padding:9px 12px;border:1px solid #d8e0ec;border-radius:8px;font-size:14px;color:#15294a;font-family:inherit;resize:vertical"></textarea>
       <div id="bn-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px"></div>
+      <div id="bn-success" class="toast" style="margin:12px 0 0"></div>
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
         <button type="button" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px" onclick="publishBreakingNews()">Veröffentlichen</button>
         <button type="button" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px;background:#8a94a6" onclick="clearBreakingNews()">Zurückziehen</button>
@@ -192,7 +193,9 @@ async function loadBreakingNews() {
 
 async function publishBreakingNews() {
   const errEl = document.getElementById('bn-error');
+  const okEl = document.getElementById('bn-success');
   errEl.style.display = 'none';
+  okEl.classList.remove('show');
   const text = document.getElementById('bn-text').value.trim();
   if (!text) { errEl.textContent = 'Bitte einen Text eingeben.'; errEl.style.display = 'block'; return; }
   try {
@@ -203,6 +206,8 @@ async function publishBreakingNews() {
     });
     if (res.ok) {
       loadBreakingNews();
+      okEl.textContent = '✅ Veröffentlicht – wird allen Nutzer:innen beim nächsten Login angezeigt.';
+      okEl.classList.add('show');
     } else {
       const d = await res.json().catch(() => ({}));
       errEl.textContent = 'Fehler: ' + (d.error || res.status);
@@ -216,9 +221,15 @@ async function publishBreakingNews() {
 
 async function clearBreakingNews() {
   if (!confirm('Aktuelle Breaking-News-Nachricht zurückziehen?')) return;
+  const errEl = document.getElementById('bn-error');
+  const okEl = document.getElementById('bn-success');
+  errEl.style.display = 'none';
+  okEl.classList.remove('show');
   try {
     await fetch('/api/admin/breaking-news', { method: 'DELETE' });
     loadBreakingNews();
+    okEl.textContent = '✅ Zurückgezogen.';
+    okEl.classList.add('show');
   } catch (e) { /* Karte zeigt beim naechsten Laden ohnehin den echten Stand */ }
 }
 

@@ -152,7 +152,7 @@ Nur Admins und Manager unter „Formular-Vorlagen“: Scan hochladen (PDF/JPG/PN
 
 ## Wie transkribiere ich eine Audiodatei?
 
-Lange Aufnahmen im Werkzeug Transkription hochladen. Akzeptiert werden M4A, MP3, WAV, MP4, MOV, WEBM und MKV bis 200 MB – auch Videos können direkt hochgeladen werden, FreiKI zieht automatisch nur die Tonspur heraus. FreiKI transkribiert lokal und schickt das formatierte Transkript an Ihre hinterlegte E-Mail-Adresse. Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows). Kurzes Diktieren geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug. Beides verlässt bei einer produktiven Instanz nicht Ihre Infrastruktur. Ist die Videodatei größer als 200 MB, hilft das Extras-Werkzeug „Audio extrahieren" weiter (siehe nächste Frage).
+Extras → „Audio extrahieren" öffnen, dort Audio- oder Videodatei hochladen (M4A, MP3, WAV, MP4, MOV, WEBM, MKV, bis 1 GB) – bei Videos zieht FreiKI automatisch nur die Tonspur heraus. Button „Audio direkt transkribieren" schickt sie zur Transkription, das formatierte Transkript kommt an Ihre hinterlegte E-Mail-Adresse (Details zu allen drei Buttons siehe nächste Frage). Geeignete Aufnahme-Apps: Sprachmemos (iOS/macOS), Sprachrekorder (Windows) – auch Mitschnitte von Zoom- oder Teams-Sitzungen lassen sich so hochladen. Kurzes Diktieren geht über das Mikrofon in der Eingabezeile, nicht über dieses Werkzeug. Beides verlässt bei einer produktiven Instanz nicht Ihre Infrastruktur. Auf diesem Testserver ohne GPU sind die Transkriptions-Buttons nicht verfügbar – ein Klick zeigt einen entsprechenden Hinweis-Dialog statt die Datei zu verarbeiten.
 
 ## Welche Extras und Piktogramme gibt es?
 
