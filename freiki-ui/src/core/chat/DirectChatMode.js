@@ -5,6 +5,31 @@ const { THINKING_KWARGS } = require('./ThinkingConfig');
 const { withLanguageMessage } = require('./LanguageInstruction');
 const { parseHistory } = require('./ChatHistory');
 
+// Übersetzt einen vLLM-Fehlerstatus in eine für Nutzende verständliche Meldung. Vorher hieß
+// jeder Status ab 400 pauschal "Anfrage zu lang" - Auth-, Modell-, Überlast- und Serverfehler
+// waren nicht unterscheidbar. Der Längen-Hinweis (mit Zeichenzahl) bleibt nur, wenn der
+// Fehlertext tatsächlich nach Kontext-/Token-Überlauf aussieht.
+function vllmErrorMessage(status, errText, totalChars) {
+  const t = (errText || '').toLowerCase();
+  const looksLikeLength = /context|maximum|max_tokens|token|length|too long|zu lang|reduce/.test(t);
+  if (status === 400 && looksLikeLength) {
+    return `Anfrage zu lang (${totalChars} Zeichen). Bitte Text kürzen.`;
+  }
+  if (status === 401 || status === 403) {
+    return 'Zugang zum KI-Dienst wurde abgelehnt (Authentifizierung). Bitte an die Administration wenden.';
+  }
+  if (status === 404) {
+    return 'Das KI-Modell ist derzeit nicht verfügbar. Bitte an die Administration wenden.';
+  }
+  if (status === 429) {
+    return 'Der KI-Dienst ist gerade überlastet. Bitte in einem Moment erneut versuchen.';
+  }
+  if (status >= 500) {
+    return 'Der KI-Dienst hat einen Fehler gemeldet. Bitte erneut versuchen.';
+  }
+  return 'Die Anfrage wurde vom KI-Dienst abgelehnt. Bitte erneut versuchen oder den Text anpassen.';
+}
+
 async function handleDirectMode(res, { userMessage, history, mode, isMulti, now, hasFileContent, userLanguage }) {
   const TRANSLATE_CHUNK_SIZE = 14000;
   const isTranslateMode = mode === '3translate';
@@ -74,7 +99,8 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
     console.error(`vLLM Fehler Body: ${errText}`);
     const totalChars = messages.reduce((s, m) => s + (m.content?.length || 0), 0);
     console.error(`Gesamt-Zeichen in Messages: ${totalChars}`);
-    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `⚠️ Fehler: Anfrage zu lang (${totalChars} Zeichen). Bitte Text kürzen.` } }] })}\n\n`);
+    const msg = vllmErrorMessage(vllmResponse.status, errText, totalChars);
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `⚠️ ${msg}` } }] })}\n\n`);
     res.write('data: [DONE]\n\n');
     res.end();
     return;
