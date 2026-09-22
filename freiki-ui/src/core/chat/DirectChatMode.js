@@ -83,6 +83,19 @@ async function handleDirectMode(res, { userMessage, history, mode, isMulti, now,
     const keys = [messageTruncated && 'msg', historyTrimmed && 'history'].filter(Boolean);
     res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: truncationNotice(userLanguage, ...keys) } }] })}\n\n`);
   }
+  // Bricht der Upstream mitten im Stream ab, wird der Fehler auf dem Body-Stream emittiert
+  // (nicht geworfen) - ohne Handler bliebe der Client ohne [DONE] hängen und ein unbehandeltes
+  // 'error'-Event könnte den Prozess reißen. Daher sauber abschließen.
+  vllmResponse.body.on('error', (err) => {
+    console.error('vLLM-Stream abgebrochen:', err.message);
+    if (!res.writableEnded) {
+      try {
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '\n\n⚠️ Verbindung zum KI-Dienst unterbrochen. Bitte erneut versuchen.' } }] })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      } catch (_) { /* Response evtl. schon geschlossen */ }
+    }
+  });
   vllmResponse.body.pipe(res);
 }
 

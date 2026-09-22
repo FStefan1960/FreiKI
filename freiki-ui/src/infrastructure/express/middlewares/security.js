@@ -24,10 +24,19 @@ function isDockerInternalIp(ip) {
 
 // Piktogramm-Bilder: bis zu 40 parallele img-Requests pro Suche – nicht gegen das
 // API-Limit zählen (sonst leere Kacheln nach wenigen Suchen).
+// keyGenerator ist die Session-uid statt der IP - analog zu loginLimiter unten (dort wegen
+// Firmen-NAT umgestellt): teilen sich mehrere Kolleg:innen eine Ausgangs-IP, würden sie sich
+// sonst das 100er-Kontingent teilen und gegenseitig mit "Zu viele Anfragen" aussperren.
+// Nicht eingeloggte Requests (öffentliche Q&A/Registrierung, die eigene, engere Limiter haben)
+// fallen auf die IP zurück.
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { error: 'Zu viele Anfragen' },
+  keyGenerator: (req) => {
+    const s = getSession(req);
+    return s && s.uid ? `uid:${s.uid}` : req.ip;
+  },
   skip: (req) => /^\/api\/pictograms\/\d+\/image(?:\?|$)/.test(req.originalUrl || ''),
 });
 // handler statt message, damit die Sperrfrist als retryAfterSeconds mitgeschickt wird -
