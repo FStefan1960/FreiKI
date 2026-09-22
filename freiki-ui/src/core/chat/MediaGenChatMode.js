@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout, slugifyForFilename } = require('../../shared/utils/text');
 const { THINKING_KWARGS } = require('./ThinkingConfig');
+const { parseHistory } = require('./ChatHistory');
 
 const GENERATED_IMAGES_DIR = path.join(config.APP_ROOT, 'generated_images');
 fs.mkdirSync(GENERATED_IMAGES_DIR, { recursive: true });
@@ -21,21 +22,83 @@ function cleanupGeneratedImages() {
 }
 setInterval(cleanupGeneratedImages, 6 * 60 * 60 * 1000).unref();
 
+// Seitenverhältnis aus der freien Nutzereingabe ableiten. Ohne erkennbare Angabe bleibt es
+// beim quadratischen Modell-Default (dims=null → keine size/width/height im Request → keine
+// Regression). Erkannt werden explizite Verhältnisse ("5:2", "16 : 9", "3x2") sowie deutsche/
+// englische Stichwörter (quer/hochkant/panorama/quadratisch). Da der Prompt-Veredler die
+// Formatangabe ohnehin verwirft, muss die Größe hier VOR der Anreicherung aus der Rohnachricht
+// gelesen werden.
+const ASPECT_KEYWORDS = [
+  [/\b(quer(format)?|landscape|breitbild)\b/i, [16, 9]],
+  [/\b(hoch(kant|format)?|portr[aä]t|portrait)\b/i, [9, 16]],
+  [/\b(panorama|ultra[- ]?wide)\b/i, [5, 2]],
+  [/\b(quadrat(isch)?|square)\b/i, [1, 1]],
+];
+
+// Kanten auf Vielfache von 32 runden: FLUX-2 (DeepInfra) und Z-Image (KorKI) verlangen durch
+// den VAE-Downscale (16) teilbare Kanten; 32 ist der sichere gemeinsame Nenner. Zielfläche
+// ~1 MP, damit extreme Seitenverhältnisse (5:2) nicht in die Qualität einbrechen.
+function dimsForRatio(rw, rh) {
+  const TARGET = 1024 * 1024;
+  const ratio = rw / rh;
+  const round32 = (n) => Math.max(256, Math.round(n / 32) * 32);
+  return { width: round32(Math.sqrt(TARGET * ratio)), height: round32(Math.sqrt(TARGET / ratio)) };
+}
+
+function parseImageAspect(message) {
+  const msg = message || '';
+  let ratio = null;
+  let numeric = false;
+  const m = msg.match(/\b(\d{1,2})\s*[:x×\/]\s*(\d{1,2})\b/);
+  if (m) {
+    const rw = Number(m[1]);
+    const rh = Number(m[2]);
+    if (rw >= 1 && rw <= 32 && rh >= 1 && rh <= 32) { ratio = [rw, rh]; numeric = true; }
+  }
+  if (!ratio) {
+    for (const [re, r] of ASPECT_KEYWORDS) {
+      if (re.test(msg)) { ratio = r; break; }
+    }
+  }
+  if (!ratio) return { dims: null, cleanedPrompt: msg };
+  // Nur numerische Verhältnisse aus dem Prompt entfernen (sonst deutet der Veredler "5:2" als
+  // Bildinhalt). Stichwörter wie "quer" bleiben stehen – sie schaden dem Prompt nicht.
+  let cleaned = msg;
+  if (numeric) {
+    cleaned = cleaned
+      .replace(/\b(im\s+)?(format|seitenverh[aä]ltnis|aspect(\s*ratio)?|ratio)\s*(von\s+)?\d{1,2}\s*[:x×\/]\s*\d{1,2}\b/gi, '')
+      .replace(/\b\d{1,2}\s*[:x×\/]\s*\d{1,2}\b/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    if (!cleaned) cleaned = msg;
+  }
+  return { dims: dimsForRatio(ratio[0], ratio[1]), cleanedPrompt: cleaned };
+}
+
 // FLUX ist überwiegend auf englischen Bildbeschreibungen trainiert; kurze deutsche
 // Eingaben ("ein Mann auf einer Wiese") führen gerade beim kleinen 4B-Modell zu
 // Anatomiefehlern. Das LLM reichert die Eingabe deshalb zu einem detaillierten
 // englischen Prompt an. Bei Fehlern läuft die Generierung mit der Original-Eingabe weiter.
-async function enhanceImagePrompt(prompt) {
+async function enhanceImagePrompt(prompt, priorPrompts = []) {
   try {
+    // Bildmodus ist von Haus aus zustandslos (nur ein Text-zu-Bild-Aufruf). Damit Folgewünsche
+    // wie "die Fortsetzung/gleicher Stil/wie das letzte Bild" funktionieren, bekommt der Veredler
+    // die vorherigen Bildwünsche dieses Chats als Kontext. Kein echtes Outpainting: das Ergebnis
+    // ist ein NEUES, motiv-/stilkohärentes Bild, keine pixelgenaue Erweiterung.
+    const messages = [
+      { role: 'system', content: 'Du wandelst Bildwünsche in detaillierte englische Prompts für ein Text-zu-Bild-Modell um. Beschreibe in 60-100 Wörtern Motiv, Bildaufbau, Umgebung, Licht und Stil konkret. Bleibe inhaltlich exakt beim Wunsch des Nutzers, erfinde keine abweichenden Motive und füge keinen Text im Bild hinzu, außer er ist ausdrücklich gewünscht. Wenn sich der aktuelle Wunsch auf ein früheres Bild bezieht ("Fortsetzung", "das letzte Bild", "gleicher Stil", "rechts davon" o.ä.), nutze die vorherigen Bildwünsche, um Motiv und Stil kohärent weiterzuführen, und beschreibe ein eigenständiges, vollständiges Bild. Gib NUR den englischen Prompt zurück – ohne Erklärung, ohne Anführungszeichen. /no_think' },
+    ];
+    if (priorPrompts.length) {
+      messages.push({ role: 'user', content: `Vorherige Bildwünsche in diesem Chat (ältester zuerst), nur als Kontext für Bezüge wie "das letzte Bild"/"Fortsetzung"/"gleicher Stil":\n${priorPrompts.map((p, i) => `${i + 1}. ${p}`).join('\n')}` });
+      messages.push({ role: 'assistant', content: 'Verstanden, ich nutze das nur als Kontext.' });
+    }
+    messages.push({ role: 'user', content: `Bildwunsch: "${prompt}"\n\nEnglischer Prompt:` });
     const r = await fetchWithTimeout(`${config.VLLM_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.VLLM_API_KEY}` },
       body: JSON.stringify({
         model: config.VLLM_MODEL,
-        messages: [
-          { role: 'system', content: 'Du wandelst Bildwünsche in detaillierte englische Prompts für ein Text-zu-Bild-Modell um. Beschreibe in 60-100 Wörtern Motiv, Bildaufbau, Umgebung, Licht und Stil konkret. Bleibe inhaltlich exakt beim Wunsch des Nutzers, erfinde keine abweichenden Motive und füge keinen Text im Bild hinzu, außer er ist ausdrücklich gewünscht. Gib NUR den englischen Prompt zurück – ohne Erklärung, ohne Anführungszeichen. /no_think' },
-          { role: 'user', content: `Bildwunsch: "${prompt}"\n\nEnglischer Prompt:` }
-        ],
+        messages,
         max_tokens: 250,
         temperature: 0.3,
         ...THINKING_KWARGS
@@ -189,16 +252,28 @@ async function waitWhileImageGenerating(onWaitHint) {
 // lokaler image-gen-Service spiegelt dasselbe Format, damit dieser Code auf allen drei
 // Instanzen identisch ist (nur IMAGE_GEN_URL/-KEY/-MODEL unterscheiden sich). Wird sowohl vom
 // Chat-Bildgen-Modus als auch vom PPTX-Titelbild (PptxExportService.js) genutzt.
-async function generateAiImage(prompt, { onQueued, onStarted } = {}) {
-  const genPrompt = await enhanceImagePrompt(prompt);
+async function generateAiImage(prompt, { onQueued, onStarted, width, height, priorPrompts = [] } = {}) {
+  const genPrompt = await enhanceImagePrompt(prompt, priorPrompts);
   const queued = await notifyIfGpuQueued(onQueued);
   let done = false;
   const watch = queued ? watchGeneratingStart(config.IMAGE_GEN_URL, onStarted, () => done) : Promise.resolve();
   try {
+    const body = { model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 };
+    // Größe nur mitschicken, wenn ein Seitenverhältnis erkannt wurde – sonst bleibt es beim
+    // Modell-Default. DeepInfra (FreiKI/FrankKI) erwartet den OpenAI-"size"-String, KorKIs
+    // lokaler image-gen-Server eigene width/height-Felder.
+    if (width && height) {
+      if (isLocalGpuService(config.IMAGE_GEN_URL)) {
+        body.width = width;
+        body.height = height;
+      } else {
+        body.size = `${width}x${height}`;
+      }
+    }
     const r = await fetchWithTimeout(config.IMAGE_GEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.IMAGE_GEN_API_KEY}` },
-      body: JSON.stringify({ model: config.IMAGE_GEN_MODEL, prompt: genPrompt, n: 1 }),
+      body: JSON.stringify(body),
     }, 300_000);
     if (r.status === 503) throw new Error('GPU_TIMEOUT');
     if (!r.ok) throw new Error(`Bildgenerierung fehlgeschlagen (${r.status})`);
@@ -221,15 +296,26 @@ async function generateAiImage(prompt, { onQueued, onStarted } = {}) {
 // FileStorage.js) und landen 1:1 im "Kopieren"-Button (dataset.copyText = Rohtext) – dort
 // dann als Buchstabensalat statt eines nutzbaren Downloads. Eine Datei-URL bleibt kurz und
 // ist per Rechtsklick/Download-Link speicherbar.
-async function handleImageGenMode(res, message) {
-  const prompt = (message || '').trim();
-  if (!prompt) {
+async function handleImageGenMode(res, message, history) {
+  const raw = (message || '').trim();
+  if (!raw) {
     res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: '🎨 Bitte eine Bildbeschreibung eingeben.' } }] })}\n\n`);
     res.write('data: [DONE]\n\n');
     return res.end();
   }
+  const { dims, cleanedPrompt } = parseImageAspect(raw);
+  const prompt = cleanedPrompt;
+  // Vorherige Bildwünsche dieses Chats als Kontext (nur die Nutzer-Turns = die Prompts; die
+  // Assistant-Turns sind Bild-Markdown/Rauschen). Letzte 3 reichen für Bezüge aufs letzte Bild.
+  const priorPrompts = parseHistory(history)
+    .filter(m => m && m.role === 'user' && typeof m.content === 'string' && m.content.trim())
+    .map(m => m.content.trim())
+    .slice(-3);
   try {
     const { buffer: labeledBuf, ext } = await generateAiImage(prompt, {
+      width: dims?.width,
+      height: dims?.height,
+      priorPrompts,
       onQueued: () => writeQueueHint(res),
       onStarted: () => writeStartHint(res),
     });
