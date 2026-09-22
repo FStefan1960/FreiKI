@@ -4,14 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FreiKI – KI für soziale Arbeit, Pflege & EGH | Systemüberblick</title>
-<meta name="description" content="FreiKI: souveräne KI für soziale Arbeit, Pflege und Eingliederungshilfe (EGH) auf Ihrem eigenen Server – Chat, Wissen, Sprache und Vorlesen, ohne Lizenzkosten, ohne Datenabfluss an Dritte.">
+<meta name="description" content="FreiKI: souveräne KI-Software für soziale Arbeit, Pflege und Eingliederungshilfe (EGH) – Chat, Wissen, Sprache, DSGVO-konform auf eigenem Server.">
 <link rel="canonical" href="https://freiki.com/system.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="FreiKI – KI für soziale Arbeit, Pflege & Eingliederungshilfe">
 <meta property="og:description" content="Souveräne KI auf Ihrem eigenen Server für Pflege, Eingliederungshilfe (EGH) und soziale Arbeit – Chat, Unternehmenswissen, Sprache und Vorlesen, ohne Lizenzkosten.">
 <meta property="og:image" content="https://freiki.com/og-image.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
 <meta property="og:url" content="https://freiki.com/system.html">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://freiki.com/og-image.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script type="application/ld+json">
@@ -27,6 +30,54 @@
     "@type": "Audience",
     "audienceType": "Soziale Arbeit, Pflege, Eingliederungshilfe, Behindertenhilfe"
   }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Ist das wirklich so gut wie ChatGPT?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Für interne Zwecke: ja. Im Produktivbetrieb gewinnen Sie einen DSGVO-konformen Betrieb ohne Datenabfluss an Dritte. Was Sie eventuell aufgeben, sind die allerneuesten Web-Informationen."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Lernt die KI aus unseren Daten?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Nein. Das Modell ist statisch und trainiert nicht mit Ihren Eingaben. Es gibt keine Rückkopplung an den Modell-Hersteller. In den Wissensdatenbanken hinterlegen Sie Ihr Unternehmenswissen – das bleibt geschützt auf Ihrem Server."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Werden meine Anfragen gespeichert?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Nein. Der Gesprächsinhalt wird serverseitig nicht als Chatverlauf abgelegt. Im Browser bleibt der Verlauf lokal erhalten und wird dort nicht automatisch gelöscht – auf gemeinsam genutzten Geräten den Browser-Verlauf regelmäßig leeren. Auffällige Anfragen können zusätzlich ohne Inhalt protokolliert werden (Zeitpunkt, Konto, Werkzeug)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Kann ich einsprechen – auch auf Englisch?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ja. Statt tippen können Sie ins Mikrofon diktieren. Auch englisch Gesprochenes wird in der Praxis verstanden; die Antwort folgt der Sprache, die im Konto eingestellt ist. Die Oberfläche gibt es in sieben Sprachen (Deutsch, Englisch, Französisch, Spanisch, Russisch, Indonesisch, Malagasy). Vorlesen in sechs davon – Malagasy ohne eigene Stimme."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Was, wenn der Server ausfällt?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Dann ist FreiKI vorübergehend nicht verfügbar. Professionelle Rechenzentren bieten hohe Verfügbarkeit – deutlich mehr als ein eigener Server im Haus."
+      }
+    }
+  ]
 }
 </script>
 <style>
@@ -293,7 +344,7 @@
     margin: 0 auto 10px;
   }
   .rag-flow .step .e { font-size: 26px; margin-bottom: 8px; }
-  .rag-flow .step h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 4px; }
+  .rag-flow .step h3 { font-size: 14.5px; font-weight: 700; margin-bottom: 4px; }
   .rag-flow .step p { font-size: 12.5px; color: var(--fk-text-muted); }
   .rag-flow .arrow { align-self: center; color: var(--fk-text-muted); font-size: 20px; }
   @media (max-width: 700px) { .rag-flow .arrow { transform: rotate(90deg); } }
@@ -369,7 +420,7 @@
       <a href="/szenarien.html">Praxisszenarien</a>
     </div>
     <div class="right">
-      <a class="nav-cta" href="mailto:info@freiki.com">Testzugang anfragen</a>
+      <a class="nav-cta" href="https://app.freiki.com/register.html">Testzugang anfragen</a>
       <button class="nav-toggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileMenu">
         <span></span><span></span><span></span>
       </button>
@@ -399,18 +450,17 @@
       <span class="badge"><span aria-hidden="true">🧠</span> Lokales LLM im Produktivbetrieb</span>
       <span class="badge"><span aria-hidden="true">⚙️</span> Offene Komponenten</span>
     </div>
-    <a class="hero-cta-box" href="mailto:info@freiki.com">
-      <span class="icon" aria-hidden="true">✉️</span>
+    <a class="hero-cta-box" href="https://app.freiki.com/register.html">
+      <span class="icon" aria-hidden="true">📝</span>
       <span class="txt">
         <strong>Testzugang anfordern</strong>
-        <span>Schreiben Sie kurz an info@freiki.com für Ihr Passwort zum Testserver.</span>
+        <span>Registrieren Sie sich direkt für Ihren Zugang zum Testserver.</span>
       </span>
       <span class="arrow" aria-hidden="true">→</span>
     </a>
     <p class="contact-hint" style="max-width:560px;margin-left:auto;margin-right:auto;background:#FFF8E6;border:1px solid #F0D999;color:#7A5A0F;border-radius:12px;padding:12px 16px;text-align:left;">
       <strong>Hinweis zum Testzugang:</strong> Der öffentliche Testserver nutzt zur Veranschaulichung ein Sprachmodell eines externen Anbieters (DeepInfra) statt eines lokalen LLMs – anders als im produktiven Betrieb, der vollständig auf Ihrer eigenen Infrastruktur läuft. Bitte geben Sie im Testzugang keine echten, vertraulichen oder personenbezogenen Daten ein.
     </p>
-    <p class="contact-hint">Öffnet sich bei Ihnen kein Mail-Programm? Adresse direkt: <a href="mailto:info@freiki.com">info@freiki.com</a></p>
   </div>
 </header>
 <!-- 2. Die einfache Erklärung -->
@@ -513,21 +563,21 @@
       <div class="step">
         <div class="n" aria-hidden="true">1</div>
         <div class="e" aria-hidden="true">📤</div>
-        <h4>Dokumente hochladen</h4>
+        <h3>Dokumente hochladen</h3>
         <p>Handbücher, Richtlinien und Notizen einfach ablegen.</p>
       </div>
       <span class="arrow">→</span>
       <div class="step">
         <div class="n" aria-hidden="true">2</div>
         <div class="e" aria-hidden="true">🔐</div>
-        <h4>Sichere lokale Indexierung</h4>
+        <h3>Sichere lokale Indexierung</h3>
         <p>Vektor-Suche läuft ausschließlich auf Ihrem eigenen Server.</p>
       </div>
       <span class="arrow">→</span>
       <div class="step">
         <div class="n" aria-hidden="true">3</div>
         <div class="e" aria-hidden="true">💬</div>
-        <h4>Mitarbeiter fragen</h4>
+        <h3>Mitarbeiter fragen</h3>
         <p>Antworten mit Quellenangabe – in über 100 Sprachen.</p>
       </div>
     </div>
@@ -730,9 +780,8 @@
   <div class="wrap closing">
     <span class="eyebrow">FreiKI</span>
     <h2>Datenschutz, Unabhängigkeit und volle Kontrolle – KI in Ihrer eigenen Organisation.</h2>
-    <p class="sub">Bei Interesse Anfrage an <a href="mailto:info@freiki.com" style="color:#fff; text-decoration: underline;">info@freiki.com</a>. Dann bekommen Sie ein Passwort für den Testserver (nutzt ein externes Sprachmodell zur Veranschaulichung, siehe Hinweis oben – anders als im Produktivbetrieb).</p>
-    <a class="cta" href="mailto:info@freiki.com">Zugang anfragen →</a>
-    <p class="sub" style="margin-top:14px; font-size: 13px;">Adresse direkt: info@freiki.com</p>
+    <p class="sub">Registrieren Sie sich direkt für Ihren Testzugang – Sie erhalten Zugang zum Testserver (nutzt ein externes Sprachmodell zur Veranschaulichung, siehe Hinweis oben – anders als im Produktivbetrieb).</p>
+    <a class="cta" href="https://app.freiki.com/register.html">Zugang anfragen →</a>
     <div class="tags">Deutscher Server · Für DSGVO-/DSG-EKD-konformen Betrieb ausgelegt · Ohne Lizenzrisiken · Offene Komponenten</div>
   </div>
 </section>

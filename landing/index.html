@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-site-verification" content="HUjk8yhSa20sLaY4vSaaYxje4Hfqe6bgOPDPdlxTcRI">
   <title>FreiKI – KI für soziale Arbeit, Pflege & Eingliederungshilfe</title>
   <meta name="description" content="Souveräne KI für soziale Arbeit, Pflege und Eingliederungshilfe (EGH): DSGVO-konform, auf eigenem Server, ohne Datenabfluss an Dritte – ohne Lizenzkosten.">
   <link rel="canonical" href="https://freiki.com/">
@@ -34,6 +35,7 @@
       --fk-ink: #15294A;
       --fk-text-muted: #5A6B82;
       --fk-canvas: #F4F6FA;
+      --fk-line: #E2E8F0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -57,6 +59,15 @@
     }
     h1 .frei { color: var(--fk-ink); }
     h1 .ki { color: var(--fk-primary); }
+    h1 .h1-sub {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--fk-primary);
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
     p.lead {
       font-size: 18px;
       color: var(--fk-text-muted);
@@ -102,6 +113,24 @@
       transition: background 0.15s, transform 0.15s;
     }
     .cta:hover { background: #1A4AAD; transform: translateY(-1px); }
+    .hero-cta-box {
+      max-width: 480px; margin: 24px auto 0;
+      background: #fff; border: 1px solid var(--fk-line);
+      border-radius: 16px; padding: 18px 22px;
+      display: flex; align-items: center; gap: 14px;
+      text-decoration: none; text-align: left;
+      transition: border-color 0.15s, transform 0.15s;
+      width: 100%;
+    }
+    .hero-cta-box:hover { border-color: var(--fk-primary); transform: translateY(-1px); }
+    .hero-cta-box .icon {
+      width: 42px; height: 42px; flex: none; border-radius: 10px;
+      background: var(--fk-canvas); border: 1px solid var(--fk-line);
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .hero-cta-box .txt strong { display: block; font-size: 14.5px; color: var(--fk-ink); }
+    .hero-cta-box .txt span { display: block; font-size: 13px; color: var(--fk-text-muted); margin-top: 2px; }
+    .hero-cta-box .arrow { margin-left: auto; color: var(--fk-primary); font-weight: 700; font-size: 18px; flex: none; }
     .contact-hint {
       margin-top: 18px;
       font-size: 14px;
@@ -122,8 +151,7 @@
 </head>
 <body>
   <img class="logo" src="/freiki-mark.svg" alt="FreiKI">
-  <h1><span class="frei">Frei</span><span class="ki">KI</span></h1>
-  <p style="font-size:15px;font-weight:700;letter-spacing:0.02em;color:var(--fk-primary);text-transform:uppercase;margin-bottom:10px;">Für soziale Arbeit, Pflege &amp; Eingliederungshilfe (EGH)</p>
+  <h1><span class="frei">Frei</span><span class="ki">KI</span><span class="h1-sub">KI-Assistent für soziale Arbeit, Pflege &amp; Eingliederungshilfe (EGH)</span></h1>
   <p class="lead">Der KI-Assistent auf Basis offener Komponenten – im Produktivbetrieb läuft er auf einem dedizierten Server in Ihrer Organisation und unterstützt einen DSGVO-konformen Einsatz.</p>
   <div class="badge">🔒 Selbst gehostet · EU-Server</div>
   <div class="demo-note">
@@ -132,7 +160,14 @@
   <a class="cta" href="/system.html">Mehr erfahren →</a>
   <p class="contact-hint" style="margin-top:14px;"><a href="/szenarien.html" style="color:var(--fk-primary);font-weight:600;text-decoration:none;">📋 Praxisszenarien für Pflege &amp; Eingliederungshilfe ansehen</a></p>
   <p class="contact-hint" style="margin-top:10px;"><a href="https://chat.freiki.com" style="color:var(--fk-primary);font-weight:600;text-decoration:none;">💬 Team-Chat öffnen</a></p>
-  <p class="contact-hint">Bei Interesse Anfrage an <a href="mailto:info@freiki.com">info@freiki.com</a> – Sie erhalten ein Passwort für den Testserver (siehe Hinweis oben).</p>
+  <a class="hero-cta-box" href="https://app.freiki.com/register.html">
+    <span class="icon" aria-hidden="true">📝</span>
+    <span class="txt">
+      <strong>Testzugang anfordern</strong>
+      <span>Registrieren Sie sich direkt für Ihren Zugang zum Testserver (siehe Hinweis oben).</span>
+    </span>
+    <span class="arrow" aria-hidden="true">→</span>
+  </a>
   <footer>FreiKI · <a href="/impressum.html" style="color:inherit;">Impressum</a></footer>
 </body>
 </html>
