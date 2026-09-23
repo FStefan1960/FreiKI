@@ -20,6 +20,18 @@ router.post('/api/register', registrationLimiter, asyncHandler(async (req, res) 
 
   try {
     const result = await AuthService.registerInterest({ first_name, last_name, funktion, telefon, email, dienststelle, language });
+    if (result.duplicate === 'active') {
+      return res.status(409).json({
+        code: 'account-exists',
+        error: 'Für diesen Namen besteht bereits ein Zugang. Falls du dein Passwort vergessen hast, nutze bitte die Passwort-vergessen-Funktion.',
+      });
+    }
+    if (result.duplicate === 'pending') {
+      return res.status(409).json({
+        code: 'account-pending',
+        error: 'Für diesen Namen liegt bereits eine offene Zugangsanfrage vor. Bitte warte auf die Freischaltung durch eine Administratorin/einen Administrator.',
+      });
+    }
     res.json({ ok: true, username: result.username });
   } catch (e) {
     console.error('register POST:', e.message);

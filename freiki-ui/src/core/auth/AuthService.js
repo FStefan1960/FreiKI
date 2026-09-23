@@ -316,6 +316,15 @@ async function completeTraining(uid) {
 // Passwort ist ein Wegwerfwert, der Nutzer bekommt sein echtes Passwort erst bei der
 // Freischaltung per resendWelcome().
 async function registerInterest(rawFields) {
+  // Verhindert Doppel-Konten: MA registrieren sich immer wieder neu, obwohl schon ein Konto
+  // (aktiv oder noch pending) existiert. Abgleich über Vor-/Nachname statt E-Mail, da mehrere
+  // MA denselben Funktions-/Gruppen-Posteingang nutzen können (siehe UserRepository.findByNameAny) -
+  // der generierte Benutzername kollidiert bei Namensgleichheit ohnehin schon stillschweigend
+  // (baseUsernameFrom/generateUniqueUsername), das hier fängt es vorher sichtbar ab.
+  const existing = await users.findByNameAny(rawFields.first_name, rawFields.last_name);
+  if (existing) {
+    return { duplicate: existing.pending_approval ? 'pending' : 'active' };
+  }
   const throwawayPassword = generatePassword();
   const passwordHash = await bcrypt.hash(throwawayPassword, 10);
   // Antwortsprache ist im Formular ein Freitextfeld (kein festes Auswahlmenü) - dieselbe

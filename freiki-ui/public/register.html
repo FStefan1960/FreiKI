@@ -74,6 +74,12 @@ function statusMsg(type, txt) {
   s.textContent = txt;
 }
 
+function statusHtml(type, html) {
+  const s = document.getElementById('r-status');
+  s.className = 'status-msg ' + type;
+  s.innerHTML = html;
+}
+
 document.getElementById('reg-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('r-submit');
@@ -95,13 +101,22 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Fehler');
+    if (!res.ok) {
+      const e = new Error(data.error || 'Fehler');
+      e.code = data.code;
+      throw e;
+    }
     document.getElementById('reg-form').style.display = 'none';
     statusMsg('ok', 'Danke! Deine Anfrage ist eingegangen. Dein Benutzername lautet: ' + data.username + '. Sobald die Anfrage freigeschaltet ist, bekommst du dein Passwort per E-Mail.');
   } catch (err) {
-    statusMsg('err', err.message);
-    btn.disabled = false;
-    btn.textContent = 'Zugang beantragen';
+    if (err.code === 'account-exists') {
+      document.getElementById('reg-form').style.display = 'none';
+      statusHtml('err', err.message + ' <a href="/forgot-password.html">Passwort jetzt zurücksetzen</a>');
+    } else {
+      statusMsg('err', err.message);
+      btn.disabled = false;
+      btn.textContent = 'Zugang beantragen';
+    }
   }
 });
 </script>

@@ -65,6 +65,20 @@ function findByEmailForReset(email) {
   ).then(r => r.rows[0] || null);
 }
 
+// Für die Selbstregistrierung (registerInterest): findet JEDEN bestehenden Nutzer mit
+// demselben Vor-/Nachnamen, unabhängig von suspended/pending_approval - damit sich niemand
+// versehentlich ein zweites Konto anlegt, obwohl schon eins existiert. Bewusst über den Namen
+// statt die E-Mail, da mehrere MA denselben Funktions-/Gruppen-Posteingang nutzen können und
+// ein reiner E-Mail-Abgleich dann fälschlich verschiedene Personen als Dublette markieren würde.
+function findByNameAny(firstName, lastName) {
+  return pool.query(
+    `SELECT * FROM freiki_users
+     WHERE lower(trim(first_name))=lower(trim($1)) AND lower(trim(last_name))=lower(trim($2))
+       AND trim($1) <> '' AND trim($2) <> ''`,
+    [firstName || '', lastName || '']
+  ).then(r => r.rows[0] || null);
+}
+
 function findProfileById(id) {
   return pool.query('SELECT username, email, role, first_name, last_name, funktion, telefon, language, enter_to_send FROM freiki_users WHERE id=$1', [id])
     .then(r => r.rows[0] || null);
@@ -260,7 +274,7 @@ const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@
 
 module.exports = {
   VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById,
-  findByEmailForReset,
+  findByEmailForReset, findByNameAny,
   listAll, listPending, create, update, updatePasswordHash, updateLanguage, updateEnterToSend, remove, listAdminEmails,
   generateUniqueUsername,
   setPendingTotpSecret, enableTotp, disableTotp, updateBackupCodes, completeTraining, declineTraining, resetTraining, ackBreakingNews,
