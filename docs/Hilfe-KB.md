@@ -115,7 +115,7 @@ Nein. Die Archivsuche zeigt Dokumente an und ermöglicht das Lesen des Inhalts. 
 
 ## Wie funktioniert die Transkription?
 
-Für ein kurzes Diktat klicken Sie auf das Mikrofon-Symbol im Eingabefeld und sprechen Sie – der Text erscheint direkt zum Nachbearbeiten. Für längere Aufnahmen (auch Mitschnitte von Zoom- oder Teams-Sitzungen) laden Sie unter „Extras" → „Audio extrahieren" eine Audio- oder Videodatei hoch (bis 1 GB); das fertige Transkript wird an Ihre hinterlegte E-Mail-Adresse gesendet. Die Verarbeitung erfolgt lokal – nichts wird an externe Dienste übertragen. Auf diesem Testserver ohne GPU sind die Transkriptions-Buttons nicht verfügbar.
+Für ein kurzes Diktat klicken Sie auf das Mikrofon-Symbol im Eingabefeld und sprechen Sie – der Text erscheint direkt zum Nachbearbeiten. Für längere Aufnahmen (auch Mitschnitte von Zoom- oder Teams-Sitzungen) laden Sie unter „Extras" → „Video-/Audiotranskription" eine Audio- oder Videodatei hoch (bis 1 GB); das fertige Transkript wird an Ihre hinterlegte E-Mail-Adresse gesendet. Die Verarbeitung erfolgt lokal – nichts wird an externe Dienste übertragen. Auf diesem Testserver ohne GPU sind die Transkriptions-Buttons nicht verfügbar.
 
 ---
 

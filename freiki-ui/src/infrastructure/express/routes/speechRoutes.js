@@ -61,8 +61,9 @@ router.post('/api/dictate', uploadDictation.single('audio'), asyncHandler(async 
   }
 }));
 
-// Extras-Menüpunkt "Audio extrahieren" - reines ffmpeg-Utility ohne KI/Whisper: liefert die
-// Tonspur synchron als MP3-Download zurück statt wie /api/transcribe per E-Mail. Eigenes
+// Extras-Menüpunkt "Video-/Audiotranskription", Button "Audio extrahieren (Warten)" - reines
+// ffmpeg-Utility ohne KI/Whisper: liefert die Tonspur synchron als MP3-Download zurück statt
+// wie /api/transcribe per E-Mail. Eigenes
 // uploadVideo-Limit (1GB) statt uploadAudio (200MB), siehe FileStorage.js.
 router.post('/api/extract-audio', uploadVideo.single('video'), asyncHandler(async (req, res) => {
   const file = req.file;

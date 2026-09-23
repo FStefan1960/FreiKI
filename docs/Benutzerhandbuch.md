@@ -199,7 +199,7 @@ Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt ha
 | **Medizin-Literatursuche** | Ein Suchbegriff, sieben medizinische Datenbanken: PubMed, Europe PMC und ClinicalTrials.gov liefern Treffer direkt in der App; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet. Anführungszeichen suchen die exakte Wortfolge (z. B. „Diakonie Kork"), AND/OR (groß geschrieben) verknüpfen mehrere Begriffe. ⚠️ Der Suchbegriff geht dafür direkt aus dem Browser an diese externen Dienste – keine Patienten- oder Klientendaten eingeben. |
 | **IT-Sicherheitslage** | aktuelle Bedrohungshinweise (sofern eingerichtet) |
 | **Medienspiegel / Gesellschaftstrends** | tägliche Presseschau bzw. Trends (sofern eingerichtet) |
-| **Audio extrahieren** | Tonspur aus Video-/Audiodatei (bis 1 GB) per ffmpeg extrahieren, „Audio extrahieren (Warten)“ zum Herunterladen. Die Transkriptions-Buttons („Audio direkt transkribieren“, „Extrahieren, Transkribieren & Formatieren“) sind auf diesem Testserver ohne GPU nicht verfügbar – ein Klick zeigt einen entsprechenden Hinweis-Dialog statt die Datei zu verarbeiten. |
+| **Video-/Audiotranskription** | Video- oder Audiodatei (bis 1 GB) transkribieren oder nur die Tonspur per ffmpeg extrahieren, „Audio extrahieren (Warten)“ zum Herunterladen. Die Transkriptions-Buttons („Audio direkt transkribieren“, „Extrahieren, Transkribieren & Formatieren“) sind auf diesem Testserver ohne GPU nicht verfügbar – ein Klick zeigt einen entsprechenden Hinweis-Dialog statt die Datei zu verarbeiten. |
 
 Manche Extras sind auf bestimmte Rollen beschränkt.
 
