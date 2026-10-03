@@ -148,15 +148,25 @@
     }
     .embedded .back-link { display: none !important; }
 
-    .demo-note {
-      display: none; aspect-ratio: 3 / 2; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 24px; border: 2px dashed #fcd34d; background: #fffbeb; border-radius: 12px; color: #92400e;
+    .demo-stage {
+      display: none; position: relative; aspect-ratio: 3 / 2; border-radius: 12px; overflow: hidden;
+      cursor: ew-resize; touch-action: pan-y; user-select: none;
     }
-    .demo-note.visible { display: flex; }
+    .demo-stage.visible { display: block; }
+    .demo-note {
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 24px; border: 2px dashed #fcd34d; background: #fffbeb; color: #92400e; border-radius: 12px;
+    }
     .demo-note .demo-icon { font-size: 40px; margin-bottom: 10px; }
-    .demo-note h2 { font-size: 18px; color: #92400e; margin-bottom: 8px; }
+    .demo-note h2 { font-size: 18px; margin-bottom: 8px; color: inherit; }
     .demo-note p { font-size: 14px; line-height: 1.5; max-width: 460px; }
-    .demo-note p + p { font-size: 13px; color: #b45309; margin-top: 12px; }
+    .demo-note p + p { font-size: 13px; opacity: 0.85; margin-top: 12px; }
+    /* "Nachher"-Ebene: derselbe Hinweis, nur in anderen Farben - zeigt, wie der Vergleichsregler arbeitet */
+    .demo-note.demo-after {
+      z-index: 2; border-color: #38bdf8; color: #0c4a6e;
+      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 55%, #a5f3fc 100%);
+    }
+    .demo-stage .divider, .demo-stage .tag { z-index: 5; }
 
     @media (max-width: 860px) {
       body { padding: 12px; }
@@ -221,11 +231,22 @@
     </div>
 
     <div class="stage-col">
-      <div class="demo-note" id="demo-note" role="status">
-        <div class="demo-icon">⚠️</div>
-        <h2>Funktion nicht verfügbar</h2>
-        <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
-        <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
+      <div class="demo-stage" id="demo-stage">
+        <div class="demo-note" id="demo-note" role="status">
+          <div class="demo-icon">⚠️</div>
+          <h2>Funktion nicht verfügbar</h2>
+          <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
+          <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
+        </div>
+        <div class="demo-note demo-after" id="demo-after" aria-hidden="true">
+          <div class="demo-icon">🪄</div>
+          <h2>Funktion nicht verfügbar</h2>
+          <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
+          <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
+        </div>
+        <div class="divider" id="demo-divider"></div>
+        <div class="tag" id="demo-tag-before" style="left:10px">Vorher</div>
+        <div class="tag" id="demo-tag-after" style="right:10px">Nachher (Beispiel)</div>
       </div>
       <div class="stage" id="stage">
         <canvas id="cv-before"></canvas>
@@ -236,7 +257,7 @@
       </div>
       <div class="compare-wrap" id="compare-wrap">
         <input type="range" class="compare-range" id="compare" min="0" max="100" value="0" aria-label="Vorher-Nachher-Vergleich">
-        <div class="compare-hint">Regler oder Bild nach rechts ziehen = Original vergleichen.</div>
+        <div class="compare-hint" id="compare-hint">Regler oder Bild nach rechts ziehen = Original vergleichen.</div>
       </div>
       <div class="size-line" id="size-line"></div>
       <div class="note info" id="scale-note" style="display:none"></div>
@@ -547,18 +568,60 @@
   });
 
   // Demo-Modus: Einstellungen sichtbar und bedienbar (Beispiele, Anweisung, Qualität), aber kein
-  // Bild und kein Start - an der Stelle des Bildes steht der Sperrhinweis.
+  // Bild und kein Start. Im Bildbereich steht der Sperrhinweis; der Vorher/Nachher-Regler arbeitet
+  // wie später mit dem echten Ergebnis, blendet hier aber nur zu einer farblich anderen Variante
+  // desselben Hinweises über.
   function enterDemo() {
     dropZone.style.display = 'none';
     workspace.classList.add('visible');
     stage.style.display = 'none';
-    compareWrap.classList.remove('visible');
     sizeLine.style.display = 'none';
     scaleNote.style.display = 'none';
-    $('demo-note').classList.add('visible');
     startBtn.disabled = true;
     startBtn.textContent = '✨ Mit KI bearbeiten – in dieser Demo nicht verfügbar';
     $('other-btn').parentElement.style.display = 'none';
+
+    const ds = $('demo-stage'), after = $('demo-after'), div = $('demo-divider');
+    const tb = $('demo-tag-before'), ta = $('demo-tag-after');
+    ds.classList.add('visible');
+    compareWrap.classList.add('visible');
+    $('compare-hint').textContent = 'Regler oder Bild ziehen: So funktioniert später der Vergleich mit dem Original – hier nur als Beispiel mit anderen Farben.';
+
+    let sweep = 0;
+    function setDemoSplit(pct) {
+      pct = Math.min(100, Math.max(0, pct));
+      compare.value = pct;
+      after.style.clipPath = `inset(0 0 0 ${pct}%)`;
+      div.style.display = (pct <= 0 || pct >= 100) ? 'none' : 'block';
+      div.style.left = pct + '%';
+      tb.style.display = pct > 12 ? 'block' : 'none';
+      ta.style.display = pct < 88 ? 'block' : 'none';
+    }
+    const stopSweep = () => { sweep = -1; };
+    compare.addEventListener('input', () => { stopSweep(); setDemoSplit(+compare.value); });
+    let dragging = false;
+    const fromEvent = e => { const r = ds.getBoundingClientRect(); setDemoSplit((e.clientX - r.left) / r.width * 100); };
+    ds.addEventListener('pointerdown', e => { stopSweep(); dragging = true; ds.setPointerCapture(e.pointerId); fromEvent(e); });
+    ds.addEventListener('pointermove', e => { if (dragging) fromEvent(e); });
+    ds.addEventListener('pointerup', () => { dragging = false; });
+    ds.addEventListener('pointercancel', () => { dragging = false; });
+
+    // Kurze Einladung zum Ziehen: Regler läuft einmal 50 -> 12 -> 88 -> 50 (nicht bei "weniger Bewegung")
+    setDemoSplit(50);
+    if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      const keys = [[0, 50], [700, 12], [1900, 88], [2700, 50]];
+      const t0 = performance.now();
+      sweep = 1;
+      (function step(now) {
+        if (sweep !== 1) return;
+        const t = now - t0;
+        let k = 0; while (k < keys.length - 2 && t > keys[k + 1][0]) k++;
+        const [ta0, va] = keys[k], [tb0, vb] = keys[k + 1];
+        const f = Math.min(1, Math.max(0, (t - ta0) / (tb0 - ta0)));
+        setDemoSplit(va + (vb - va) * (f * f * (3 - 2 * f)));
+        if (t < keys[keys.length - 1][0]) requestAnimationFrame(step);
+      })(t0);
+    }
   }
   if (DEMO) enterDemo();
 
