@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bild mit KI bearbeiten</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hanken Grotesk', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 32px;
+      max-width: 1180px;
+      width: 100%;
+    }
+
+    .header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .header img { width: 48px; height: 48px; border-radius: 10px; }
+    .header h1 { font-size: 20px; font-weight: 700; color: #1E3A8A; }
+    .header p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+    .note { border-radius: 10px; padding: 10px 14px; font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+    .note.privacy { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .note.warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+    .note.info { background: #f0f9ff; border: 1px solid #bfdbfe; color: #1E3A8A; margin: 12px 0 0; }
+    .note.warn a { color: inherit; font-weight: 700; }
+
+    .drop-zone {
+      border: 2px dashed #bfdbfe; border-radius: 12px; padding: 36px 24px; text-align: center;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; margin-top: 8px;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #2B9CD8; background: #f0f9ff; }
+    .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop-icon { font-size: 36px; margin-bottom: 10px; }
+    .drop-text { font-size: 14px; color: #374151; font-weight: 600; }
+    .drop-sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+    .workspace { display: none; gap: 24px; align-items: flex-start; margin-top: 8px; }
+    .workspace.visible { display: flex; }
+    .controls { flex: 0 0 340px; max-width: 100%; }
+    .stage-col { flex: 1 1 0; min-width: 0; }
+
+    .section-title { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
+    .controls .section-title:not(:first-child) { margin-top: 16px; }
+
+    textarea {
+      width: 100%; min-height: 96px; resize: vertical; border: 1.5px solid #bfdbfe; border-radius: 10px;
+      padding: 10px 12px; font: inherit; font-size: 14px; color: #1f2937; line-height: 1.45;
+    }
+    textarea:focus { outline: none; border-color: #2B9CD8; box-shadow: 0 0 0 3px rgba(43,156,216,0.18); }
+    textarea:disabled { background: #f9fafb; color: #6b7280; }
+    .counter { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 2px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip {
+      border: 1.5px solid #bfdbfe; background: #fff; color: #1E3A8A; border-radius: 999px;
+      padding: 5px 11px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .chip:hover:not(:disabled) { background: #f0f9ff; border-color: #2B9CD8; }
+    .chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #374151; margin-top: 10px; cursor: pointer; line-height: 1.4; }
+    .check input { width: 17px; height: 17px; accent-color: #1E3A8A; flex: none; margin-top: 1px; }
+
+    .modes { display: grid; gap: 8px; }
+    .mode { border: 1px solid #e5e7eb; border-radius: 10px; padding: 9px 12px; cursor: pointer; display: block; }
+    .mode:has(input:checked) { border-color: #2B9CD8; background: #f0f9ff; }
+    .mode input { accent-color: #1E3A8A; margin-right: 6px; }
+    .mode b { font-size: 14px; color: #1E3A8A; }
+    .mode span { display: block; font-size: 12px; color: #6b7280; margin: 2px 0 0 22px; line-height: 1.4; }
+
+    .primary-btn, .secondary-btn {
+      padding: 11px 18px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: opacity 0.2s;
+    }
+    .primary-btn { background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff; border: none; }
+    .secondary-btn { background: #fff; color: #1E3A8A; border: 2px solid #bfdbfe; }
+    .primary-btn:disabled, .secondary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .primary-btn:hover:not(:disabled), .secondary-btn:hover:not(:disabled) { opacity: 0.9; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .actions.full .primary-btn { width: 100%; }
+
+    .progress { display: none; margin-top: 16px; }
+    .progress.visible { display: block; }
+    .progress-track { background: #e5e7eb; border-radius: 999px; height: 8px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; width: 100%;
+      background: linear-gradient(90deg, #bfdbfe, #2B9CD8, #bfdbfe); background-size: 200% 100%;
+      animation: slide 1.2s linear infinite;
+    }
+    @keyframes slide { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .progress-label { font-size: 13px; color: #374151; margin-top: 8px; line-height: 1.5; }
+    .progress-label small { color: #6b7280; }
+
+    .status { display: none; margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+    .status.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .status.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    .stage { position: relative; width: 100%; background: #0f172a; border-radius: 12px; overflow: hidden; touch-action: pan-y; user-select: none; }
+    .stage.comparable { cursor: ew-resize; }
+    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #cv-before { z-index: 1; }
+    #cv-after { z-index: 2; }
+    .divider { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 6px rgba(0,0,0,0.5); z-index: 3; pointer-events: none; display: none; }
+    .tag { position: absolute; top: 10px; z-index: 4; background: rgba(15,23,42,0.65); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 6px; pointer-events: none; display: none; }
+    #tag-before { left: 10px; }
+    #tag-after { right: 10px; }
+    .compare-wrap { display: none; }
+    .compare-wrap.visible { display: block; }
+    .compare-range { width: 100%; accent-color: #1E3A8A; margin-top: 8px; }
+    .compare-hint { font-size: 12px; color: #6b7280; margin: 8px 0 0; }
+    .size-line { font-size: 12px; color: #6b7280; margin-top: 8px; }
+
+    .back-link {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8); color: #fff; border: none; border-radius: 24px;
+      padding: 10px 18px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(30,58,138,0.35);
+      cursor: pointer; font-family: inherit;
+    }
+    .embedded .back-link { display: none !important; }
+
+    .demo-note {
+      display: none; aspect-ratio: 3 / 2; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 24px; border: 2px dashed #fcd34d; background: #fffbeb; border-radius: 12px; color: #92400e;
+    }
+    .demo-note.visible { display: flex; }
+    .demo-note .demo-icon { font-size: 40px; margin-bottom: 10px; }
+    .demo-note h2 { font-size: 18px; color: #92400e; margin-bottom: 8px; }
+    .demo-note p { font-size: 14px; line-height: 1.5; max-width: 460px; }
+    .demo-note p + p { font-size: 13px; color: #b45309; margin-top: 12px; }
+
+    @media (max-width: 860px) {
+      body { padding: 12px; }
+      .card { padding: 20px; }
+      .workspace.visible { flex-direction: column; }
+      .controls { flex: none; width: 100%; }
+      .stage-col { width: 100%; order: -1; }
+    }
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+
+<div class="card">
+  <div class="header">
+    <img src="/icons/app-mark.svg" alt="">
+    <div>
+      <h1>Bild mit KI bearbeiten</h1>
+      <p>Foto hochladen → beschreiben, was sich ändern soll → die KI bearbeitet das Bild</p>
+    </div>
+  </div>
+
+  <div class="note privacy">🔒 Das Foto wird nur auf dem Server dieser Anwendung verarbeitet – es geht an keinen externen KI-Dienst. Es wird nicht dauerhaft gespeichert; das Ergebnis liegt höchstens 15 Minuten im Arbeitsspeicher.</div>
+  <div class="note warn">⚠️ Die KI zeichnet Bildteile <strong>neu</strong>. Dabei können Schrift, Zahlen, Gesichter und feine Details verändert werden. Für Folien, Dokumente und Screenshots bitte stattdessen <strong>„Bild verbessern“</strong> nutzen – das verändert keinen Buchstaben. Das Ergebnis der KI hat etwa 1 Megapixel.</div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept="image/*">
+    <div class="drop-icon">🪄</div>
+    <div class="drop-text">Foto hier ablegen, einfügen (Strg+V) oder klicken</div>
+    <div class="drop-sub">JPEG, PNG, WebP · große Fotos werden automatisch verkleinert</div>
+  </div>
+
+  <div class="workspace" id="workspace">
+    <div class="controls">
+      <div class="section-title">Was soll geändert werden?</div>
+      <textarea id="prompt" maxlength="700" placeholder="z. B. „Den Himmel tiefblau färben“" aria-label="Anweisung für die KI"></textarea>
+      <div class="counter"><span id="count">0</span> / 700</div>
+      <div class="chips" id="chips"></div>
+      <label class="check"><input type="checkbox" id="keep" checked> <span>Alles andere im Bild unverändert lassen <small>(wird der Anweisung angefügt – empfohlen)</small></span></label>
+
+      <div class="section-title">Qualität</div>
+      <div class="modes">
+        <label class="mode"><input type="radio" name="mode" value="standard" checked><b>Sorgfältig</b><span>8 Rechenschritte – etwas feinere Details.</span></label>
+        <label class="mode"><input type="radio" name="mode" value="schnell"><b>Schnell</b><span>4 Rechenschritte – meist kaum ein Unterschied.</span></label>
+      </div>
+
+      <div class="actions full"><button type="button" class="primary-btn" id="start-btn">✨ Mit KI bearbeiten</button></div>
+
+      <div class="progress" id="progress" role="status" aria-live="polite">
+        <div class="progress-track"><div class="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label"></div>
+        <div class="actions"><button type="button" class="secondary-btn" id="cancel-btn">Abbrechen</button></div>
+      </div>
+
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+
+      <div class="actions" id="result-actions" style="display:none">
+        <button type="button" class="primary-btn" id="save-btn">💾 Ergebnis speichern (PNG)</button>
+        <button type="button" class="secondary-btn" id="again-btn">Ergebnis weiterbearbeiten</button>
+      </div>
+      <div class="actions"><button type="button" class="secondary-btn" id="other-btn">Anderes Bild</button></div>
+    </div>
+
+    <div class="stage-col">
+      <div class="demo-note" id="demo-note" role="status">
+        <div class="demo-icon">⚠️</div>
+        <h2>Funktion nicht verfügbar</h2>
+        <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
+        <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="cv-before"></canvas>
+        <canvas id="cv-after"></canvas>
+        <div class="divider" id="divider"></div>
+        <div class="tag" id="tag-before">Original</div>
+        <div class="tag" id="tag-after">KI-Ergebnis</div>
+      </div>
+      <div class="compare-wrap" id="compare-wrap">
+        <input type="range" class="compare-range" id="compare" min="0" max="100" value="0" aria-label="Vorher-Nachher-Vergleich">
+        <div class="compare-hint">Regler oder Bild nach rechts ziehen = Original vergleichen.</div>
+      </div>
+      <div class="size-line" id="size-line"></div>
+      <div class="note info" id="scale-note" style="display:none"></div>
+    </div>
+  </div>
+
+  <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<script>
+  // Auth-Guard wie bei den anderen Panel-Seiten (HttpOnly-Cookie, daher Rundruf statt Token).
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) throw new Error('not logged in');
+    } catch (e) {
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
+    }
+  })();
+
+  // Grenzen wie auf dem Server (image-edit/server.py MAX_SIDE, imageEditRoutes.js). Größere Fotos
+  // werden hier automatisch verkleinert - mit Hinweis, statt einen Fehler zu zeigen.
+  const MAX_SIDE = 2048;
+  const MAX_BYTES = 25 * 1024 * 1024;
+  const POLL_MS = 4000;
+  const KEEP_SUFFIX = ' Alles andere im Bild unverändert lassen.';
+  const EXAMPLES = [
+    'Den Himmel tiefblau färben',
+    'Die Person im Bild entfernen',
+    'Hintergrund aufräumen und Unordnung entfernen',
+    'Das Foto soll aussehen wie an einem sonnigen Tag aufgenommen',
+    'Schwarz-Weiß-Foto kolorieren',
+  ];
+
+  const $ = id => document.getElementById(id);
+
+  // Demo-Server ohne GPU: Der Extra-Eintrag der Instanz verweist auf /bild-ki.html?demo=1 (siehe
+  // public/extras/*.json, instanzspezifisch). Dann zeigt die Seite alle Einstellungen, aber statt des
+  // Bildes einen Sperrhinweis (enterDemo am Skriptende). Ebenso, wenn der Server den Start mit
+  // 404/405 beantwortet (Route nicht eingehängt).
+  const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+  const dropZone = $('drop-zone'), fileInput = $('file-input'), workspace = $('workspace');
+  const promptEl = $('prompt'), startBtn = $('start-btn'), cancelBtn = $('cancel-btn');
+  const progress = $('progress'), progressLabel = $('progress-label'), statusEl = $('status');
+  const stage = $('stage'), cvBefore = $('cv-before'), cvAfter = $('cv-after');
+  const divider = $('divider'), tagBefore = $('tag-before'), tagAfter = $('tag-after');
+  const compare = $('compare'), compareWrap = $('compare-wrap');
+  const resultActions = $('result-actions'), scaleNote = $('scale-note'), sizeLine = $('size-line');
+
+  let current = null;       // { blob, width, height, name } - das Bild, das an die KI geht
+  let resultBlob = null;
+  let job = null;           // { id, timer, clock, startedAt }
+  let busy = false;
+
+  const fmtMB = b => b < 52429 ? 'unter 0,1 MB' : (b / 1048576).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MB';
+  const fmtN = n => n.toLocaleString('de-DE');
+  function setStatus(kind, text) { statusEl.className = 'status' + (kind ? ' ' + kind : ''); statusEl.textContent = text || ''; }
+
+  // ── Beispiele und Eingabe ─────────────────────────────────────
+  EXAMPLES.forEach(t => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = t;
+    b.addEventListener('click', () => { promptEl.value = t; promptEl.dispatchEvent(new Event('input')); promptEl.focus(); });
+    $('chips').appendChild(b);
+  });
+  promptEl.addEventListener('input', () => { $('count').textContent = promptEl.value.length; });
+
+  // ── Bild vorbereiten (automatisch verkleinern, mit Hinweis) ───
+  async function prepare(file) {
+    let bmp;
+    try {
+      bmp = await createImageBitmap(file);   // beachtet die EXIF-Ausrichtung
+    } catch (e) {
+      alert('Dieses Bildformat kann der Browser nicht öffnen (z. B. HEIC vom iPhone). Bitte als JPEG oder PNG speichern bzw. exportieren und erneut versuchen.');
+      return null;
+    }
+    const w = bmp.width, h = bmp.height;
+    const okType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+    const tooBig = Math.max(w, h) > MAX_SIDE || file.size > MAX_BYTES;
+    const baseName = (file.name || 'bild').replace(/\.[^.]+$/, '') || 'bild';
+
+    if (okType && !tooBig) {
+      return { blob: file, bmp, width: w, height: h, name: baseName, note: '' };
+    }
+
+    // Verkleinern (bzw. bei unbekanntem Format nach JPEG umwandeln); Qualität senken, falls nötig
+    const sc = Math.min(1, MAX_SIDE / Math.max(w, h));
+    const nw = Math.max(1, Math.round(w * sc)), nh = Math.max(1, Math.round(h * sc));
+    const cv = document.createElement('canvas');
+    cv.width = nw; cv.height = nh;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, nw, nh);   // Transparenz auf Weiß
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, 0, 0, nw, nh);
+    let q = 0.92, blob;
+    do {
+      blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', q));
+      q -= 0.1;
+    } while (blob && blob.size > MAX_BYTES && q > 0.4);
+    if (!blob) { alert('Das Bild konnte nicht verkleinert werden. Bitte ein kleineres Foto versuchen.'); return null; }
+
+    const orig = `${fmtN(w)} × ${fmtN(h)} Pixel, ${fmtMB(file.size)}`;
+    let note;
+    if (sc < 1) {
+      note = `ℹ️ Ihr Foto (${orig}) ist größer, als die KI nutzen kann, und wurde deshalb automatisch auf ${fmtN(nw)} × ${fmtN(nh)} Pixel verkleinert (${fmtMB(blob.size)}). Die KI arbeitet ohnehin nur mit etwa 1 Megapixel – es geht nichts verloren, was sie nutzen könnte, und das Hochladen geht schneller. Ihr Original bleibt unverändert auf Ihrem Gerät.`;
+    } else {
+      note = `ℹ️ Ihr Bild (${orig}) wurde automatisch in ein JPEG-Bild umgewandelt${file.size > MAX_BYTES ? ' und verkleinert' : ''} (${fmtMB(blob.size)}), weil die KI nur JPEG, PNG und WebP bis ${fmtMB(MAX_BYTES)} verarbeitet.`;
+    }
+    return { blob, bmp, width: nw, height: nh, name: baseName, note };
+  }
+
+  function drawStage(before, after) {
+    const w = (after || before).width, h = (after || before).height;
+    for (const cv of [cvBefore, cvAfter]) { cv.width = w; cv.height = h; }
+    stage.style.aspectRatio = w + ' / ' + h;
+    cvBefore.getContext('2d').drawImage(before, 0, 0, w, h);
+    const a = cvAfter.getContext('2d');
+    a.clearRect(0, 0, w, h);
+    if (after) a.drawImage(after, 0, 0, w, h);
+  }
+
+  function setSplit(pct) {
+    pct = Math.min(100, Math.max(0, pct));
+    compare.value = pct;
+    cvAfter.style.clipPath = `inset(0 0 0 ${pct}%)`;
+    divider.style.left = pct + '%';
+    divider.style.display = (pct <= 0 || pct >= 100) ? 'none' : 'block';
+    tagBefore.style.display = resultBlob && pct > 12 ? 'block' : 'none';
+    tagAfter.style.display = resultBlob && pct < 88 ? 'block' : 'none';
+  }
+  compare.addEventListener('input', () => setSplit(+compare.value));
+  let dragging = false;
+  const splitFromEvent = e => { const r = stage.getBoundingClientRect(); setSplit((e.clientX - r.left) / r.width * 100); };
+  stage.addEventListener('pointerdown', e => { if (!resultBlob) return; dragging = true; stage.setPointerCapture(e.pointerId); splitFromEvent(e); });
+  stage.addEventListener('pointermove', e => { if (dragging) splitFromEvent(e); });
+  stage.addEventListener('pointerup', () => { dragging = false; });
+  stage.addEventListener('pointercancel', () => { dragging = false; });
+
+  // ── Laden ─────────────────────────────────────────────────────
+  async function loadFile(file) {
+    if (!file || busy || DEMO) return;
+    if (file.type && !file.type.startsWith('image/')) { alert('Das ist keine Bilddatei.'); return; }
+    const prepared = await prepare(file);
+    if (!prepared) return;
+    showImage(prepared);
+    dropZone.style.display = 'none';
+    workspace.classList.add('visible');
+    setStatus('', '');
+  }
+
+  function showImage(p) {
+    current = p;
+    resultBlob = null;
+    drawStage(p.bmp, null);
+    stage.classList.remove('comparable');
+    compareWrap.classList.remove('visible');
+    resultActions.style.display = 'none';
+    setSplit(0);
+    sizeLine.textContent = `Bild für die KI: ${fmtN(p.width)} × ${fmtN(p.height)} Pixel`;
+    scaleNote.style.display = p.note ? 'block' : 'none';
+    scaleNote.textContent = p.note || '';
+    startBtn.disabled = false;
+  }
+
+  fileInput.addEventListener('change', () => { loadFile(fileInput.files[0]); fileInput.value = ''; });
+  ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag-over'); }));
+  ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag-over'); }));
+  dropZone.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+  window.addEventListener('paste', e => {
+    const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith('image/'));
+    if (f) loadFile(f);
+  });
+  $('other-btn').addEventListener('click', () => {
+    if (busy) return;
+    current = null; resultBlob = null;
+    workspace.classList.remove('visible');
+    dropZone.style.display = '';
+    setStatus('', '');
+  });
+
+  // ── Auftrag ───────────────────────────────────────────────────
+  function lock(on) {
+    busy = on;
+    startBtn.disabled = on;
+    promptEl.disabled = on;
+    document.querySelectorAll('.chip, input[name=mode], #keep, #again-btn, #other-btn').forEach(el => { el.disabled = on; });
+    progress.classList.toggle('visible', on);
+  }
+
+  async function apiJson(res) {
+    let body = {};
+    try { body = await res.json(); } catch (e) { /* kein JSON */ }
+    return body;
+  }
+
+  startBtn.addEventListener('click', async () => {
+    if (!current || busy) return;
+    if (DEMO) return;
+    const text = promptEl.value.trim();
+    if (!text) { setStatus('error', 'Bitte beschreiben, was an dem Bild geändert werden soll.'); promptEl.focus(); return; }
+    setStatus('', '');
+    resultActions.style.display = 'none';
+    const full = $('keep').checked && !/unverändert lassen\.?$/i.test(text) ? text.replace(/[.!\s]+$/, '') + '.' + KEEP_SUFFIX : text;
+    const fd = new FormData();
+    fd.set('image', current.blob, current.name + (current.blob.type === 'image/png' ? '.png' : current.blob.type === 'image/webp' ? '.webp' : '.jpg'));
+    fd.set('prompt', full);
+    fd.set('mode', document.querySelector('input[name=mode]:checked').value);
+    lock(true);
+    progressLabel.textContent = 'Bild wird hochgeladen …';
+    try {
+      const res = await fetch('/api/image-edit/jobs', { method: 'POST', body: fd });
+      const body = await apiJson(res);
+      if (res.status === 404 || res.status === 405) { lock(false); enterDemo(); return; }
+      if (!res.ok) throw new Error(body.error || 'Der Auftrag konnte nicht gestartet werden.');
+      job = { id: body.id, startedAt: Date.now() };
+      job.clock = setInterval(() => renderProgress(), 1000);
+      job.timer = setInterval(() => poll(), POLL_MS);
+      job.last = body;
+      renderProgress();
+    } catch (e) {
+      lock(false);
+      setStatus('error', e.message);
+    }
+  });
+
+  function renderProgress() {
+    if (!job) return;
+    const s = Math.round((Date.now() - job.startedAt) / 1000);
+    const t = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const st = job.last || {};
+    if (st.status === 'queued') {
+      progressLabel.innerHTML = `In der Warteschlange – Platz ${st.position} <small>(${t})</small><br><small>Bild-, Musik- und andere KI-Aufträge laufen zuerst. Sie können diese Seite offen lassen.</small>`;
+    } else {
+      progressLabel.innerHTML = `Die KI bearbeitet Ihr Bild … <small>${t} – dauert meist 2 bis 3 Minuten</small>`;
+    }
+  }
+
+  async function poll() {
+    if (!job) return;
+    const id = job.id;
+    try {
+      const res = await fetch('/api/image-edit/jobs/' + id, { cache: 'no-store' });
+      if (!job || job.id !== id) return;
+      if (res.status === 404) return fail('Der Auftrag wurde nicht gefunden – eventuell wurde der Server zwischendurch neu gestartet. Bitte erneut starten.');
+      const st = await apiJson(res);
+      if (!res.ok) return;      // vorübergehender Fehler: nächster Versuch
+      job.last = st;
+      renderProgress();
+      if (st.status === 'error') return fail(st.error || 'Die Bildbearbeitung ist fehlgeschlagen.');
+      if (st.status === 'done') await finish(id);
+    } catch (e) { /* Netzwerkaussetzer: nächster Versuch */ }
+  }
+
+  function stopTimers() { if (job) { clearInterval(job.timer); clearInterval(job.clock); } }
+  function fail(msg) { stopTimers(); job = null; lock(false); setStatus('error', msg); }
+
+  async function finish(id) {
+    stopTimers();
+    const secs = Math.round((Date.now() - job.startedAt) / 1000);
+    try {
+      const res = await fetch(`/api/image-edit/jobs/${id}/result`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Das Ergebnis konnte nicht geladen werden.');
+      resultBlob = await res.blob();
+      const bmp = await createImageBitmap(resultBlob);
+      job = null;
+      drawStage(current.bmp, bmp);
+      resultBmp = bmp;
+      stage.classList.add('comparable');
+      compareWrap.classList.add('visible');
+      setSplit(0);
+      sizeLine.textContent = `KI-Ergebnis: ${fmtN(bmp.width)} × ${fmtN(bmp.height)} Pixel (in ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} Min.)`;
+      resultActions.style.display = 'flex';
+      lock(false);
+      setStatus('success', 'Fertig. Bitte das Ergebnis genau prüfen – die KI kann Details verändert haben. Der Regler zeigt das Original zum Vergleich.');
+    } catch (e) {
+      fail(e.message);
+    }
+  }
+  let resultBmp = null;
+
+  cancelBtn.addEventListener('click', async () => {
+    if (!job) return;
+    const id = job.id;
+    stopTimers(); job = null;
+    try { await fetch('/api/image-edit/jobs/' + id, { method: 'DELETE' }); } catch (e) { /* egal */ }
+    lock(false);
+    setStatus('', '');
+  });
+
+  // ── Ergebnis nutzen ───────────────────────────────────────────
+  $('save-btn').addEventListener('click', () => {
+    if (!resultBlob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(resultBlob);
+    a.download = (current.name || 'bild') + '-ki.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  });
+
+  // Ergebnis als neue Ausgangsbasis (mehrere Änderungen nacheinander)
+  $('again-btn').addEventListener('click', () => {
+    if (!resultBlob || !resultBmp) return;
+    const p = { blob: resultBlob, bmp: resultBmp, width: resultBmp.width, height: resultBmp.height, name: current.name, note: '' };
+    showImage(p);
+    promptEl.value = ''; promptEl.dispatchEvent(new Event('input'));
+    setStatus('', '');
+    promptEl.focus();
+  });
+
+  // Demo-Modus: Einstellungen sichtbar und bedienbar (Beispiele, Anweisung, Qualität), aber kein
+  // Bild und kein Start - an der Stelle des Bildes steht der Sperrhinweis.
+  function enterDemo() {
+    dropZone.style.display = 'none';
+    workspace.classList.add('visible');
+    stage.style.display = 'none';
+    compareWrap.classList.remove('visible');
+    sizeLine.style.display = 'none';
+    scaleNote.style.display = 'none';
+    $('demo-note').classList.add('visible');
+    startBtn.disabled = true;
+    startBtn.textContent = '✨ Mit KI bearbeiten – in dieser Demo nicht verfügbar';
+    $('other-btn').parentElement.style.display = 'none';
+  }
+  if (DEMO) enterDemo();
+
+  window.addEventListener('beforeunload', e => { if (job) { e.preventDefault(); e.returnValue = ''; } });
+</script>
+</body>
+</html>
