@@ -288,7 +288,7 @@
             </svg>
             <span>DSGVO · DSG-EKD · EU · Open Source</span>
           </div>
-          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute / GPU-Cache (Peak) / GPU-Leistung — Klick: Nutzungsstatistik öffnen" data-i18n-title="header.admin_stats_title" onclick="openToolPanel('/admin-dashboard.html')">
+          <div id="admin-stats" class="admin-only admin-stats-widget" style="display:none;" title="Anfragen heute / User heute / GPU-Cache (Peak) / GPU-Leistung — Klick: Nutzungsstatistik öffnen" data-i18n-title="header.admin_stats_title" onclick="openToolPanel('/admin-dashboard.html', { title: t('tools.usage_stats.title', 'Nutzungsstatistik'), desc: t('tools.usage_stats.desc', 'Anfragen, Nutzer und Auslastung'), icon: '📊' })"
             <span id="stats-text">– / – / –%</span>
           </div>
           <div class="header-icon-group">
@@ -592,10 +592,10 @@
 <script src="/js/sensitive-detect.js?v=2"></script>
 <script src="/js/session-bootstrap.js?v=9"></script>
 <script src="/js/chat-history.js?v=6"></script>
-<script src="/js/modes.js?v=4"></script>
+<script src="/js/modes.js?v=5"></script>
 <script src="/js/auth.js?v=3"></script>
-<script src="/js/ui-chrome.js?v=4"></script>
-<script src="/js/chat-session.js?v=9"></script>
+<script src="/js/ui-chrome.js?v=5"></script>
+<script src="/js/chat-session.js?v=10"></script>
 <script src="/js/chat-input.js?v=2"></script>
 <script src="/js/paperless.js?v=1"></script>
 <script src="/js/dictation.js?v=1"></script>

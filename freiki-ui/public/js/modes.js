@@ -68,6 +68,20 @@ function setHeaderIcon(icon, key) {
   }
 }
 
+// Einzige Schreibstelle für die Kopfzeile (Titel/Beschreibung/Icon) und die aktive
+// Sidebar-Markierung - genutzt sowohl beim Wechsel eines Chat-Modus (applyModeChrome)
+// als auch beim Öffnen eines eingebetteten Werkzeug-/Extra-iframes (openToolPanel/
+// openExtraPanel in ui-chrome.js). So bleibt die Kopfzeile immer im Sync mit dem, was
+// tatsächlich sichtbar ist, egal über welchen der beiden Wege man dorthin kommt.
+function setShellChrome(chrome, navBtn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  if (navBtn) navBtn.classList.add('active');
+  if (!chrome) return;
+  document.getElementById('header-title').textContent = chrome.title || '';
+  document.getElementById('header-desc').textContent = chrome.desc || '';
+  setHeaderIcon(chrome.icon, chrome.key);
+}
+
 // Tooltip-Bubble für abgeschnittene Menü-Titel/-Untertitel (Sidebar). Delegiert
 // auf document, weil die Buttons in loadModes() bei jedem Reload neu erzeugt werden.
 (function initModeNavTooltip() {
@@ -225,7 +239,7 @@ async function loadModes() {
     builtinTools.forEach(t => {
       const b = document.createElement('button');
       b.className = 'mode-btn';
-      b.onclick = () => openToolPanel(t.panel);
+      b.onclick = () => openToolPanel(t.panel, { title: t.title, desc: t.desc, icon: t.icon }, b);
       b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc}</div></div>`;
       cw.appendChild(b);
     });
@@ -246,7 +260,7 @@ async function loadModes() {
         visibleExtras.forEach(t => {
           const b = document.createElement('button');
           b.className = 'mode-btn' + (t.external ? ' mode-btn-web' : '');
-          b.onclick = () => t.api ? openExtraPanel(t) : t.panel ? openToolPanel(t.panel) : t.url ? window.open(t.url, '_blank') : null;
+          b.onclick = () => t.api ? openExtraPanel(t, b) : t.panel ? openToolPanel(t.panel, { title: t.title, desc: t.desc, icon: t.icon }, b) : t.url ? window.open(t.url, '_blank') : null;
           b.innerHTML = `<div class="mode-icon">${modeIconHTML(t.icon)}</div><div class="mode-nav-text"><div class="mode-nav-title">${t.title}</div><div class="mode-nav-sub">${t.desc || ''}</div></div>`;
           ce.appendChild(b);
         });

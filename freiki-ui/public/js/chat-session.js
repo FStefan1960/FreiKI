@@ -4,14 +4,9 @@
 // (stellt eine gespeicherte Unterhaltung wieder her, siehe chat-history.js).
 function applyModeChrome(key) {
   State.currentMode = key;
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('btn-' + key);
-  if (btn) btn.classList.add('active');
   const m = State.modes[key];
+  setShellChrome(m, document.getElementById('btn-' + key));
   if (!m) return null;
-  setHeaderIcon(m.icon, m.key);
-  document.getElementById('header-title').textContent = m.title;
-  document.getElementById('header-desc').textContent = m.desc || '';
 
   // Paperless-Filter-Modus vs. normaler Chat
   const isPaperless = !!m.paperless;

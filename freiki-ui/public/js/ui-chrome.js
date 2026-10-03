@@ -96,10 +96,18 @@ function showChat() {
   document.body.classList.remove('tool-open');
 }
 
+// Stellt die Kopfzeile des zuletzt aktiven Chat-Modus wieder her - Gegenstück zum
+// setShellChrome()-Aufruf in openToolPanel()/openExtraPanel(), damit "Zurück zum Chat"
+// nicht die Kopfzeile des zuletzt geöffneten Werkzeugs stehen lässt (siehe modes.js).
+function restoreModeChrome() {
+  setShellChrome(State.modes[State.currentMode], document.getElementById('btn-' + State.currentMode));
+}
+
 
 // ── Eingebettete Werkzeug-Panels (iframe) ──
-function openToolPanel(src) {
+function openToolPanel(src, chrome, navBtn) {
   closeAllPanels();
+  if (chrome) setShellChrome(chrome, navBtn);
   const frame = document.getElementById('tool-frame');
   // Formular-Chat immer frisch laden: die Ansicht bleibt sonst (gleicher iframe-src wird
   // nicht neu geladen) beim zuletzt begonnenen Formular stehen, statt wieder die Startmaske
@@ -121,14 +129,16 @@ function openToolPanel(src) {
 
 function closeToolPanel() {
   showChat();
+  restoreModeChrome();
 }
 
 // Generisches In-App-Panel für "api"-Extras aus public/extras/*.json (Medienspiegel,
 // Gesellschaftstrends, Sicherheitslage, Losung) - ersetzt vier frühere, fast identische
 // open*()-Funktionen. Losung bleibt als einzige Ausnahme in renderExtraPanelContent(), weil
 // sie drei strukturierte Felder statt eines HTML-Blobs liefert.
-async function openExtraPanel(extra) {
+async function openExtraPanel(extra, navBtn) {
   closeAllPanels();
+  setShellChrome({ title: extra.title, desc: extra.desc, icon: extra.icon }, navBtn);
   document.getElementById('extra-panel').style.display = 'flex';
   document.body.classList.add('tool-open');
   document.getElementById('extra-panel-title').textContent =
@@ -173,6 +183,7 @@ function renderExtraPanelContent(key, data) {
 
 function closeExtraPanel() {
   showChat();
+  restoreModeChrome();
 }
 
 
