@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bild verbessern</title>
+  <link rel="icon" type="image/png" href="/app-icon-192.png">
+  <style>
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: swap;
+      src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hanken Grotesk', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(30,58,138,0.10);
+      padding: 32px;
+      max-width: 1180px;
+      width: 100%;
+    }
+
+    .header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .header img { width: 48px; height: 48px; border-radius: 10px; }
+    .header h1 { font-size: 20px; font-weight: 700; color: #1E3A8A; }
+    .header p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+    .privacy {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #bfdbfe;
+      border-radius: 12px;
+      padding: 36px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #2B9CD8; background: #f0f9ff; }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-icon { font-size: 36px; margin-bottom: 10px; }
+    .drop-text { font-size: 14px; color: #374151; font-weight: 600; }
+    .drop-sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+    .workspace { display: none; gap: 24px; align-items: flex-start; }
+    .workspace.visible { display: flex; }
+    .controls { flex: 0 0 340px; max-width: 100%; }
+    .stage-col { flex: 1 1 0; min-width: 0; }
+
+    .section-title { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .chip {
+      border: 1.5px solid #bfdbfe; background: #fff; color: #1E3A8A;
+      border-radius: 999px; padding: 6px 12px; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .chip:hover { background: #f0f9ff; border-color: #2B9CD8; }
+
+    .opt { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+    .opt.on { border-color: #bfdbfe; background: #f8fbff; }
+    .opt label.title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #1E3A8A; cursor: pointer; }
+    .opt input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1E3A8A; flex: none; }
+    .opt .desc { font-size: 12px; color: #6b7280; line-height: 1.45; margin: 4px 0 0 26px; }
+    .opt .strength { display: none; align-items: center; gap: 8px; margin: 6px 0 0 26px; font-size: 12px; color: #374151; }
+    .opt.on .strength { display: flex; }
+    .opt .strength input[type="range"] { flex: 1; accent-color: #2B9CD8; }
+    .opt .strength output { width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      background: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+      touch-action: pan-y;
+      cursor: ew-resize;
+      user-select: none;
+    }
+    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #cv-before { z-index: 1; }
+    #cv-after { z-index: 2; }
+    .divider {
+      position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px;
+      background: #fff; box-shadow: 0 0 6px rgba(0,0,0,0.5); z-index: 3; pointer-events: none;
+    }
+    .tag {
+      position: absolute; top: 10px; z-index: 4; background: rgba(15,23,42,0.65); color: #fff;
+      font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 6px; pointer-events: none;
+    }
+    #tag-before { left: 10px; }
+    #tag-after { right: 10px; }
+
+    .compare-hint { font-size: 12px; color: #6b7280; margin: 8px 0 14px; }
+    .compare-range { width: 100%; accent-color: #1E3A8A; margin-top: 8px; }
+
+    .primary-btn, .secondary-btn {
+      padding: 11px 18px; border-radius: 10px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: opacity 0.2s;
+    }
+    .primary-btn { background: linear-gradient(135deg, #1E3A8A, #2B9CD8); color: #fff; border: none; }
+    .secondary-btn { background: #fff; color: #1E3A8A; border: 2px solid #bfdbfe; }
+    .primary-btn:disabled, .secondary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .primary-btn:hover:not(:disabled), .secondary-btn:hover:not(:disabled) { opacity: 0.9; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+    .status {
+      display: none; margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+      font-size: 13px; line-height: 1.5;
+    }
+    .status.info { display: block; background: #f0f9ff; border: 1px solid #bfdbfe; color: #1E3A8A; }
+    .status.success { display: block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .status.error { display: block; background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+
+    details.tips { margin-top: 18px; font-size: 13px; color: #374151; line-height: 1.55; }
+    details.tips summary { cursor: pointer; font-weight: 700; color: #1E3A8A; }
+    details.tips ul { margin: 8px 0 0 18px; }
+    details.tips li { margin-bottom: 4px; }
+
+    .back-link {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #1e3a8a, #2B9CD8); color: #fff; border: none;
+      border-radius: 24px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+      text-decoration: none; box-shadow: 0 4px 16px rgba(30,58,138,0.35);
+      transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; font-family: inherit;
+    }
+    .back-link:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(30,58,138,0.45); color: #fff; }
+    .embedded .back-link { display: none !important; }
+
+    @media (max-width: 860px) {
+      body { padding: 12px; }
+      .card { padding: 20px; }
+      .workspace.visible { flex-direction: column; }
+      .controls { flex: none; width: 100%; }
+      .stage-col { width: 100%; order: -1; }
+    }
+  </style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+
+<div class="card">
+  <div class="header">
+    <img src="/icons/app-mark.svg" alt="">
+    <div>
+      <h1>Bild verbessern</h1>
+      <p>Foto hochladen → Farbstich entfernen, aufhellen, Kontrast und Schärfe verbessern → speichern</p>
+    </div>
+  </div>
+
+  <div class="privacy">🔒 Die Bearbeitung läuft komplett in Ihrem Browser. Das Foto wird <strong>nicht hochgeladen</strong> und nicht gespeichert. Es wird auch nichts im Bild neu gezeichnet – Text auf Folien und Dokumenten bleibt unverändert.</div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept="image/*">
+    <div class="drop-icon">🖼️</div>
+    <div class="drop-text">Foto hier ablegen, einfügen (Strg+V) oder klicken</div>
+    <div class="drop-sub">JPEG, PNG, WebP · bis ca. 24 Megapixel</div>
+  </div>
+
+  <div class="workspace" id="workspace">
+    <div class="controls">
+      <div class="section-title">Voreinstellung</div>
+      <div class="presets">
+        <button type="button" class="chip" data-preset="folie">Folie / Dokument</button>
+        <button type="button" class="chip" data-preset="foto">Foto (dezent)</button>
+        <button type="button" class="chip" data-preset="aus">Alles aus</button>
+      </div>
+
+      <div class="section-title">Verbesserungen</div>
+      <div id="options"></div>
+
+      <div class="actions">
+        <button type="button" class="primary-btn" id="save-btn">💾 Als JPEG speichern</button>
+        <button type="button" class="secondary-btn" id="other-btn">Anderes Bild</button>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="stage-col">
+      <div class="stage" id="stage">
+        <canvas id="cv-before"></canvas>
+        <canvas id="cv-after"></canvas>
+        <div class="divider" id="divider"></div>
+        <div class="tag" id="tag-before">Original</div>
+        <div class="tag" id="tag-after">Verbessert</div>
+      </div>
+      <input type="range" class="compare-range" id="compare" min="0" max="100" value="0" aria-label="Vorher-Nachher-Vergleich">
+      <div class="compare-hint">Regler oder Bild nach rechts ziehen = Original vergleichen. Die Vorschau ist verkleinert; gespeichert wird in voller Auflösung.</div>
+
+      <details class="tips">
+        <summary>Was bewirken die Einstellungen – und wann nutze ich was?</summary>
+        <ul>
+          <li><strong>Folie oder Dokument fotografiert?</strong> Voreinstellung „Folie / Dokument“: entfernt den Farbstich des Projektors und macht den Hintergrund hell und neutral.</li>
+          <li><strong>Normales Foto?</strong> „Foto (dezent)“ hellt vorsichtig auf, ohne die Stimmung zu verändern. Farbstich entfernen nur einschalten, wenn die Farben wirklich falsch aussehen (z. B. Abendrot würde sonst „korrigiert“).</li>
+          <li><strong>Sehr dunkles Foto?</strong> „Kontrast verbessern“ macht Details sichtbar, verstärkt aber auch Bildrauschen – dann die Stärke etwas zurücknehmen.</li>
+          <li><strong>Nicht möglich hier:</strong> Himmel austauschen, Personen entfernen, Unschärfe nachträglich beheben. Dafür sind andere Werkzeuge nötig.</li>
+          <li>Beim Speichern werden Zusatzdaten wie Aufnahmeort und Kamera-Informationen (EXIF) <strong>nicht</strong> mitgespeichert.</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+
+  <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
+</div>
+
+<script>
+  // Auth-Guard wie bei den anderen Panel-Seiten: Session-Cookie ist HttpOnly, daher
+  // entscheidet /api/me statt eines lokal gespeicherten Tokens.
+  (async function() {
+    try {
+      const r = await fetch('/api/me', { cache: 'no-store' });
+      if (!r.ok) throw new Error('not logged in');
+    } catch (e) {
+      if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
+    }
+  })();
+
+  // ── Einstellungen ─────────────────────────────────────────────
+  // Stärke 100 % entspricht den in Tests geprüften Werten (siehe stepXxx-Funktionen).
+  const OPTIONS = [
+    { key: 'wb',    title: 'Farbstich entfernen', max: 100,
+      desc: 'Macht helle, eigentlich neutrale Flächen (z. B. den weißen Hintergrund einer Folie) wieder neutral. Hilft bei bläulichen oder gelblichen Aufnahmen von Projektionen oder Kunstlicht.' },
+    { key: 'tone',  title: 'Helligkeit & Tonwerte', max: 150,
+      desc: 'Nutzt den vollen Helligkeitsumfang aus und hellt dunkle Bereiche auf.' },
+    { key: 'clahe', title: 'Kontrast verbessern', max: 150,
+      desc: 'Verstärkt Kontraste örtlich, sodass Details in dunklen und hellen Bereichen besser sichtbar werden. Bei sehr dunklen Fotos wird auch Bildrauschen sichtbarer.' },
+    { key: 'sat',   title: 'Farben kräftiger', max: 250,
+      desc: 'Erhöht die Farbsättigung – gleicht aus, was die anderen Schritte an Farbe dämpfen.' },
+    { key: 'sharp', title: 'Schärfen', max: 200,
+      desc: 'Hebt Kanten und Schrift hervor. Echte Unschärfe (verwackelt, falscher Fokus) lässt sich damit nur begrenzt beheben.' },
+  ];
+
+  const PRESETS = {
+    folie: { wb: [true, 100],  tone: [true, 100], clahe: [true, 100], sat: [true, 100], sharp: [true, 100] },
+    foto:  { wb: [false, 100], tone: [true, 50],  clahe: [true, 30],  sat: [true, 60],  sharp: [true, 60] },
+    aus:   { wb: [false, 100], tone: [false, 100], clahe: [false, 100], sat: [false, 100], sharp: [false, 100] },
+  };
+
+  const opts = {};
+  OPTIONS.forEach(o => { opts[o.key] = { on: false, s: 1 }; });
+
+  // ── Elemente ──────────────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const workspace = document.getElementById('workspace');
+  const optionsEl = document.getElementById('options');
+  const stage = document.getElementById('stage');
+  const cvBefore = document.getElementById('cv-before');
+  const cvAfter = document.getElementById('cv-after');
+  const divider = document.getElementById('divider');
+  const tagBefore = document.getElementById('tag-before');
+  const tagAfter = document.getElementById('tag-after');
+  const compare = document.getElementById('compare');
+  const saveBtn = document.getElementById('save-btn');
+  const statusEl = document.getElementById('status');
+
+  const PREVIEW_MAX = 1600;        // längste Kante der Vorschau
+  const EXPORT_MAX_SIDE = 6000;    // Obergrenze beim Speichern (Speicherbedarf auf Handys)
+  const EXPORT_MAX_PIXELS = 24e6;
+
+  let bitmap = null;               // Original (volle Auflösung)
+  let baseName = 'bild';
+  let origPreview = null;          // Uint8ClampedArray der verkleinerten Vorschau
+  let workBuf = null;
+  let pw = 0, ph = 0;
+  let runId = 0;
+
+  function setStatus(kind, text) {
+    statusEl.className = 'status' + (kind ? ' ' + kind : '');
+    statusEl.textContent = text || '';
+  }
+
+  const tick = () => new Promise(r => setTimeout(r, 0));
+
+  // ── Optionen-Zeilen aufbauen ──────────────────────────────────
+  OPTIONS.forEach(o => {
+    const row = document.createElement('div');
+    row.className = 'opt';
+    row.dataset.key = o.key;
+    row.innerHTML =
+      `<label class="title"><input type="checkbox"> ${o.title}</label>` +
+      `<div class="desc">${o.desc}</div>` +
+      `<div class="strength"><span>Stärke</span><input type="range" min="0" max="${o.max}" value="100" aria-label="Stärke: ${o.title}"><output>100 %</output></div>`;
+    const cb = row.querySelector('input[type=checkbox]');
+    const rg = row.querySelector('input[type=range]');
+    const out = row.querySelector('output');
+    cb.addEventListener('change', () => { opts[o.key].on = cb.checked; row.classList.toggle('on', cb.checked); schedule(); });
+    rg.addEventListener('input', () => { opts[o.key].s = rg.value / 100; out.textContent = rg.value + ' %'; schedule(); });
+    optionsEl.appendChild(row);
+  });
+
+  function applyPreset(name) {
+    const p = PRESETS[name];
+    OPTIONS.forEach(o => {
+      const [on, pct] = p[o.key];
+      const row = optionsEl.querySelector(`[data-key="${o.key}"]`);
+      row.querySelector('input[type=checkbox]').checked = on;
+      const rg = row.querySelector('input[type=range]');
+      rg.value = pct;
+      row.querySelector('output').textContent = pct + ' %';
+      row.classList.toggle('on', on);
+      opts[o.key] = { on, s: pct / 100 };
+    });
+    schedule();
+  }
+  document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
+
+  // ── Bildschritte (arbeiten direkt auf RGBA-Pixeln, d = Uint8ClampedArray) ──
+  const LUMA = (r, g, b) => (77 * r + 150 * g + 29 * b) >> 8;
+
+  // Weißabgleich: die hellsten 20 % der Pixel sollen neutral sein (gleiches Mittel in R, G, B).
+  function stepWB(d, s) {
+    const n = d.length / 4, step = Math.max(1, Math.floor(n / 1500000));
+    const hist = new Uint32Array(256);
+    let cnt = 0;
+    for (let i = 0; i < n; i += step) { const p = i * 4; hist[LUMA(d[p], d[p + 1], d[p + 2])]++; cnt++; }
+    let acc = 0, thr = 255;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= cnt * 0.8) { thr = v; break; } }
+    let r = 0, g = 0, b = 0, m = 0;
+    for (let i = 0; i < n; i += step) {
+      const p = i * 4;
+      if (LUMA(d[p], d[p + 1], d[p + 2]) >= thr) { r += d[p]; g += d[p + 1]; b += d[p + 2]; m++; }
+    }
+    if (!m || !r || !g || !b) return;
+    r /= m; g /= m; b /= m;
+    const avg = (r + g + b) / 3;
+    const gains = [avg / r, avg / g, avg / b].map(x => 1 + (Math.min(2.2, Math.max(0.6, x)) - 1) * s);
+    const lut = gains.map(gn => { const t = new Uint8ClampedArray(256); for (let v = 0; v < 256; v++) t[v] = v * gn; return t; });
+    for (let p = 0; p < d.length; p += 4) { d[p] = lut[0][d[p]]; d[p + 1] = lut[1][d[p + 1]]; d[p + 2] = lut[2][d[p + 2]]; }
+  }
+
+  // Tonwerte: Schwarz-/Weißpunkt bei 0,5 % / 99,7 % der Helligkeit, danach Gamma 0,8 (hellt Schatten auf).
+  function stepTone(d, s) {
+    const n = d.length / 4, step = Math.max(1, Math.floor(n / 1500000));
+    const hist = new Uint32Array(256);
+    let cnt = 0;
+    for (let i = 0; i < n; i += step) { const p = i * 4; hist[LUMA(d[p], d[p + 1], d[p + 2])]++; cnt++; }
+    let acc = 0, lo = 0, hi = 255, gotLo = false;
+    for (let v = 0; v < 256; v++) {
+      acc += hist[v];
+      if (!gotLo && acc >= cnt * 0.005) { lo = v; gotLo = true; }
+      if (acc >= cnt * 0.997) { hi = v; break; }
+    }
+    if (hi - lo < 8) return;
+    const t = Math.min(s, 1);
+    const loS = lo * t, hiS = 255 - (255 - hi) * t, gamma = Math.pow(0.8, s);
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) {
+      const x = Math.min(1, Math.max(0, (v - loS) / (hiS - loS)));
+      lut[v] = 255 * Math.pow(x, gamma) + 0.5;
+    }
+    for (let p = 0; p < d.length; p += 4) { d[p] = lut[d[p]]; d[p + 1] = lut[d[p + 1]]; d[p + 2] = lut[d[p + 2]]; }
+  }
+
+  // Lokaler Kontrast (CLAHE) auf der Helligkeit: 8 Kacheln entlang der langen Kante,
+  // Clip-Faktor 3 bei 100 % (Faktor 1 = unverändert), Farbe über Helligkeitsverhältnis mitgeführt.
+  function stepCLAHE(d, w, h, s) {
+    const tile = Math.ceil(Math.max(w, h) / 8);
+    const nx = Math.ceil(w / tile), ny = Math.ceil(h / tile);
+    const Y = new Uint8Array(w * h);
+    const hist = new Uint32Array(nx * ny * 256);
+    for (let y = 0; y < h; y++) {
+      const row = (y / tile | 0) * nx;
+      for (let x = 0; x < w; x++) {
+        const p = (y * w + x) * 4, v = LUMA(d[p], d[p + 1], d[p + 2]);
+        Y[y * w + x] = v;
+        hist[(row + (x / tile | 0)) * 256 + v]++;
+      }
+    }
+    const maps = new Uint8Array(nx * ny * 256);
+    const factor = 1 + 2 * s;
+    for (let t = 0; t < nx * ny; t++) {
+      const tx = t % nx, ty = t / nx | 0, base = t * 256;
+      const area = Math.min(tile, w - tx * tile) * Math.min(tile, h - ty * tile);
+      const clip = Math.max(1, Math.floor(factor * area / 256));
+      let excess = 0;
+      for (let v = 0; v < 256; v++) if (hist[base + v] > clip) { excess += hist[base + v] - clip; hist[base + v] = clip; }
+      const add = Math.floor(excess / 256), rem = excess - add * 256;
+      let acc = 0;
+      for (let v = 0; v < 256; v++) {
+        acc += hist[base + v] + add + (v < rem ? 1 : 0);
+        maps[base + v] = Math.min(255, Math.round(255 * acc / area));
+      }
+    }
+    // Bilineare Interpolation zwischen den vier nächsten Kachelmitten
+    const tx0 = new Int32Array(w), tx1 = new Int32Array(w), wxs = new Float32Array(w);
+    for (let x = 0; x < w; x++) {
+      const f = (x + 0.5) / tile - 0.5, i0 = Math.floor(f);
+      wxs[x] = f - i0; tx0[x] = Math.max(0, i0); tx1[x] = Math.min(nx - 1, i0 + 1);
+    }
+    for (let y = 0; y < h; y++) {
+      const f = (y + 0.5) / tile - 0.5, j0 = Math.floor(f), wy = f - j0;
+      const r0 = Math.max(0, j0) * nx, r1 = Math.min(ny - 1, j0 + 1) * nx;
+      for (let x = 0; x < w; x++) {
+        const v = Y[y * w + x], wx = wxs[x];
+        const a = maps[(r0 + tx0[x]) * 256 + v], b = maps[(r0 + tx1[x]) * 256 + v];
+        const c = maps[(r1 + tx0[x]) * 256 + v], e = maps[(r1 + tx1[x]) * 256 + v];
+        const y2 = (a * (1 - wx) + b * wx) * (1 - wy) + (c * (1 - wx) + e * wx) * wy;
+        const p = (y * w + x) * 4;
+        if (v === 0) { d[p] = d[p + 1] = d[p + 2] = y2; continue; }
+        const ratio = Math.min(3, y2 / v);
+        d[p] *= ratio; d[p + 1] *= ratio; d[p + 2] *= ratio;
+      }
+    }
+  }
+
+  // Sättigung: Abstand zur Helligkeit vergrößern (Faktor 1,12 bei 100 %)
+  function stepSat(d, s) {
+    const f = 1 + 0.12 * s;
+    for (let p = 0; p < d.length; p += 4) {
+      const y = LUMA(d[p], d[p + 1], d[p + 2]);
+      d[p] = y + (d[p] - y) * f; d[p + 1] = y + (d[p + 1] - y) * f; d[p + 2] = y + (d[p + 2] - y) * f;
+    }
+  }
+
+  // Unscharfmaske: Radius wächst mit der Bildgröße, damit Vorschau und Export gleich wirken.
+  function stepSharp(d, w, h, s) {
+    const sigma = Math.max(0.5, Math.max(w, h) / 2500);
+    const R = Math.ceil(sigma * 3);
+    const kern = new Float32Array(2 * R + 1);
+    let ks = 0;
+    for (let i = -R; i <= R; i++) { kern[i + R] = Math.exp(-(i * i) / (2 * sigma * sigma)); ks += kern[i + R]; }
+    for (let i = 0; i < kern.length; i++) kern[i] /= ks;
+
+    const tmp = new Uint8ClampedArray(d.length);   // horizontal geglättet
+    for (let y = 0; y < h; y++) {
+      const off = y * w * 4;
+      for (let x = 0; x < w; x++) {
+        let r = 0, g = 0, b = 0;
+        for (let k = -R; k <= R; k++) {
+          const xx = Math.min(w - 1, Math.max(0, x + k)), p = off + xx * 4, wk = kern[k + R];
+          r += wk * d[p]; g += wk * d[p + 1]; b += wk * d[p + 2];
+        }
+        const q = off + x * 4;
+        tmp[q] = r; tmp[q + 1] = g; tmp[q + 2] = b; tmp[q + 3] = 255;
+      }
+    }
+    const amount = 0.9 * s, thr = 2;
+    const acc = new Float32Array(w * 3);
+    for (let y = 0; y < h; y++) {
+      acc.fill(0);
+      for (let k = -R; k <= R; k++) {
+        const off = Math.min(h - 1, Math.max(0, y + k)) * w * 4, wk = kern[k + R];
+        for (let x = 0; x < w; x++) {
+          const p = off + x * 4, a = x * 3;
+          acc[a] += wk * tmp[p]; acc[a + 1] += wk * tmp[p + 1]; acc[a + 2] += wk * tmp[p + 2];
+        }
+      }
+      const off = y * w * 4;
+      for (let x = 0; x < w; x++) {
+        const p = off + x * 4, a = x * 3;
+        for (let c = 0; c < 3; c++) {
+          const diff = d[p + c] - acc[a + c];
+          if (diff > thr || diff < -thr) d[p + c] = d[p + c] + amount * diff;
+        }
+      }
+    }
+  }
+
+  // Reihenfolge wie im getesteten Ablauf: Weißabgleich → Tonwerte → Kontrast → Farbe → Schärfen.
+  // Zwischen den Schritten wird dem Browser Luft gelassen; ein neuerer Lauf bricht den alten ab.
+  async function runPipeline(d, w, h, id) {
+    const steps = [
+      ['wb',    () => stepWB(d, opts.wb.s)],
+      ['tone',  () => stepTone(d, opts.tone.s)],
+      ['clahe', () => stepCLAHE(d, w, h, opts.clahe.s)],
+      ['sat',   () => stepSat(d, opts.sat.s)],
+      ['sharp', () => stepSharp(d, w, h, opts.sharp.s)],
+    ];
+    for (const [key, fn] of steps) {
+      if (!opts[key].on || opts[key].s <= 0) continue;
+      await tick();
+      if (id !== undefined && id !== runId) return false;
+      fn();
+    }
+    return true;
+  }
+
+  // ── Vorschau ──────────────────────────────────────────────────
+  let timer = null;
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(renderPreview, 90);
+  }
+
+  async function renderPreview() {
+    if (!origPreview) return;
+    const id = ++runId;
+    workBuf.set(origPreview);
+    const ok = await runPipeline(workBuf, pw, ph, id);
+    if (!ok || id !== runId) return;
+    cvAfter.getContext('2d').putImageData(new ImageData(workBuf, pw, ph), 0, 0);
+  }
+
+  // ── Vorher/Nachher-Regler ─────────────────────────────────────
+  // split = Anteil (in %) der Bildbreite von links, der das Original zeigt.
+  function setSplit(pct) {
+    pct = Math.min(100, Math.max(0, pct));
+    compare.value = pct;
+    cvAfter.style.clipPath = `inset(0 0 0 ${pct}%)`;
+    divider.style.left = pct + '%';
+    divider.style.display = (pct <= 0 || pct >= 100) ? 'none' : 'block';
+    tagBefore.style.visibility = pct > 12 ? 'visible' : 'hidden';
+    tagAfter.style.visibility = pct < 88 ? 'visible' : 'hidden';
+  }
+  compare.addEventListener('input', () => setSplit(+compare.value));
+  let dragging = false;
+  const splitFromEvent = e => { const r = stage.getBoundingClientRect(); setSplit((e.clientX - r.left) / r.width * 100); };
+  stage.addEventListener('pointerdown', e => { dragging = true; stage.setPointerCapture(e.pointerId); splitFromEvent(e); });
+  stage.addEventListener('pointermove', e => { if (dragging) splitFromEvent(e); });
+  stage.addEventListener('pointerup', () => { dragging = false; });
+  stage.addEventListener('pointercancel', () => { dragging = false; });
+
+  // ── Bild laden ────────────────────────────────────────────────
+  async function loadFile(file) {
+    if (!file) return;
+    if (file.type && !file.type.startsWith('image/')) { setStatus('error', 'Das ist keine Bilddatei.'); return; }
+    let bmp;
+    try {
+      bmp = await createImageBitmap(file);   // beachtet die EXIF-Ausrichtung des Fotos
+    } catch (e) {
+      alert('Dieses Bildformat kann der Browser nicht öffnen (z. B. HEIC vom iPhone). Bitte als JPEG oder PNG speichern bzw. exportieren und erneut versuchen.');
+      return;
+    }
+    if (bitmap && bitmap.close) bitmap.close();
+    bitmap = bmp;
+    baseName = (file.name || 'bild').replace(/\.[^.]+$/, '') || 'bild';
+
+    const sc = Math.min(1, PREVIEW_MAX / Math.max(bmp.width, bmp.height));
+    pw = Math.max(1, Math.round(bmp.width * sc));
+    ph = Math.max(1, Math.round(bmp.height * sc));
+    for (const cv of [cvBefore, cvAfter]) { cv.width = pw; cv.height = ph; }
+    stage.style.aspectRatio = pw + ' / ' + ph;
+
+    const ctx = cvBefore.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bmp, 0, 0, pw, ph);
+    origPreview = new Uint8ClampedArray(ctx.getImageData(0, 0, pw, ph).data);
+    workBuf = new Uint8ClampedArray(origPreview.length);
+
+    dropZone.style.display = 'none';
+    workspace.classList.add('visible');
+    setStatus('', '');
+    setSplit(0);
+    // Beim ersten Bild die dezente Voreinstellung, bei weiteren Bildern bleiben die zuletzt gewählten Einstellungen.
+    if (workspace.dataset.started) schedule(); else applyPreset('foto');
+    workspace.dataset.started = '1';
+  }
+
+  fileInput.addEventListener('change', () => { loadFile(fileInput.files[0]); fileInput.value = ''; });
+  ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag-over'); }));
+  ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag-over'); }));
+  dropZone.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+  window.addEventListener('paste', e => {
+    const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith('image/'));
+    if (f) loadFile(f);
+  });
+  document.getElementById('other-btn').addEventListener('click', () => {
+    runId++;
+    workspace.classList.remove('visible');
+    dropZone.style.display = '';
+    setStatus('', '');
+  });
+
+  // ── Speichern in voller Auflösung ─────────────────────────────
+  saveBtn.addEventListener('click', async () => {
+    if (!bitmap) return;
+    saveBtn.disabled = true;
+    setStatus('info', 'Bild wird in voller Auflösung berechnet … bei großen Fotos dauert das einige Sekunden.');
+    await tick();
+    try {
+      let sc = Math.min(1, EXPORT_MAX_SIDE / Math.max(bitmap.width, bitmap.height), Math.sqrt(EXPORT_MAX_PIXELS / (bitmap.width * bitmap.height)));
+      let blob = null;
+      for (let attempt = 0; attempt < 2 && !blob; attempt++) {
+        try {
+          const w = Math.max(1, Math.round(bitmap.width * sc)), h = Math.max(1, Math.round(bitmap.height * sc));
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          const ctx = cv.getContext('2d', { willReadFrequently: true });
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(bitmap, 0, 0, w, h);
+          const img = ctx.getImageData(0, 0, w, h);
+          await runPipeline(img.data, w, h);          // ohne id: nicht abbrechbar
+          ctx.putImageData(img, 0, 0);
+          blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+          if (blob) setStatus('success', `Gespeichert: ${w} × ${h} Pixel, ${(blob.size / 1048576).toFixed(1)} MB.`);
+        } catch (e) {
+          sc *= 0.6;   // zu wenig Arbeitsspeicher (typisch auf Handys): mit kleinerer Auflösung erneut
+        }
+      }
+      if (!blob) throw new Error('Speichern nicht möglich');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = baseName + '-verbessert.jpg';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    } catch (e) {
+      setStatus('error', 'Das Bild konnte nicht gespeichert werden (zu wenig Arbeitsspeicher?). Bitte ein kleineres Foto versuchen.');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
