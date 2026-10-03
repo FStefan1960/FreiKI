@@ -226,6 +226,7 @@
       <div class="actions" id="result-actions" style="display:none">
         <button type="button" class="primary-btn" id="save-btn">💾 Ergebnis speichern (PNG)</button>
         <button type="button" class="secondary-btn" id="again-btn">Ergebnis weiterbearbeiten</button>
+        <button type="button" class="secondary-btn" id="to-verbessern-btn" hidden>✨ Weiter mit Bild verbessern</button>
       </div>
       <div class="actions"><button type="button" class="secondary-btn" id="other-btn">Anderes Bild</button></div>
     </div>
@@ -267,6 +268,7 @@
   <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
 </div>
 
+<script src="/js/bild-handover.js?v=1"></script>
 <script>
   // Auth-Guard wie bei den anderen Panel-Seiten (HttpOnly-Cookie, daher Rundruf statt Token).
   (async function() {
@@ -397,15 +399,17 @@
   stage.addEventListener('pointercancel', () => { dragging = false; });
 
   // ── Laden ─────────────────────────────────────────────────────
+  // Gibt zurück, ob das Bild geladen wurde (die Übergabe aus "Bild verbessern" meldet nur dann "übernommen").
   async function loadFile(file) {
-    if (!file || busy || DEMO) return;
-    if (file.type && !file.type.startsWith('image/')) { alert('Das ist keine Bilddatei.'); return; }
+    if (!file || busy || DEMO) return false;
+    if (file.type && !file.type.startsWith('image/')) { alert('Das ist keine Bilddatei.'); return false; }
     const prepared = await prepare(file);
-    if (!prepared) return;
+    if (!prepared) return false;
     showImage(prepared);
     dropZone.style.display = 'none';
     workspace.classList.add('visible');
     setStatus('', '');
+    return true;
   }
 
   function showImage(p) {
@@ -624,6 +628,34 @@
     }
   }
   if (DEMO) enterDemo();
+
+  // ── Übergabe an "Bild verbessern" (und zurück) ────────────────
+  // Im Browser, ohne Server (siehe js/bild-handover.js). Auf einer Demo ohne GPU gibt es nichts zu übergeben.
+  if (!DEMO) {
+    const toVerbBtn = $('to-verbessern-btn');
+    let verbEntry = null;
+    BildHandover.available('bild-verbessern').then(e => { verbEntry = e; toVerbBtn.hidden = !e; });
+
+    toVerbBtn.addEventListener('click', async () => {
+      if (!resultBlob || !verbEntry) return;
+      try {
+        await BildHandover.send('bild-verbessern', resultBlob, current.name + '-ki.png');
+        BildHandover.open(verbEntry);
+      } catch (e) {
+        setStatus('error', 'Die Übergabe an „Bild verbessern“ ist nicht möglich (Browser-Speicher gesperrt).');
+      }
+    });
+
+    // Empfänger: Bild aus "Bild verbessern" übernehmen (nicht während eines laufenden Auftrags)
+    BildHandover.onReceive('bild-ki', async file => {
+      if (busy) return false;
+      if (await loadFile(file)) {
+        setStatus('success', 'Bild aus „Bild verbessern“ übernommen. Beschreiben Sie jetzt, was die KI ändern soll.');
+        promptEl.focus();
+      }
+      return true;   // auch ein nicht ladbares Bild wird verbraucht, sonst würde es endlos erneut angeboten
+    });
+  }
 
   window.addEventListener('beforeunload', e => { if (job) { e.preventDefault(); e.returnValue = ''; } });
 </script>

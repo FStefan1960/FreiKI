@@ -206,6 +206,7 @@
 
       <div class="actions">
         <button type="button" class="primary-btn" id="save-btn">💾 Als JPEG speichern</button>
+        <button type="button" class="secondary-btn" id="to-ki-btn" hidden>🪄 Weiter mit KI-Bearbeitung</button>
         <button type="button" class="secondary-btn" id="other-btn">Anderes Bild</button>
       </div>
       <div class="status" id="status" role="status" aria-live="polite"></div>
@@ -238,6 +239,7 @@
   <button class="back-link" onclick="if(window.parent && window.parent.closeToolPanel){window.parent.closeToolPanel();}else{window.top.location.href='/';}">← Zurück</button>
 </div>
 
+<script src="/js/bild-handover.js?v=1"></script>
 <script>
   // Auth-Guard wie bei den anderen Panel-Seiten: Session-Cookie ist HttpOnly, daher
   // entscheidet /api/me statt eines lokal gespeicherten Tokens.
@@ -547,15 +549,16 @@
   stage.addEventListener('pointercancel', () => { dragging = false; });
 
   // ── Bild laden ────────────────────────────────────────────────
+  // Gibt zurück, ob das Bild geladen werden konnte (die Übergabe aus der KI-Bearbeitung meldet nur dann "übernommen").
   async function loadFile(file) {
-    if (!file) return;
-    if (file.type && !file.type.startsWith('image/')) { setStatus('error', 'Das ist keine Bilddatei.'); return; }
+    if (!file) return false;
+    if (file.type && !file.type.startsWith('image/')) { setStatus('error', 'Das ist keine Bilddatei.'); return false; }
     let bmp;
     try {
       bmp = await createImageBitmap(file);   // beachtet die EXIF-Ausrichtung des Fotos
     } catch (e) {
       alert('Dieses Bildformat kann der Browser nicht öffnen (z. B. HEIC vom iPhone). Bitte als JPEG oder PNG speichern bzw. exportieren und erneut versuchen.');
-      return;
+      return false;
     }
     if (bitmap && bitmap.close) bitmap.close();
     bitmap = bmp;
@@ -580,6 +583,7 @@
     // Beim ersten Bild die dezente Voreinstellung, bei weiteren Bildern bleiben die zuletzt gewählten Einstellungen.
     if (workspace.dataset.started) schedule(); else applyPreset('foto');
     workspace.dataset.started = '1';
+    return true;
   }
 
   fileInput.addEventListener('change', () => { loadFile(fileInput.files[0]); fileInput.value = ''; });
@@ -597,6 +601,30 @@
     setStatus('', '');
   });
 
+  // ── Berechnung in voller Auflösung (Speichern und Übergabe an die KI) ──
+  // Bei zu wenig Arbeitsspeicher (typisch auf Handys) wird mit kleinerer Auflösung erneut versucht.
+  async function renderProcessed(maxSide, maxPixels) {
+    let sc = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height), Math.sqrt(maxPixels / (bitmap.width * bitmap.height)));
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const w = Math.max(1, Math.round(bitmap.width * sc)), h = Math.max(1, Math.round(bitmap.height * sc));
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d', { willReadFrequently: true });
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bitmap, 0, 0, w, h);
+        const img = ctx.getImageData(0, 0, w, h);
+        await runPipeline(img.data, w, h);          // ohne id: nicht abbrechbar
+        ctx.putImageData(img, 0, 0);
+        const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+        if (blob) return { blob, w, h };
+      } catch (e) {
+        sc *= 0.6;
+      }
+    }
+    throw new Error('Berechnung nicht möglich');
+  }
+
   // ── Speichern in voller Auflösung ─────────────────────────────
   saveBtn.addEventListener('click', async () => {
     if (!bitmap) return;
@@ -604,26 +632,8 @@
     setStatus('info', 'Bild wird in voller Auflösung berechnet … bei großen Fotos dauert das einige Sekunden.');
     await tick();
     try {
-      let sc = Math.min(1, EXPORT_MAX_SIDE / Math.max(bitmap.width, bitmap.height), Math.sqrt(EXPORT_MAX_PIXELS / (bitmap.width * bitmap.height)));
-      let blob = null;
-      for (let attempt = 0; attempt < 2 && !blob; attempt++) {
-        try {
-          const w = Math.max(1, Math.round(bitmap.width * sc)), h = Math.max(1, Math.round(bitmap.height * sc));
-          const cv = document.createElement('canvas');
-          cv.width = w; cv.height = h;
-          const ctx = cv.getContext('2d', { willReadFrequently: true });
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(bitmap, 0, 0, w, h);
-          const img = ctx.getImageData(0, 0, w, h);
-          await runPipeline(img.data, w, h);          // ohne id: nicht abbrechbar
-          ctx.putImageData(img, 0, 0);
-          blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
-          if (blob) setStatus('success', `Gespeichert: ${w} × ${h} Pixel, ${(blob.size / 1048576).toFixed(1)} MB.`);
-        } catch (e) {
-          sc *= 0.6;   // zu wenig Arbeitsspeicher (typisch auf Handys): mit kleinerer Auflösung erneut
-        }
-      }
-      if (!blob) throw new Error('Speichern nicht möglich');
+      const { blob, w, h } = await renderProcessed(EXPORT_MAX_SIDE, EXPORT_MAX_PIXELS);
+      setStatus('success', `Gespeichert: ${w} × ${h} Pixel, ${(blob.size / 1048576).toFixed(1)} MB.`);
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = baseName + '-verbessert.jpg';
@@ -636,6 +646,38 @@
     } finally {
       saveBtn.disabled = false;
     }
+  });
+
+  // ── Übergabe an "Bild mit KI bearbeiten" (und zurück) ─────────
+  // Der Knopf erscheint nur, wenn das KI-Extra auf dieser Instanz echt angeboten wird (nicht als Demo).
+  // Die KI nutzt höchstens etwa 1 Megapixel; 2048 Pixel an der langen Kante genügen und sind schnell berechnet.
+  const toKiBtn = document.getElementById('to-ki-btn');
+  const KI_HANDOVER_SIDE = 2048;
+  let kiEntry = null;
+  BildHandover.available('bild-ki').then(e => { kiEntry = e; toKiBtn.hidden = !e; });
+
+  toKiBtn.addEventListener('click', async () => {
+    if (!bitmap || !kiEntry) return;
+    toKiBtn.disabled = saveBtn.disabled = true;
+    setStatus('info', 'Bild wird für die KI-Bearbeitung vorbereitet …');
+    await tick();
+    try {
+      const { blob } = await renderProcessed(KI_HANDOVER_SIDE, 24e6);
+      await BildHandover.send('bild-ki', blob, baseName + '-verbessert.jpg');
+      setStatus('', '');
+      BildHandover.open(kiEntry);
+    } catch (e) {
+      setStatus('error', 'Die Übergabe an die KI-Bearbeitung ist nicht möglich (Browser-Speicher gesperrt oder zu wenig Arbeitsspeicher).');
+    } finally {
+      toKiBtn.disabled = saveBtn.disabled = false;
+    }
+  });
+
+  // Empfänger: Bild aus "Bild mit KI bearbeiten" übernehmen (nicht während eines Speichervorgangs)
+  BildHandover.onReceive('bild-verbessern', async file => {
+    if (saveBtn.disabled) return false;
+    if (await loadFile(file)) setStatus('success', 'Bild aus „Bild mit KI bearbeiten“ übernommen. Jetzt können Sie es weiter verbessern.');
+    return true;   // auch ein nicht ladbares Bild wird verbraucht, sonst würde es endlos erneut angeboten
   });
 </script>
 </body>
