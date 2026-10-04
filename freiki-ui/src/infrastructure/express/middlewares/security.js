@@ -11,9 +11,10 @@ function securityHeaders(_req, res, next) {
   // HSTS: 1 Jahr, includeSubDomains, preload (wird auf HSTS-Preload-Liste angemeldet)
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   // CSP: Strict, nur vertraute Quellen erlaubt
+  // Frontend nutzt inline Event-Handler, daher 'unsafe-inline' notwendig
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'wasm-unsafe-eval'; " +
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
