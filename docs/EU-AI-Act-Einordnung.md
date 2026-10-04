@@ -32,5 +32,5 @@ Wird FreiKI in einem Anwendungsfall eingesetzt, der unter Anhang III fällt (z. 
 1. Dokumentieren Sie die konkreten Einsatzzwecke von FreiKI in Ihrer Organisation.
 2. Prüfen Sie für jeden Einsatzzweck, ob er unter Anhang III des AI Act fällt.
 3. Stellen Sie sicher, dass Nutzende erkennen, dass sie mit einer KI interagieren (in FreiKI bereits gegeben).
-4. Legen Sie intern fest, wann das sichtbare Badge bei der KI-Bildbearbeitung abgewählt werden darf (empfohlen: nie bei der Veröffentlichung realistischer Bilder echter Personen, Orte oder Ereignisse) und weisen Sie Nutzende darauf hin, dass KI-Bilder bei Veröffentlichung gekennzeichnet bleiben müssen.
+4. Legen Sie intern fest, wann das sichtbare Badge bei der KI-Bildbearbeitung abgewählt werden darf, und weisen Sie Nutzende darauf hin, dass KI-Bilder bei Veröffentlichung gekennzeichnet bleiben müssen. Regel, wie sie bei der Diakonie Kork gilt: Das Badge darf nur abgewählt werden, wenn die KI-Bearbeitung die Botschaft des Bildes nicht verändert. Beispiele: störende Bildelemente wurden entfernt (z. B. eine unbeteiligte Person im Hintergrund, Kabel oder Unordnung). Das Badge bleibt bei Änderungen an Personen, Text oder Zahlen, Ort, Ereignis oder Stimmung.
 5. Bei unklaren Fällen: Rechtliche Beratung einholen, bevor FreiKI für automatisierte Entscheidungen mit Außenwirkung eingesetzt wird.
