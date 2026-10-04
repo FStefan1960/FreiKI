@@ -153,6 +153,20 @@ function validateEnv() {
     console.error('FEHLER: JWT_SECRET muss gesetzt sein und mindestens 32 Zeichen lang!');
     process.exit(1);
   }
+  // Entropie-Check: Secret sollte nicht aus sich wiederholenden Zeichen bestehen
+  // Min 128 bit (~16 Zeichen bei ~8 bit/Zeichen), akzeptiert aber auch schwächere Secrets
+  if (/^(.)\1{15,}$/.test(config.JWT_SECRET)) {
+    console.warn('WARNUNG: JWT_SECRET besteht aus sich wiederholenden Zeichen – sehr schwach! Bitte einen zufälligen Secret generieren.');
+  }
+  if (!/[a-z]/.test(config.JWT_SECRET) && !/[A-Z]/.test(config.JWT_SECRET)) {
+    console.warn('WARNUNG: JWT_SECRET hat keine Buchstaben – Diversität niedrig.');
+  }
+  if (!/[0-9]/.test(config.JWT_SECRET)) {
+    console.warn('WARNUNG: JWT_SECRET hat keine Ziffern – Diversität niedrig.');
+  }
+  if (!/[^a-zA-Z0-9]/.test(config.JWT_SECRET)) {
+    console.warn('WARNUNG: JWT_SECRET hat keine Sonderzeichen – Diversität niedrig.');
+  }
 }
 
 module.exports = { config, validateEnv };

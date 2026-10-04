@@ -37,8 +37,7 @@ router.post('/api/login', loginLimiter, asyncHandler(async (req, res) => {
   try {
     const result = await AuthService.login(username, password);
     if (result.error) {
-      // IP nicht loggen – Rate Limiting schützt bereits vor Brute-Force
-      console.warn(`Login fehlgeschlagen: "${username}"`);
+      console.warn(`Login fehlgeschlagen: "${username}" von ${req.ip}`);
       return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
     }
     if (result.token) setSessionCookie(res, result.token);
@@ -55,8 +54,7 @@ router.post('/api/login/verify-2fa', verify2faLimiter, asyncHandler(async (req, 
   try {
     const result = await AuthService.verifyTwoFactor(pendingToken, code);
     if (result.error) {
-      // IP nicht loggen – Rate Limiting schützt bereits vor Brute-Force
-      console.warn('2FA-Verifizierung fehlgeschlagen');
+      console.warn(`2FA-Verifizierung fehlgeschlagen von ${req.ip}`);
       return res.status(401).json({ error: 'Ungültiger Code' });
     }
     setSessionCookie(res, result.token);
@@ -86,8 +84,7 @@ router.post('/api/webauthn/login/verify', asyncHandler(async (req, res) => {
   try {
     const result = await AuthService.verifyPasskeyLogin(pendingToken, response);
     if (result.error) {
-      // IP nicht loggen – Rate Limiting schützt bereits vor Brute-Force
-      console.warn(`Passkey-Login fehlgeschlagen: ${result.error}`);
+      console.warn(`Passkey-Login fehlgeschlagen von ${req.ip}: ${result.error}`);
       return res.status(401).json({ error: 'Passkey-Anmeldung fehlgeschlagen' });
     }
     setSessionCookie(res, result.token);

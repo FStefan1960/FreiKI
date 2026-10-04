@@ -18,23 +18,8 @@ const pool = new Pool({
 // pg emittiert 'error' auf dem Pool, wenn ein idle Client die Verbindung verliert
 // (z.B. Postgres-Neustart bei einem Update). Ohne Listener wird das zur uncaughtException
 // und reißt den ganzen Prozess mit runter – siehe https://node-postgres.com/apis/pool.
-let poolErrorCount = 0;
 pool.on('error', (err) => {
-  poolErrorCount++;
-  console.error(`PG Pool: idle client error [#${poolErrorCount}] (Verbindung wird beim nächsten Query neu aufgebaut):`, err.message);
-  // Bei kritischer Fehlerrate: Alert loggen
-  if (poolErrorCount >= 5) {
-    console.error('CRITICAL: Zu viele Postgres-Fehler in kurzer Zeit – möglich: Datenbankausfall oder Netzwerkprobleme!');
-  }
+  console.error('PG Pool: idle client error (Verbindung wird beim nächsten Query neu aufgebaut):', err.message);
 });
-
-// Health Check: Regelmäßig Connection testen (wenn Pool idle ist)
-const healthCheckInterval = setInterval(() => {
-  pool.query('SELECT 1', (err) => {
-    if (err) {
-      console.error('PG Health Check fehlgeschlagen:', err.message);
-    }
-  });
-}, 30000).unref(); // 30 Sekunden, unref() damit Interval den Prozess nicht am Beenden hindert
 
 module.exports = pool;

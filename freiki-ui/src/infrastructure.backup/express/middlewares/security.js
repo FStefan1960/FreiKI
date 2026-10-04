@@ -5,24 +5,8 @@ const { requires2FA } = require('../../../core/auth/TotpService');
 function securityHeaders(_req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'microphone=(self), camera=(self), geolocation=()');
-  // HSTS: 1 Jahr, includeSubDomains, preload (wird auf HSTS-Preload-Liste angemeldet)
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  // CSP: Strict, nur vertraute Quellen erlaubt
-  res.setHeader('Content-Security-Policy',
-    "default-src 'self'; " +
-    "script-src 'self' 'wasm-unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
-    "img-src 'self' data: https:; " +
-    "media-src 'self' blob:; " +
-    "connect-src 'self'; " +
-    "frame-ancestors 'none'; " +
-    "base-uri 'self'; " +
-    "form-action 'self'"
-  );
   next();
 }
 

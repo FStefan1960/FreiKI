@@ -25,10 +25,14 @@ function checkAndLog(session, tool, text) {
   if (!session?.uid) return;
   const category = patterns.detect(text);
   if (!category) return;
+  // Fire-and-forget Query mit Fehlerbehandlung – nicht blockieren
   pool.query(
     'INSERT INTO sensitive_query_log (user_id, username, role, tool, category) VALUES ($1,$2,$3,$4,$5)',
     [session.uid, session.username, session.role, tool, category]
-  ).catch((e) => console.error('sensitive_query_log insert fehlgeschlagen:', e.message));
+  ).catch((err) => {
+    // Logging-Fehler sind kritisch für Audit, aber sollten nicht den Request brechen
+    console.error('CRITICAL: sensitive_query_log insert fehlgeschlagen:', err.message);
+  });
 }
 
 async function list(limit = 200) {
