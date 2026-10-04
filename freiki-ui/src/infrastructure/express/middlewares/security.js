@@ -20,7 +20,7 @@ function securityHeaders(_req, res, next) {
     "img-src 'self' data: https:; " +
     "media-src 'self' blob:; " +
     "connect-src 'self'; " +
-    "frame-ancestors 'none'; " +
+    "frame-ancestors 'self'; " +
     "base-uri 'self'; " +
     "form-action 'self'"
   );
