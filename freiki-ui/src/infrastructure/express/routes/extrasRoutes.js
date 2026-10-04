@@ -68,6 +68,7 @@ jsonFileRoute('/api/sicherheitslage', 'sicherheitslage.json', 'sicherheitslage',
 // kommt fest aus dieser Liste statt aus dem Request-Body, damit der Bericht keinen
 // beliebigen Text zeigt.
 const TRACKABLE_EXTRAS = {
+  'bild-verbessern': 'Bild verbessern',
   'literatur-metasuche': 'Medizin-Literatursuche',
   'picto': 'Piktogramme',
   'tagesplan': 'Tagesplan',

@@ -564,6 +564,15 @@
     bitmap = bmp;
     baseName = (file.name || 'bild').replace(/\.[^.]+$/, '') || 'bild';
 
+    // Meldet jedes erfolgreich geladene Bild an den Tagesbericht (siehe extrasRoutes.js
+    // /api/extras/track) - die Verarbeitung läuft komplett im Browser, ohne Server-Aufruf.
+    // Fire-and-forget: ein Fehlschlag darf das Laden nie blockieren.
+    fetch('/api/extras/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'bild-verbessern' }),
+    }).catch(() => {});
+
     const sc = Math.min(1, PREVIEW_MAX / Math.max(bmp.width, bmp.height));
     pw = Math.max(1, Math.round(bmp.width * sc));
     ph = Math.max(1, Math.round(bmp.height * sc));
