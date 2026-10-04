@@ -1,6 +1,6 @@
 # FreiKI / KorKI – Administratorhandbuch
 
-**Stand September 2026 (Version 0.8.10)**
+**Stand Oktober 2026 (Version 0.8.13+)**
 
 > Dieses Handbuch richtet sich an Personen mit SSH-Zugang zum Server und Admin-Zugang in der Oberfläche. Grundkenntnisse in Linux und Docker werden vorausgesetzt.
 
@@ -41,7 +41,7 @@ Internet / LAN
        │       ├── Wissensbereiche: areas.json → pgvector-Tabellen
        │       └── Brand-Konfiguration: app_config (PostgreSQL)
        │
-       ├── vLLM  (Qwen 2.5 32B AWQ, GPU – nur KorKI)
+       ├── vLLM  (Qwen3.8-27B AWQ, GPU – nur KorKI)
        ├── PostgreSQL  (KB-Tabellen + Benutzer + app_config)
        ├── Paperless-ngx  (Dokumentenarchiv)
        ├── Mailserver  (docker-mailserver)
@@ -67,9 +67,9 @@ Deaktiviert (Daten erhalten, Volumes bleiben):
 
 **Datenbank (KorKI):**
 - Host: `PostgreSQL`
-- DB: `flowise`
-- User: `n8n_user`
-- Tabellen: `korki_users`, `app_config`, `kb_*`
+- DB: `freiki` (konsolidiert für beide Instanzen)
+- User: `freiki_user`
+- Tabellen: `freiki_users` / `korki_users`, `app_config`, `kb_*`
 
 **Verzeichnisstruktur auf dem Server:**
 ```
@@ -114,14 +114,14 @@ JWT_SECRET=<langer_zufälliger_string>   # min. 32 Zeichen, pro Instanz einzigar
 
 # ── Datenbank ─────────────────────────────────────────────
 PG_HOST=PostgreSQL
-PG_DB=flowise
-PG_USER_KB=n8n_user
+PG_DB=freiki
+PG_USER_KB=freiki_user
 PG_PASS_KB=<passwort>
 
 # ── KI-Modell (vLLM) ──────────────────────────────────────
 VLLM_URL=http://vllm:8000
 VLLM_API_KEY=<api_key>
-VLLM_MODEL=Qwen/Qwen2.5-32B-Instruct-AWQ
+VLLM_MODEL=barrydeen/Qwen3.8-27B-AWQ-4bit
 VLLM_EMBED_URL=http://vllm-embedding:8000
 
 # ── Kontext-Limits ────────────────────────────────────────
@@ -150,9 +150,9 @@ SMTP_PASS=<passwort>
 SMTP_FROM=ki_agent@diakonie-kork-ki.de
 MAIL_DOMAIN=diakonie-kork-ki.de
 
-# ── n8n ───────────────────────────────────────────────────
-N8N_WEBHOOK_URL=http://n8n:5678/webhook/<id>
-N8N_API_KEY=<key>
+# ── Automatisierung ──────────────────────────────────────
+# n8n läuft optional (abgelöst durch native Node.js-Jobs, Kapitel 9)
+# N8N_WEBHOOK_URL und N8N_API_KEY können leer bleiben
 
 # ── Mattermost ────────────────────────────────────────────
 MATTERMOST_URL=https://chat.diakonie-kork-ki.de
