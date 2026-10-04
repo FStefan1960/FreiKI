@@ -59,7 +59,7 @@ Alle drei laufen auf IONOS VPS. Codebasis: Seit der auf FreiKI begonnenen Modula
 | Frontend | HTML/CSS/JS PWA, Service Worker |
 | Backend | Node.js / Express (`freiki-ui/`) |
 | Auth | bcryptjs + jsonwebtoken (JWT in HttpOnly-Cookie, kein localStorage; gültig bis Mitternacht Europe/Berlin) |
-| Datenbank | PostgreSQL mit pgvector-Extension (`freiki_users`, `kb_*`-RAG-Tabellen, n8n/Paperless/Mattermost je eigene DB im selben Postgres-Server) |
+| Datenbank | PostgreSQL mit pgvector-Extension (`freiki_users`, `kb_*`-RAG-Tabellen, Paperless/Mattermost je eigene DB im selben Postgres-Server) |
 | LLM | vLLM (lokal, GPU) oder DeepInfra / Mistral API, je nach Instanz |
 | RAG | Direkt über pgvector — kein Flowise, kein AnythingLLM |
 | TTS | Piper / openedai-speech (Stimme: Thorsten-DE) |

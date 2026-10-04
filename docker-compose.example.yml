@@ -11,7 +11,6 @@ networks:
     driver: bridge
 
 volumes:
-  n8n_storage:
   postgres_data:
   caddy_data:
   caddy_config:
@@ -62,47 +61,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # ── AUTOMATISIERUNG ──────────────────────────────────────────
-  n8n:
-    image: n8nio/n8n:2.31.3
-    container_name: n8n
-    restart: unless-stopped
-    logging: *default-logging
-    ports:
-      - "5678:5678"
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
-    environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_USER=${POSTGRES_USER}
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
-      - N8N_HOST=${N8N_HOST}
-      - WEBHOOK_URL=${WEBHOOK_URL}
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - N8N_SECURE_COOKIE=false
-      - NODE_FUNCTION_ALLOW_BUILTIN=https,http,fs
-      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
-      - VLLM_API_KEY=${VLLM_API_KEY}
-      - KB_INGEST_API_KEY=${KB_INGEST_API_KEY}
-      - BOT_API_KEY=${BOT_API_KEY}
-      - MATTERMOST_BOT_TOKEN=${MATTERMOST_BOT_TOKEN}
-      - HEALTHCHECK_PASSWORD=${HEALTHCHECK_PASSWORD}
-    volumes:
-      - n8n_storage:/home/node/.n8n
-      - ./docker-compose.yml:/data/docker-compose.yml:ro
-    networks:
-      - ai_network
-      - public_network
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   # ── REVERSE PROXY ────────────────────────────────────────────
   caddy:
