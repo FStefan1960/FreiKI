@@ -153,19 +153,9 @@
       cursor: ew-resize; touch-action: pan-y; user-select: none;
     }
     .demo-stage.visible { display: block; }
-    .demo-note {
-      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 24px; border: 2px dashed #fcd34d; background: #fffbeb; color: #92400e; border-radius: 12px;
-    }
-    .demo-note .demo-icon { font-size: 40px; margin-bottom: 10px; }
-    .demo-note h2 { font-size: 18px; margin-bottom: 8px; color: inherit; }
-    .demo-note p { font-size: 14px; line-height: 1.5; max-width: 460px; }
-    .demo-note p + p { font-size: 13px; opacity: 0.85; margin-top: 12px; }
-    /* "Nachher"-Ebene: derselbe Hinweis, nur in anderen Farben - zeigt, wie der Vergleichsregler arbeitet */
-    .demo-note.demo-after {
-      z-index: 2; border-color: #38bdf8; color: #0c4a6e;
-      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 55%, #a5f3fc 100%);
-    }
+    .demo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    /* "Nachher"-Ebene liegt über dem Original und wird per Regler aufgedeckt */
+    .demo-img.demo-after { z-index: 2; }
     /* KI-Kennzeichnung im Beispiel-"Nachher": gleiche Maße wie im echten Ergebnis (Höhe 4,8 % der kürzeren Seite = Bildhöhe, Rand halb so groß) */
     .demo-ai-badge { position: absolute; right: 2.4%; bottom: 2.4%; height: 4.8%; width: auto; pointer-events: none; }
     .demo-stage .divider, .demo-stage .tag { z-index: 5; }
@@ -235,17 +225,9 @@
 
     <div class="stage-col">
       <div class="demo-stage" id="demo-stage">
-        <div class="demo-note" id="demo-note" role="status">
-          <div class="demo-icon">⚠️</div>
-          <h2>Funktion nicht verfügbar</h2>
-          <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
-          <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
-        </div>
-        <div class="demo-note demo-after" id="demo-after" aria-hidden="true">
-          <div class="demo-icon">🪄</div>
-          <h2>Funktion nicht verfügbar</h2>
-          <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
-          <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
+        <img class="demo-img" id="demo-before" src="/demo-bild-vorher.jpg" alt="Beispiel Original: Schrottplatz mit Müllhaufen und Containern, grauer Himmel">
+        <div class="demo-img demo-after" id="demo-after">
+          <img class="demo-img" src="/demo-bild-nachher.jpg" alt="Beispiel Ergebnis: aufgeräumte, sommerliche Parklandschaft mit blauem Himmel">
           <img class="demo-ai-badge" src="/badge-ai-modified.svg" alt="AI MODIFIED">
         </div>
         <div class="divider" id="demo-divider"></div>
@@ -576,8 +558,7 @@
 
   // Demo-Modus: Einstellungen sichtbar und bedienbar (Beispiele, Anweisung, Qualität), aber kein
   // Bild und kein Start. Im Bildbereich steht der Sperrhinweis; der Vorher/Nachher-Regler arbeitet
-  // wie später mit dem echten Ergebnis, blendet hier aber nur zu einer farblich anderen Variante
-  // desselben Hinweises über.
+  // wie später mit dem echten Ergebnis und zeigt ein festes Beispielbild (Original / aufgeräumt-sommerlich).
   function enterDemo() {
     dropZone.style.display = 'none';
     workspace.classList.add('visible');
@@ -592,7 +573,7 @@
     const tb = $('demo-tag-before'), ta = $('demo-tag-after');
     ds.classList.add('visible');
     compareWrap.classList.add('visible');
-    $('compare-hint').textContent = 'Regler oder Bild ziehen: So funktioniert später der Vergleich mit dem Original – hier nur als Beispiel mit anderen Farben.';
+    $('compare-hint').textContent = 'Beispiel (Anweisung: „Aufräumen und sommerlich gestalten“): Regler oder Bild ziehen zum Vergleich. Auf diesem Testserver ohne GPU ist die Funktion nicht verfügbar.';
 
     let sweep = 0;
     function setDemoSplit(pct) {
