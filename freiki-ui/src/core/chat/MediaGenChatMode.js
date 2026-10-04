@@ -6,7 +6,7 @@ const { execFileSync } = require('child_process');
 const QRCode = require('qrcode');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout, slugifyForFilename } = require('../../shared/utils/text');
-const { applyAiLabel } = require('../../shared/utils/aiLabel');
+const { markAiImage } = require('../../shared/utils/aiLabel');
 const { THINKING_KWARGS } = require('./ThinkingConfig');
 const { parseHistory } = require('./ChatHistory');
 
@@ -256,7 +256,7 @@ async function generateAiImage(prompt, { onQueued, onStarted, width, height, pri
     // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
     // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
     const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
-    return { buffer: applyAiLabel(buf, ext, 'generated'), ext };
+    return { buffer: markAiImage(buf, ext, 'generated'), ext };
   } finally {
     done = true;
     await watch.catch(() => {});
@@ -319,7 +319,7 @@ async function handleMusicGenMode(res, message) {
 }
 
 // QR-Codes sind deterministisch codierte Nutzereingaben, keine KI-generierten Inhalte -
-// bekommen bewusst KEIN applyAiLabel()-Badge (anders als handleImageGenMode).
+// bekommen bewusst KEIN markAiImage()-Badge (anders als handleImageGenMode).
 async function handleQrGenMode(res, message) {
   const text = (message || '').trim();
   if (!text) {
