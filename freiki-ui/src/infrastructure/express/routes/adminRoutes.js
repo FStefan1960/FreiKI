@@ -1,6 +1,7 @@
 const express = require('express');
 const { adminSession } = require('../../../core/auth/AuthMiddleware');
 const { renderAdminConfigPage } = require('./admin/AdminConfigPage');
+const { renderAdminConfigPage: renderModernPage } = require('./admin/AdminConfigPage.modern');
 
 // Aufgeteilt in fachliche Module unter ./admin/ (Branding/Config, Prompt-Editor,
 // Nutzerverwaltung, Statistik/Audit, native Berichts-Jobs) - vorher eine einzelne
@@ -16,7 +17,13 @@ router.use(['/admin', '/api/admin'], express.json({ limit: '256kb' }));
 // (Session-Cookie wird automatisch mitgeschickt). So bleibt mattermostUrl/paperlessUrl
 // etc. tatsächlich hinter requireAdmin, ohne dass die Seite für normale
 // Browser-Navigation unerreichbar wird (siehe requireAdmin-Kommentar unten).
+// Modernisierte Version ist jetzt Standard – responsive, Dark Mode, Loading States
 router.get('/admin/config', (req, res) => {
+  res.type('html').send(renderModernPage(req.query.saved === '1'));
+});
+
+// Legacy-Version (nur für Notfälle)
+router.get('/admin/config-legacy', (req, res) => {
   res.type('html').send(renderAdminConfigPage(req.query.saved === '1'));
 });
 
