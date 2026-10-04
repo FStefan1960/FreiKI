@@ -6,6 +6,7 @@ const { execFileSync } = require('child_process');
 const QRCode = require('qrcode');
 const { config } = require('../../shared/config');
 const { fetchWithTimeout, slugifyForFilename } = require('../../shared/utils/text');
+const { applyAiLabel } = require('../../shared/utils/aiLabel');
 const { THINKING_KWARGS } = require('./ThinkingConfig');
 const { parseHistory } = require('./ChatHistory');
 
@@ -120,36 +121,7 @@ async function enhanceImagePrompt(prompt, priorPrompts = []) {
   return prompt;
 }
 
-// Rechtlich vorgeschriebene sichtbare KI-Kennzeichnung (Art. 50 EU AI Act, ab 02.08.2026).
-// Zuvor liess KorKIs lokaler image-gen-Service das Diffusionsmodell selbst einen Text
-// ("KI-pic") ins Bild rendern - unzuverlässig und nur auf KorKI. Jetzt wird das offizielle
-// EU-Icon (https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content)
-// hier zentral per ImageMagick eingefügt, damit alle drei Instanzen (FreiKI/KorKI/FrankKI,
-// egal ob DeepInfra oder KorKIs lokaler GPU-Server) denselben, verlässlichen Weg nutzen.
-const AI_LABEL_ICON_PATH = path.join(config.APP_ROOT, 'assets', 'ai-label.png');
-
-function applyAiLabel(buf, ext) {
-  const tmpIn = path.join(os.tmpdir(), `${crypto.randomUUID()}-src.${ext}`);
-  const tmpOut = path.join(os.tmpdir(), `${crypto.randomUUID()}-out.${ext}`);
-  try {
-    fs.writeFileSync(tmpIn, buf);
-    const dims = execFileSync('identify', ['-format', '%w %h', tmpIn]).toString().trim();
-    const [w, h] = dims.split(' ').map(Number);
-    const iconSize = Math.max(48, Math.floor(Math.min(w, h) * 0.12));
-    const margin = Math.floor(iconSize * 0.15);
-    execFileSync('convert', [
-      tmpIn,
-      '(', AI_LABEL_ICON_PATH, '-resize', `${iconSize}x${iconSize}`, ')',
-      '-gravity', 'southeast',
-      '-geometry', `+${margin}+${margin}`,
-      '-composite', tmpOut,
-    ]);
-    return fs.readFileSync(tmpOut);
-  } finally {
-    fs.rmSync(tmpIn, { force: true });
-    fs.rmSync(tmpOut, { force: true });
-  }
-}
+// Sichtbare KI-Kennzeichnung (Art. 50 EU AI Act): siehe shared/utils/aiLabel.js
 
 const GPU_QUEUE_HINT = '⏳ Die GPU ist gerade beschäftigt. Ihre Anfrage steht in der Warteschlange und wird als Nächstes abgearbeitet.\n\n';
 const GPU_START_HINT = '▶️ Die GPU ist frei – Erzeugung läuft jetzt.\n\n';
@@ -284,7 +256,7 @@ async function generateAiImage(prompt, { onQueued, onStarted, width, height, pri
     // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
     // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
     const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
-    return { buffer: applyAiLabel(buf, ext), ext };
+    return { buffer: applyAiLabel(buf, ext, 'generated'), ext };
   } finally {
     done = true;
     await watch.catch(() => {});

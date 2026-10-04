@@ -166,6 +166,8 @@
       z-index: 2; border-color: #38bdf8; color: #0c4a6e;
       background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 55%, #a5f3fc 100%);
     }
+    /* KI-Kennzeichnung im Beispiel-"Nachher": gleiche Maße wie im echten Ergebnis (Höhe 4,8 % der kürzeren Seite = Bildhöhe, Rand halb so groß) */
+    .demo-ai-badge { position: absolute; right: 2.4%; bottom: 2.4%; height: 4.8%; width: auto; pointer-events: none; }
     .demo-stage .divider, .demo-stage .tag { z-index: 5; }
 
     @media (max-width: 860px) {
@@ -244,6 +246,7 @@
           <h2>Funktion nicht verfügbar</h2>
           <p>Da dies ein Testserver ohne GPU ist, kann diese Funktion nicht angeboten werden.</p>
           <p>So würde es aussehen: Sie laden ein Foto hoch und beschreiben links die Änderung. Das Ergebnis erscheint hier, mit einem Regler zum Vergleich mit dem Original.</p>
+          <img class="demo-ai-badge" src="/badge-ai-modified.svg" alt="AI MODIFIED">
         </div>
         <div class="divider" id="demo-divider"></div>
         <div class="tag" id="demo-tag-before" style="left:10px">Vorher</div>
