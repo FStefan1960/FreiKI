@@ -15,7 +15,7 @@ FreiKI hat einen eigenständigen Team-Chat bekommen: **Mattermost** (Open Source
 
 Mattermost **Team Edition** (kostenlose Version) unterstützt kein generisches OpenID Connect – das ist eine Enterprise-Funktion. Gelöst wurde das über einen Workaround: Mattermosts **GitLab-Login-Slot** ist technisch nur ein generischer OAuth2-Client mit frei konfigurierbaren Endpoints (Auth/Token/User-API). FreiKI wurde um einen kleinen OAuth2/OIDC-Provider erweitert, der sich als "GitLab" ausgibt:
 
-- `GET/POST /oauth/authorize` – eigene Login-Seite, prüft Zugangsdaten gegen `korki_users` (gleiche Logik wie der normale FreiKI-Login)
+- `GET/POST /oauth/authorize` – eigene Login-Seite, prüft Zugangsdaten gegen `freiki_users` (gleiche Logik wie der normale FreiKI-Login)
 - `POST /oauth/token` – tauscht den Authorization Code gegen ein JWT-Access-Token
 - `GET /api/v4/user` – liefert die Nutzerdaten im GitLab-API-Format (von Mattermost erwartetes Format)
 
@@ -39,11 +39,9 @@ Neuer Backend-Endpoint **`POST /api/bot-chat`** in `server.js`:
 - Filtert die `<think>`-Reasoning-Ausgabe des Modells automatisch heraus (sauberer Antworttext für den Chat)
 - Request: `{"message": "...", "username": "..."}` → Response: `{"answer": "...", "sources": [...]}`
 
-**Slash-Command `/freiki` – umgesetzt:** Die Verkabelung Mattermost ↔ n8n ↔ `/api/bot-chat` ist fertig. Da Mattermost eine sofortige Antwort < 3 Sekunden erwartet, antwortet n8n zunächst mit einer kurzen Bestätigung („FreiKI denkt nach…") und liefert die eigentliche LLM-Antwort anschließend asynchron über die `response_url` nach.
+**Slash-Command `/freiki` – umgesetzt:** Der Slash-Command zeigt auf den **internen** API-Endpoint `/api/bot-chat` (lokal über `http://freiki-ui:3000/api/bot-chat` im Docker-Netz). Da Mattermost eine sofortige Antwort < 3 Sekunden erwartet, antwortet der Webhook zunächst mit einer kurzen Bestätigung („FreiKI denkt nach…") und liefert die eigentliche LLM-Antwort anschließend asynchron über Mattermost-Callbacks.
 
-Der Slash-Command in Mattermost selbst (System Console → Integrations → Slash Commands) zeigt auf den **internen** Docker-Hostnamen `http://n8n:5678/webhook/freiki-bot` (kein öffentlicher DNS-Eintrag für `n8n.freiki.com` gewollt/vorhanden). Der n8n-Workflow ruft `/api/bot-chat` ebenfalls intern über `http://FreiKI:3000/api/bot-chat` auf (nicht über `app.freiki.com`/Caddy). Der letzte Node ("Antwort an Mattermost-Channel") postet an die von Mattermost mitgelieferte `response_url` (`https://chat.freiki.com/hooks/commands/...`) und braucht dafür `Authorization: Bearer {{$env.MATTERMOST_BOT_TOKEN}}` – ohne diesen Header lehnt Mattermost den Callback mit 403 ab.
-
-**Bekannte Falle beim Debuggen:** Direkte SQL-Änderungen an `workflow_entity.nodes` einer **aktiven** n8n-Workflow werden nicht sofort übernommen – ein Toggle über die REST-API (`/activate`/`/deactivate`) reicht nicht aus, die Ausführung nutzte danach nachweislich noch die alten Node-Parameter. Nur ein vollständiger `docker restart n8n` erzwingt das Neuladen aus der DB.
+Der Slash-Command in Mattermost selbst (System Console → Integrations → Slash Commands) ist konfiguriert mit dem internen Webhook. Die Antwort wird über die von Mattermost mitgelieferte `response_url` (`https://chat.freiki.com/hooks/commands/...`) postiert, die automatisch authentifiziert ist.
 
 **@-Erwähnung `@freiki` – umgesetzt:** Zusätzlich zum Slash-Command kann FreiKI in jedem Kanal per `@freiki Frage` angesprochen werden. Die Antwort erscheint direkt im Kanal (kein Thread).
 

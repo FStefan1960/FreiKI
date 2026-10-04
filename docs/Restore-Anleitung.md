@@ -17,8 +17,8 @@ Alle drei Instanzen werden täglich vollständig gesichert, seit 2026-07-05 nach
 Ein gemeinsamer HiDrive-Account (`freiki-admin`), aber **eigener Unterordner je Instanz** und **eigener SSH-Key je Server** (`~/.ssh/hidrive_backup_key`, dediziert, nicht mit anderen Zwecken geteilt). Authentifizierung ist Key-basiert — kein Passwort im Skript oder in einer Secrets-Datei nötig.
 
 Das Backup enthält:
-- Alle Docker-Volumes (Datenbank, Paperless, Mattermost*, Mailserver, n8n, Caddy, Kuma, Portainer, Beszel, ggf. Hermes-Agent-Config*)
-- PostgreSQL-Dump (logisch, `pg_dumpall`, alle Datenbanken: freiki/n8n/paperless/mattermost*)
+- Alle Docker-Volumes (Datenbank, Paperless, Mattermost*, Mailserver, Caddy, Kuma, Portainer, Beszel, ggf. Hermes-Agent-Config*)
+- PostgreSQL-Dump (logisch, `pg_dumpall`, alle Datenbanken: freiki/paperless/mattermost*)
 - Stack-Konfiguration (`docker-compose.yml`, `.env`, Caddy, Prompts, `src/`-Code)
 
 *Mattermost/Hermes nur auf FreiKI/KorKI, nicht FrankKI. KorKI schließt zusätzlich lokale LLM-Modell-Volumes (`vllm_cache`, `embedding_cache`) explizit aus — die werden nie gesichert (neu herunterladbar, keine Nutzerdaten, unnötig groß).
@@ -31,7 +31,7 @@ Format: `.tar.zst` (zstd-komprimiert, nicht `.tar.gz`/gzip). Transport: `rsync` 
 
 ## Szenario 1: Einzelnen Dienst wiederherstellen
 
-Wenn nur ein Dienst defekt ist (z. B. n8n-Daten weg):
+Wenn nur ein Dienst defekt ist (z. B. Paperless-Daten weg):
 
 ```bash
 # Backup von HiDrive holen (Beispiel FreiKI; HIDRIVE_DIR je Instanz anpassen)
@@ -45,19 +45,20 @@ zstd -d /tmp/freiki-backup-DATUM.tar.zst -o /tmp/freiki-backup-DATUM.tar
 tar xf /tmp/freiki-backup-DATUM.tar -C /tmp/
 BACKUP_DIR=/tmp/freiki-DATUM
 
-# Dienst stoppen
-cd ~/freiki-package && docker compose stop n8n
+# Dienst stoppen (Beispiel: Paperless)
+cd ~/freiki-package && docker compose stop paperless
 
 # Volume zurückspielen (Volume-Datei ist ebenfalls .tar.zst, zuerst auf dem Host entpacken —
 # der Alpine-Container hat kein zstd, siehe zstd-Pfad-Hinweis unten)
-zstd -d "${BACKUP_DIR}/freiki-package_n8n_storage.tar.zst" -o "${BACKUP_DIR}/freiki-package_n8n_storage.tar"
+# Beispiel: Paperless-Redis-Volume
+zstd -d "${BACKUP_DIR}/freiki-package_paperless_redis.tar.zst" -o "${BACKUP_DIR}/freiki-package_paperless_redis.tar"
 docker run --rm \
-  -v freiki-package_n8n_storage:/data \
+  -v freiki-package_paperless_redis:/data \
   -v ${BACKUP_DIR}:/backup \
-  alpine sh -c "cd /data && tar xf /backup/freiki-package_n8n_storage.tar"
+  alpine sh -c "cd /data && tar xf /backup/freiki-package_paperless_redis.tar"
 
 # Dienst starten
-docker compose start n8n
+docker compose start paperless
 ```
 
 ---
@@ -91,7 +92,7 @@ Das Script:
 - [ ] App-UI erreichbar
 - [ ] Mattermost erreichbar (FreiKI/KorKI)
 - [ ] Paperless intern erreichbar (`http://localhost:3005`)
-- [ ] n8n-Workflows aktiv (`http://localhost:5678`), Schedule-Trigger korrekt (nicht versehentlich auf Sekunden-Intervall stehen geblieben, falls kurz vorher getestet)
+- [ ] Native Jobs aktiv (Logs überprüfen: `docker logs -f freiki-ui | grep -i job`)
 - [ ] Mailserver läuft: `docker logs Mailserver`
 - [ ] `/api/health` liefert `"status":"healthy"` (FreiKI hat den Endpunkt, KorKI/FrankKI ggf. noch nicht portiert)
 - [ ] Uptime Kuma zeigt alle Dienste grün
@@ -99,7 +100,7 @@ Das Script:
 
 ### Schritt 4: DNS prüfen (bei neuer Server-IP)
 
-Domain-Records je Instanz (siehe `README.md` → Instanz-Hierarchie) auf die neue Server-IP zeigen lassen. Bei FreiKI z. B. `app`, `n8n`, `chat`, `mail`, `paperless` unter `freiki.com`.
+Domain-Records je Instanz (siehe `README.md` → Instanz-Hierarchie) auf die neue Server-IP zeigen lassen. Bei FreiKI z. B. `app`, `chat`, `mail`, `paperless` unter `freiki.com`.
 
 ---
 
@@ -108,14 +109,14 @@ Domain-Records je Instanz (siehe `README.md` → Instanz-Hierarchie) auf die neu
 Nur als Fallback, falls der rohe Volume-Restore nicht funktioniert (z. B. Postgres-Versionswechsel):
 
 ```bash
-# Einzelne Datenbank aus dem Dump extrahieren (Beispiel: n8n-Datenbank)
-zcat postgres-dumpall.sql.gz | grep -A 999999 '\\connect n8n' > n8n.sql
+# Einzelne Datenbank aus dem Dump extrahieren (Beispiel: paperless-Datenbank)
+zcat postgres-dumpall.sql.gz | grep -A 999999 '\\connect paperless' > paperless.sql
 
 # Einspielen
-docker exec -i PostgreSQL psql -U freiki_user -d postgres < n8n.sql
+docker exec -i PostgreSQL psql -U freiki_user -d postgres < paperless.sql
 ```
 
-Andere Datenbanknamen je nach Instanz: `freiki` (App-Daten/RAG), `paperless`, `mattermost` (nur FreiKI/KorKI). Es gibt keine `flowise`-Datenbank mehr (deaktiviert).
+Andere Datenbanknamen je nach Instanz: `freiki` (App-Daten/RAG), `paperless`, `mattermost` (nur FreiKI/KorKI).
 
 ---
 
