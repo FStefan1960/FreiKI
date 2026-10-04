@@ -22,6 +22,17 @@ router.use(express.json({ limit: '2mb' }));
 // Sprachen decken sich mit FK_SUPPORTED_LANGS in public/js/i18n.js.
 const TIPS_LANGS = ['en', 'fr', 'es', 'ru', 'id', 'mg'];
 
+// Upload-Limits für Frontend (damit User wissen, welche Dateigößen erlaubt sind)
+router.get('/api/upload-limits', (req, res) => {
+  res.json({
+    chat: { maxSizeMB: 50, types: 'PDF, TXT, MD, DOC/DOCX, JPG, PNG, WEBP' },
+    audio: { maxSizeMB: 200, types: 'MP3, WAV, OGG, WEBM, M4A, AAC, MP4, MOV, MKV' },
+    video: { maxSizeMB: 1024, types: 'MP4, MOV, WEBM, MKV (nur Audio wird extrahiert)' },
+    dictation: { maxSizeMB: 15, types: 'Audio-Formate (WAV, MP3, WEBM, MP4, ...)' },
+    kb: { maxSizeMB: 50, types: 'PDF, TXT, MD, DOC/DOCX, JPG, PNG, WEBP' },
+  });
+});
+
 router.get('/api/tips', (req, res) => {
   try {
     const brand = getBrandConfig();

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const { config } = require('../../shared/config');
 const { normArea, truncationNotice } = require('../../shared/utils/text');
+const { getDetailedErrorMessage } = require('../../shared/utils/errorMessages');
 const kbAreas = require('../knowledge/KBAreaRepository');
 const prompts = require('./PromptService');
 const chatRepo = require('./ChatRepository');
@@ -184,16 +185,17 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
     }
   } catch (e) {
     console.error('Chat error:', e);
+    const detailedMsg = getDetailedErrorMessage(e);
+
     if (!res.headersSent) {
-      res.status(e.status || 500).json({ error: e.status ? e.message : 'Interner Fehler' });
+      res.status(e.status || 500).json({ error: detailedMsg });
     } else if (!res.writableEnded) {
       // Der SSE-Stream lief schon (flushHeaders oben), daher greift kein JSON-Fehler mehr.
       // Ohne diese Zeilen bliebe der Stream bei einem Absturz nach Start (KI-Dienst/GPU down,
       // abbrechender Upstream) offen hängen - das Frontend wartet ewig. Also eine sichtbare
       // Fehlzeile + [DONE], damit der Client sauber abschließt.
       try {
-        const msg = e.status ? e.message : 'Verbindung zum KI-Dienst unterbrochen. Bitte erneut versuchen.';
-        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `\n\n⚠️ ${msg}` } }] })}\n\n`);
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `\n\n⚠️ ${detailedMsg}` } }] })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();
       } catch (writeErr) {
