@@ -14,13 +14,13 @@ function securityHeaders(_req, res, next) {
   // Frontend nutzt inline Event-Handler, daher 'unsafe-inline' notwendig
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'wasm-unsafe-eval'; " +
+    "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
     "media-src 'self' blob:; " +
     "connect-src 'self'; " +
-    "frame-ancestors 'self'; " +
+    "frame-ancestors 'none'; " +
     "base-uri 'self'; " +
     "form-action 'self'"
   );

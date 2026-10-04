@@ -13,8 +13,10 @@ function renderAdminConfigPage(saved) {
     <div class="field">
       <label for="${key}">${label}</label>
       <div class="input-row">
-        ${isColor ? `<input type="color" id="${key}_picker" value="#000000" data-color-picker="${key}">` : ''}
-        <input type="text" id="${key}" name="${key}" value="" ${isColor ? `data-color-input="${key}"` : ''}>
+        ${isColor ? `<input type="color" id="${key}_picker" value="#000000"
+          oninput="document.getElementById('${key}').value=this.value;preview()">` : ''}
+        <input type="text" id="${key}" name="${key}" value=""
+          ${isColor ? `oninput="document.getElementById('${key}_picker').value=this.value;preview()"` : ''}>
       </div>
     </div>`;
   };
@@ -60,7 +62,7 @@ a.back:hover{color:#1f54c0}
   <div id="auth-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
 </div>
 <div class="wrap" id="config-wrap" style="display:none">
-  <form id="config-form">
+  <form id="config-form" onsubmit="return save(event)">
     <div class="card" style="margin-bottom:20px">
       <h2>Identität</h2>
       ${field('name',    'App-Name (z. B. FreiKI, EvaKI, KorKI)')}
@@ -95,8 +97,8 @@ a.back:hover{color:#1f54c0}
       <div id="bn-error" style="display:none;background:#fdeaea;color:#b3261e;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px"></div>
       <div id="bn-success" class="toast" style="margin:12px 0 0"></div>
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-        <button type="button" id="bn-publish" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px">Veröffentlichen</button>
-        <button type="button" id="bn-clear" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px;background:#8a94a6">Zurückziehen</button>
+        <button type="button" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px" onclick="publishBreakingNews()">Veröffentlichen</button>
+        <button type="button" class="btn-save" style="margin-top:0;width:auto;padding:12px 18px;background:#8a94a6" onclick="clearBreakingNews()">Zurückziehen</button>
       </div>
     </div>
   </form>
@@ -105,7 +107,7 @@ a.back:hover{color:#1f54c0}
     <div class="card">
       <h2>Live-Vorschau</h2>
       <div class="preview-header" id="pv-header">
-        <img id="pv-logo" src="" alt="">
+        <img id="pv-logo" src="" alt="" onerror="this.style.display='none'">
       </div>
       <div class="preview-body">
         <div id="pv-tagline" class="preview-tagline"></div>
@@ -142,35 +144,7 @@ function preview() {
   document.getElementById('pv-name2').style.color       = primary;
   document.querySelector('.btn-save').style.background  = primary;
 }
-// Color input syncing (Farbwähler ↔ Text-Input)
-document.querySelectorAll('[data-color-picker]').forEach(picker => {
-  picker.addEventListener('input', (e) => {
-    const key = e.target.dataset.colorPicker;
-    document.getElementById(key).value = e.target.value;
-    preview();
-  });
-});
-document.querySelectorAll('[data-color-input]').forEach(input => {
-  input.addEventListener('input', (e) => {
-    const key = e.target.dataset.colorInput;
-    document.getElementById(key + '_picker').value = e.target.value;
-    preview();
-  });
-});
-
-// Regular text input preview
 document.querySelectorAll('input[type=text]').forEach(el => el.addEventListener('input', preview));
-
-// Logo error handling
-const logoImg = document.getElementById('pv-logo');
-logoImg.addEventListener('error', () => { logoImg.style.display = 'none'; });
-
-// Form submit
-document.getElementById('config-form').addEventListener('submit', save);
-
-// Breaking News buttons
-document.getElementById('bn-publish').addEventListener('click', publishBreakingNews);
-document.getElementById('bn-clear').addEventListener('click', clearBreakingNews);
 
 // GET /admin/config selbst ist öffentlich erreichbar, rendert aber keine Werte mehr
 // server-seitig - die holt load() per fetch() nach (Session-Cookie wird automatisch
