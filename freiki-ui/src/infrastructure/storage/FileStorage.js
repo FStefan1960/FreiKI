@@ -105,7 +105,19 @@ function cleanupUploads() {
     try {
       fs.readdirSync(dir).forEach(file => {
         const fp = path.join(dir, file);
-        if (Date.now() - fs.statSync(fp).mtimeMs > 24 * 60 * 60 * 1000) fs.unlinkSync(fp);
+        try {
+          const stat = fs.statSync(fp);
+          if (Date.now() - stat.mtimeMs > 24 * 60 * 60 * 1000) {
+            fs.unlinkSync(fp);
+          }
+        } catch (err) {
+          // ENOENT: Datei wurde von anderem Prozess gelöscht
+          // EACCES: Permissions fehlgeschlagen
+          // Andere Fehler ignorieren oder loggen; cleanup nicht blockieren
+          if (err.code !== 'ENOENT' && err.code !== 'EACCES') {
+            console.warn(`Cleanup-Fehler bei ${fp}:`, err.message);
+          }
+        }
       });
     } catch (_) {}
   });

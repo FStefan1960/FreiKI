@@ -45,9 +45,13 @@ router.get('/api/tips', (req, res) => {
 // daher reicht ein striktes Format-Match als Schutz vor Path-Traversal.
 router.get('/api/generated-images/:file', (req, res) => {
   if (!getSession(req)) return res.status(401).json({ error: 'Nicht angemeldet' });
-  if (!/^[a-f0-9-]+\.(png|jpg)$/.test(req.params.file)) return res.status(400).end();
-  const filePath = path.join(config.APP_ROOT, 'generated_images', req.params.file);
-  res.sendFile(filePath, err => { if (err) res.status(404).end(); });
+  const file = req.params.file;
+  if (!/^[a-f0-9-]+\.(png|jpg)$/.test(file)) return res.status(400).end();
+  const basePath = path.resolve(config.APP_ROOT, 'generated_images');
+  const fullPath = path.resolve(path.join(basePath, file));
+  // Path-Traversal verhindern: fullPath muss unter basePath liegen
+  if (!fullPath.startsWith(basePath + path.sep)) return res.status(403).end();
+  res.sendFile(fullPath, err => { if (err) res.status(404).end(); });
 });
 
 // Liefert die Stichwortliste aus SensitivePatterns.js ans Frontend, damit der Client (BGT-
