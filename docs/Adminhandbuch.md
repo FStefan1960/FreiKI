@@ -59,10 +59,10 @@ Deaktiviert (Daten erhalten, Volumes bleiben):
 
 **Instanzen:**
 
-| Instanz | Zweck | Server | SSH |
+| Instanz | Zweck | Öffentliche URL | SSH |
 |---|---|---|---|
 | FreiKI | Mutter-Instanz + Demo | freiki.frank-stefan.de | `ssh freiki-admin@freiki` |
-| KorKI | Produktiv (Diakonie Kork, GPU) | korki.diakonie-kork-ki.de | `ssh aiadmin@korki` |
+| KorKI | Produktiv (Diakonie Kork, GPU) | assi.diakonie-kork-ki.de | `ssh aiadmin@korki` |
 | FrankKI | Privat / Mistral API | fst60.de | — (in Planung) |
 
 **Datenbank (KorKI):**
@@ -424,7 +424,7 @@ CREATE TABLE kb_<name> (
   metadata    JSONB DEFAULT '{}',
   embedding   vector(1024)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON kb_<name> TO n8n_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON kb_<name> TO freiki_user;
 ```
 
 **Wichtig:** `"pageContent"` muss in Anführungszeichen stehen (Groß-/Kleinschreibung!).
@@ -433,14 +433,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON kb_<name> TO n8n_user;
 
 ```bash
 # 1. KB-Tabelle erstellen
-docker exec -it PostgreSQL psql -U n8n_user -d flowise -c "
+docker exec -it PostgreSQL psql -U freiki_user -d freiki -c "
 CREATE TABLE kb_neuerbereich (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   \"pageContent\" TEXT NOT NULL,
   metadata JSONB DEFAULT '{}',
   embedding vector(1024)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON kb_neuerbereich TO n8n_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON kb_neuerbereich TO freiki_user;
 "
 ```
 
@@ -763,7 +763,7 @@ docker logs freiki-ui --tail 100
 ### Datenbankgröße prüfen
 
 ```bash
-docker exec -it PostgreSQL psql -U n8n_user -d flowise -c "
+docker exec -it PostgreSQL psql -U freiki_user -d freiki -c "
 SELECT relname, pg_size_pretty(pg_total_relation_size(relid))
 FROM pg_catalog.pg_statio_user_tables
 ORDER BY pg_total_relation_size(relid) DESC;"
@@ -783,7 +783,7 @@ docker run --rm python:3 python3 -c \
   "import bcrypt; print(bcrypt.hashpw(b'NeuesPasswort', bcrypt.gensalt(10)).decode())"
 
 # In DB eintragen
-docker exec -it PostgreSQL psql -U n8n_user -d flowise -c \
+docker exec -it PostgreSQL psql -U freiki_user -d freiki -c \
   "UPDATE korki_users SET password_hash='\$2b\$10\$...' WHERE username='frank';"
 ```
 
@@ -824,7 +824,7 @@ grep JWT_SECRET ~/freiki-package/.env
 grep PG_PASS_KB ~/freiki-package/.env
 
 # Nutzer prüfen
-docker exec -it PostgreSQL psql -U n8n_user -d flowise -c \
+docker exec -it PostgreSQL psql -U freiki_user -d freiki -c \
   "SELECT username, role, suspended FROM korki_users WHERE username = 'frank';"
 ```
 

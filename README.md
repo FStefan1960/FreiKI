@@ -48,7 +48,7 @@ Alle Services laufen als Docker-Container via `docker compose`. Die Datenhaltung
 | Instanz | Zweck | LLM-Backend | Domain | Zielgruppe |
 |---------|-------|-------------|--------|------------|
 | **FreiKI** | Referenz & Demo | Qwen3-32B via DeepInfra API | app.freiki.com | Öffentlich / Interessierte |
-| **KorKI** | Produktiv / on-premise | Qwen3-32B-AWQ via vLLM (lokale GPU) | assi.diakonie-kork-ki.de | Diakonie Kork (DSGVO) |
+| **KorKI** | Produktiv / on-premise | Qwen3.8-27B-AWQ via vLLM (lokale GPU) | assi.diakonie-kork-ki.de | Diakonie Kork (DSGVO) |
 | **FrankKI / BeB-KI** | Persönlicher Assistent / Kunde | Mistral API (mistral-medium-latest) | ki.fst60.de | Privat / BeB e.V. |
 
 Alle drei laufen auf IONOS VPS. Codebasis: Seit der auf FreiKI begonnenen Modularisierung (2026-07-05, `freiki-ui/src/`, siehe unten) sind alle drei Instanzen umgebaut — `server.js` ist überall nur noch der Einzeiler-Entrypoint.
