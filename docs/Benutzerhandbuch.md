@@ -75,7 +75,7 @@ Unter jeder Antwort finden Sie – je nach Inhalt – Schaltflächen:
 
 **Diagramme und Formeln:** Flowcharts und Mindmaps aus dem Chat werden als Diagramm dargestellt. Klick öffnet eine Großansicht (PNG speichern oder – nach Bestätigung – in draw.io weiterbearbeiten; dabei geht der Diagramminhalt an einen externen Dienst). Mathematische Formeln werden lesbar gesetzt.
 
-**Generierte Bilder** und Vorlesen tragen ein **KI-Kennzeichen** (EU-AI-Act-Transparenz).
+**Generierte Bilder** tragen eine **sichtbare KI-Kennzeichnung** (Pille „AI GENERATED“ unten rechts) und eine unsichtbare Herkunftsangabe in den Bilddaten, Vorlesen ist als KI-Ausgabe gekennzeichnet (EU-AI-Act-Transparenz).
 
 ---
 
@@ -141,7 +141,9 @@ Durchsucht das interne Dokumentenarchiv (Paperless), sofern Ihre Administration 
 
 ### 4.10 Bilder generieren
 
-Erzeugt ein Bild aus einer Textbeschreibung (z. B. Clipart, Illustration). Je genauer die Beschreibung, desto besser das Ergebnis. Die Ausgabe ist als KI-generiert gekennzeichnet.
+Erzeugt ein Bild aus einer Textbeschreibung (z. B. Clipart, Illustration). Je genauer die Beschreibung, desto besser das Ergebnis.
+
+**KI-Kennzeichnung (EU AI Act, Art. 50):** Jedes erzeugte Bild trägt unten rechts die Pille **„AI GENERATED“**, eingefärbt im Durchschnittsgrauton des Bildes. Zusätzlich steckt in den Bilddaten eine unsichtbare, maschinenlesbare Herkunftsangabe (IPTC-Metadaten „von KI erzeugt“). Beides bleibt beim Speichern erhalten. Manche Dienste entfernen die unsichtbare Angabe beim Hochladen (z. B. soziale Netzwerke). Das sichtbare Badge sollten Sie deshalb nicht abschneiden, wenn Sie das Bild veröffentlichen.
 
 Je nach Instanz kann dafür ein **externer Bilddienst** genutzt werden. Keine Fotos von Personen und keine vertraulichen Inhalte als Prompt verwenden.
 
@@ -195,6 +197,8 @@ Der Tab **Extras** erscheint nur, wenn Ihre Instanz Zusatzangebote hinterlegt ha
 |---|---|
 | **Tageslosung** | Losung, Lehrtext und Gedanke des Tages |
 | **Piktogramme** | Suche in der ARASAAC-Bibliothek (über 12 000 freie Bildkarten, Lizenz CC BY-NC-SA). Die Bilder werden über FreiKI ausgeliefert. |
+| **Bild verbessern** | Foto im Browser aufhellen, Farbstich entfernen, Kontrast und Schärfe verbessern; Voreinstellungen „Folie / Dokument“ und „Foto (dezent)“, Vorher-Nachher-Regler, Speichern als JPEG (ohne Aufnahmeort und Kamera-Daten). Das Foto wird **nicht hochgeladen**, es wird nichts im Bild neu gezeichnet – Text auf Folien bleibt unverändert. Mit dem Knopf „Weiter mit KI-Bearbeitung“ geht das Bild an das nächste Extra. |
+| **Bild mit KI bearbeiten** | Foto hochladen, per Anweisung ändern lassen (z. B. „Warme, freundliche Atmosphäre“), Vergleich mit dem Original. Die KI zeichnet Bildteile neu und verändert dabei auch Schrift und Gesichter – für Folien und Dokumente „Bild verbessern“ nutzen. Das Ergebnis trägt die Pille **„AI MODIFIED“** und die unsichtbare Herkunftsangabe. ⚠️ Auf diesem Testserver ohne GPU ist die Funktion nur als **Vorführung** sichtbar (Hinweis statt Funktion, die Beispielansicht zeigt das Kennzeichen); auf Instanzen mit GPU läuft sie vollständig auf dem eigenen Server. |
 | **Tagesplan** | druckbarer Tagesplan mit Symbolen |
 | **Medizin-Literatursuche** | Ein Suchbegriff, sieben medizinische Datenbanken: PubMed, Europe PMC und ClinicalTrials.gov liefern Treffer direkt in der App; für Google Scholar, Epistemonikos, TRIP Database und Cochrane Library wird die passende Such-URL erzeugt und in einem neuen Tab geöffnet. Anführungszeichen suchen die exakte Wortfolge (z. B. „Diakonie Kork"), AND/OR (groß geschrieben) verknüpfen mehrere Begriffe. ⚠️ Der Suchbegriff geht dafür direkt aus dem Browser an diese externen Dienste – keine Patienten- oder Klientendaten eingeben. |
 | **IT-Sicherheitslage** | aktuelle Bedrohungshinweise (sofern eingerichtet) |
@@ -285,6 +289,8 @@ Zweck ist die Rechenschaft nach DSGVO und interner Dienstanweisung, **nicht** Le
 | Medizin-Literatursuche | Suchbegriff geht direkt aus dem Browser an PubMed/Europe PMC/ClinicalTrials.gov u. a. |
 | Piktogramme | Abfrage der ARASAAC-Bibliothek, Anzeige über FreiKI |
 | Bilder generieren | je nach Instanz eigener oder externer Bilddienst |
+| Bild verbessern | nur Ihr Browser, nichts wird übertragen |
+| Bild mit KI bearbeiten | Instanz mit GPU: eigener Server, kein externer KI-Dienst; hier (Testserver): nicht verfügbar |
 | Diagramm in draw.io | nur nach Ihrer Bestätigung an diagrams.net |
 
 ---

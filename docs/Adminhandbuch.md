@@ -160,6 +160,21 @@ MATTERMOST_URL=https://chat.diakonie-kork-ki.de
 
 > **Sicherheit:** `.env` niemals einchecken. Dateirechte: `chmod 600 .env`.
 
+### 2.1 Bilder: Dienst und KI-Kennzeichnung (Art. 50 EU AI Act)
+
+**Bildgenerierung:** `IMAGE_GEN_URL` (Standard: DeepInfra, `https://api.deepinfra.com/v1/openai/images/generations`), `IMAGE_GEN_API_KEY`, `IMAGE_GEN_MODEL` (z. B. `black-forest-labs/FLUX-2-klein-9b`). Auf Instanzen mit eigener GPU zeigt `IMAGE_GEN_URL` auf den lokalen `image-gen`-Container.
+
+**Bildbearbeitung („Bild mit KI bearbeiten“):** Auf FreiKI nur Vorführung ohne GPU: Der Extra-Eintrag `public/extras/02-bild-ki.json` verweist mit `"panel": "/bild-ki.html?demo=1"` auf die Seite, die alle Einstellungen und einen Sperrhinweis zeigt, aber keinen API-Aufruf macht (die Beispielansicht zeigt das Kennzeichen „AI MODIFIED“). Das Extra „Bild verbessern“ (`01-bild-verbessern.json`, `/bild-verbessern.html`) läuft komplett im Browser.
+
+**Kennzeichnung:** Jedes generierte Bild wird zentral in `src/shared/utils/aiLabel.js` (`markAiImage()`, ImageMagick im App-Image) gekennzeichnet, egal welcher Bilddienst es geliefert hat:
+
+| Ebene | Inhalt |
+|---|---|
+| **Sichtbar** | offizielle EU-Pille „AI GENERATED“ unten rechts, Höhe 4,8 % der kürzeren Bildseite, Farbe = Durchschnittsgrauton des Bildes (gedeckelt auf ~`#757575`, damit die weiße Schrift lesbar bleibt). Assets: `freiki-ui/assets/ai-label-generated.png` / `ai-label-modified.png` |
+| **Maschinenlesbar** | XMP mit IPTC-`DigitalSourceType` (`trainedAlgorithmicMedia`); PNG als `iTXt`-Chunk `XML:com.adobe.xmp`, JPEG als APP1. Kein Prompt, kein Nutzername. Wird immer eingebettet |
+
+Die Metadaten gehen bei Screenshots oder Diensten verloren, die Metadaten entfernen. Prüfen: `convert bild.jpg xmp:-` (ImageMagick), `exiftool` oder Python/PIL (`Image.open(...).info['XML:com.adobe.xmp']` bei PNG). Die Pillenvorlagen stammen von der EU-Kommission (frei nutzbar, digital-strategy.ec.europa.eu → „EU icons for labelling AI-generated content“). Tests: `tests/unit/aiLabel.test.js`.
+
 ---
 
 ## 3. Instanz-Branding (Admin-UI)
