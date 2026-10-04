@@ -19,7 +19,7 @@ Diese Anleitung beschreibt, was bei einer neuen Installation (z. B. für einen w
 | `freiki-ui/areas.json` | Server | nein (gitignore) |
 | `freiki-ui/welcome.md` | Server | nein (gitignore) |
 | `freiki-ui/tips.md` | Server | nein (gitignore) |
-| `freiki-ui/losung.json` / `medienspiegel.json` / `gesellschaftstrends.json` | Server | nein (gitignore, Laufzeitdaten von n8n) |
+| `freiki-ui/losung.json` / `medienspiegel.json` / `gesellschaftstrends.json` | Server | nein (gitignore, Laufzeitdaten von Jobs) |
 | `freiki-ui/prompts/w_*.md` | Server | nein (gitignore für `w_*`, instanzspezifische Wissensbereiche) |
 | `freiki-ui/prompts/0chat.md` usw. (Basismodi) | Repo | ja – gilt für alle Instanzen |
 | `freiki-ui/src/` bzw. `freiki-ui/server.js` (Code) | Repo | ja – gilt für alle Instanzen (FreiKI kanonisch, siehe [[feedback_develop_in_freiki]]) |
@@ -61,7 +61,7 @@ APP_URL=https://neue-instanz.example.com
 JWT_SECRET=<einzigartiger_zufaelliger_string_min_32_zeichen>
 
 # LLM: bei eigener GPU → lokales vLLM; ohne GPU → externer API-Anbieter
-# (FreiKI: DeepInfra/Qwen3-32B; KorKI: lokales vLLM/Qwen3-32B-AWQ; FrankKI: Mistral-API)
+# (FreiKI: DeepInfra/Qwen3-32B; KorKI: lokales vLLM/Qwen3.8-27B-AWQ; FrankKI: Mistral-API)
 VLLM_URL=https://api.mistral.ai/v1      # Beispiel Mistral API
 VLLM_API_KEY=<api_key>
 VLLM_MODEL=mistral-medium-latest
@@ -82,7 +82,6 @@ Weitere Infrastruktur-Variablen, je nach Instanz relevant (vollständige Liste i
 | Bereich | Variablen |
 |---|---|
 | Datenbank/Docker | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
-| n8n | `N8N_HOST`, `WEBHOOK_URL`, `N8N_ENCRYPTION_KEY`, `N8N_WEBHOOK_URL`, `N8N_API_KEY` |
 | Mail | `MAIL_DOMAIN`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
 | Mattermost (optional) | `MATTERMOST_URL`, `MATTERMOST_OIDC_CLIENT_ID`, `MATTERMOST_OIDC_CLIENT_SECRET`, `MATTERMOST_OIDC_REDIRECT_URI` |
 | Paperless (optional) | `PAPERLESS_URL`, `PAPERLESS_INTERNAL_URL`, `PAPERLESS_TOKEN`, `PAPERLESS_SECRET_KEY`, `PAPERLESS_ADMIN_USER`, `PAPERLESS_ADMIN_PASSWORD` |
@@ -225,26 +224,7 @@ Nach dem ersten Login: Admin-UI → Konfiguration (`/admin/config`):
 
 ---
 
-## 3. n8n-Workflows einrichten (optional)
-
-Für Paperless-Integration, Medienspiegel/Gesellschaftstrends-Extras (Tageslosung, Wetterwarnungen, NINA-Warnungen, IT-Sicherheitslage und der Workflow-Gesundheitscheck laufen seit 2026-08 nativ, siehe Schritt 8a — dafür kein n8n-Import mehr nötig):
-
-Workflows per n8n-API von einer bestehenden Instanz exportieren und importieren (siehe [[feedback_n8n_sql_statt_cli]] — CLI-Import/Export war unzuverlässig, lieber über die REST-API `/api/v1/workflows`). Beim Übernehmen von einer anderen Instanz immer prüfen:
-- Login-Node nutzt das richtige Service-Konto/Passwort dieser Instanz
-- LLM-Aufrufe zeigen auf den richtigen Provider dieser Instanz (nicht versehentlich fremden API-Key übernehmen)
-- Organisationsspezifische Prompts generisch formulieren, nicht 1:1 von einer anderen Instanz übernehmen
-- Schedule-Trigger wirklich auf "täglich zu Uhrzeit X" prüfen (`field: days` + `triggerAtHour`/`triggerAtMinute`), nicht nur am Node-Namen ablesen — `field: hours` ohne `hoursInterval` läuft z. B. stündlich, nicht täglich
-- `NODE_FUNCTION_ALLOW_BUILTIN` in der n8n-Umgebung muss die vom Workflow per `require()` genutzten Node-Built-ins enthalten (z. B. `https,http`), sonst blockiert n8ns Sandbox den Code-Node
-
-Nach Anlage des n8n-API-Keys:
-```bash
-# In .env eintragen:
-N8N_API_KEY=<key>
-```
-
----
-
-## 4. Checkliste neue Instanz
+## 3. Checkliste neue Instanz
 
 - [ ] Repo geklont
 - [ ] `.env` vollständig befüllt (insb. `JWT_SECRET`, `APP_URL`, `PG_DB=freiki`, LLM-Credentials)
@@ -258,19 +238,19 @@ N8N_API_KEY=<key>
 - [ ] Branding in Admin-UI gesetzt (Name, Farben, Cache-Version)
 - [ ] Wissensbereiche: `areas.json` + `prompts/w_*.md` + Icons + KB-Tabellen
 - [ ] Native Berichts-Module: gewünschte Feature-Flags/Empfänger in `.env` gesetzt, per `POST /api/admin/jobs/:name/run` getestet
-- [ ] Paperless: Tags in Paperless anlegen, n8n-Workflows importieren und aktivieren
+- [ ] Paperless: Tags in Paperless anlegen (Archiv durchsuchen aktiviert)
 - [ ] Mailserver: DNS-Records prüfen, DKIM eintragen
 - [ ] Backup-Script einrichten und testen (`setup/backup.sh`/`setup/restore.sh`, IONOS HiDrive — eigener SSH-Key + eigener Unterordner je Instanz, siehe [`docs/Restore-Anleitung.md`](Restore-Anleitung.md))
 - [ ] Uptime Kuma konfigurieren
 
 ---
 
-## 5. Instanz-Übersicht
+## 4. Instanz-Übersicht
 
 | Instanz | Hoster | Domain | Modell | Status |
 |---|---|---|---|---|
 | FreiKI | IONOS VPS | app.freiki.com | Qwen3-32B via DeepInfra API | produktiv / Demo (modularisierter Code) |
-| KorKI | IONOS VPS (GPU) | assi.diakonie-kork-ki.de | Qwen3-32B-AWQ via lokales vLLM | produktiv (Diakonie Kork) |
+| KorKI | IONOS VPS (GPU) | assi.diakonie-kork-ki.de | Qwen3.8-27B-AWQ via lokales vLLM | produktiv (Diakonie Kork) |
 | FrankKI / BeB-KI | IONOS VPS | ki.fst60.de | Mistral API (mistral-medium-latest) | produktiv (BeB e.V.) |
 
 ---

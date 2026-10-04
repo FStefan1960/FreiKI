@@ -16,8 +16,8 @@
 6. [Wissensbereiche und Knowledge Bases](#6-wissensbereiche-und-knowledge-bases)
 7. [Mailserver](#7-mailserver)
 8. [Paperless – Zwei-Mailbox-Pipeline](#8-paperless--zwei-mailbox-pipeline)
-9. [Automatisierung (native Node.js-Jobs)](#9-automatisierung-native-nodejs-jobs-vormals-n8n)
-10. [Monitoring (Uptime Kuma, Beszel & n8n)](#10-monitoring-uptime-kuma-beszel--n8n)
+9. [Automatisierung (native Node.js-Jobs)](#9-automatisierung-native-nodejs-jobs)
+10. [Monitoring (Uptime Kuma & Beszel)](#10-monitoring-uptime-kuma--beszel)
 11. [Deployment und Updates](#11-deployment-und-updates)
 12. [Service Worker / PWA-Cache](#12-service-worker--pwa-cache)
 13. [Wichtige Wartungsaufgaben](#13-wichtige-wartungsaufgaben)
@@ -43,18 +43,18 @@ Internet / LAN
        │
        ├── vLLM  (Qwen3.8-27B AWQ, GPU – nur KorKI)
        ├── PostgreSQL  (KB-Tabellen + Benutzer + app_config)
-       ├── Paperless-ngx  (Dokumentenarchiv)
+       ├── Paperless-ngx  (Dokumentenarchiv + Gotenberg + Tika)
        ├── Mailserver  (docker-mailserver)
        ├── Mattermost  (Team-Chat + Bot)
        ├── SearXNG  (Web-Suche)
        ├── Whisper  (Sprache → Text)
        └── Piper  (Text → Sprache)
 
-Deaktiviert (Daten erhalten, Volumes bleiben):
+Automatisierung: Native Node.js-Jobs in `freiki-ui/src/jobs/` (kein n8n mehr)
+
+Historisch deaktiviert (Daten erhalten, Volumes bleiben):
        ├── AnythingLLM  (RAG läuft direkt über pgvector)
-       ├── Flowise      (nicht mehr genutzt)
-       └── n8n          (Container läuft ggf. noch mit, alle Workflows deaktiviert –
-                          abgelöst durch native Node.js-Jobs, siehe Kapitel 9)
+       └── Flowise      (nicht mehr genutzt)
 ```
 
 **Instanzen:**
@@ -149,10 +149,6 @@ SMTP_USER=ki_agent@diakonie-kork-ki.de
 SMTP_PASS=<passwort>
 SMTP_FROM=ki_agent@diakonie-kork-ki.de
 MAIL_DOMAIN=diakonie-kork-ki.de
-
-# ── Automatisierung ──────────────────────────────────────
-# n8n läuft optional (abgelöst durch native Node.js-Jobs, Kapitel 9)
-# N8N_WEBHOOK_URL und N8N_API_KEY können leer bleiben
 
 # ── Mattermost ────────────────────────────────────────────
 MATTERMOST_URL=https://chat.diakonie-kork-ki.de
@@ -552,7 +548,7 @@ wissen@...
         ↓
 Paperless → Tag "ready-for-rag"
         ↓
-n8n (alle 15 Min) → Embedding → KB-Tabelle → Tag entfernt
+Paperless-Sync-Job (alle 15 Min) → Embedding → KB-Tabelle → Tag entfernt
         ↓
 Wissensbereich durchsuchbar
 
@@ -560,7 +556,7 @@ archiv@...
         ↓
 Paperless → Tag "not-yet-tagged"
         ↓
-n8n (alle 2 h) → KI-Tagging → Bereichs-Tags → Tag entfernt
+Paperless-Tagging-Job (alle 2 h) → KI-Tagging → Bereichs-Tags → Tag entfernt
         ↓
 Dokument archiviert + getaggt (nicht im RAG)
 ```
@@ -582,13 +578,13 @@ Paperless ist **nicht öffentlich** erreichbar. Zugang für Admins via Tailscale
 
 Nutzer mit `use_paperless = true` können das Archiv über den „Archiv durchsuchen"-Modus in der App abfragen.
 
-> **Wichtig:** `markSeen` in n8n-IMAP-Knoten niemals auf `true` setzen – das markiert alle Mails im Postfach als gelesen.
+> **Hinweis:** Paperless IMAP-Integrationen lädt Mails per Job; markiert sie nicht als gelesen (verhindert versehentliche Datenlösche).
 
 ---
 
-## 9. Automatisierung (native Node.js-Jobs, vormals n8n)
+## 9. Automatisierung (native Node.js-Jobs)
 
-**n8n-Ablösung (seit Version 0.7.7/0.7.8, 2026-08-18):** Alle produktiven Workflows laufen nicht mehr über n8n, sondern als native Node.js-Jobs in `freiki-ui/src/jobs/`, gestartet über einen internen Scheduler (`src/jobs/scheduler.js`). Der n8n-Container ist auf FreiKI/KorKI teils noch vorhanden, aber ohne aktive Workflows – nur noch Referenz/Fallback, nicht Teil des laufenden Betriebs. Neue Automatisierung gehört in `src/jobs/`, nicht mehr in n8n.
+Alle Workflows laufen als native Node.js-Jobs in `freiki-ui/src/jobs/`, gestartet über einen internen Scheduler (`src/jobs/scheduler.js`). Neue Automatisierung wird dort in Node.js implementiert.
 
 ### Aktive native Jobs (`freiki-ui/src/jobs/`)
 
@@ -609,7 +605,7 @@ Nutzer mit `use_paperless = true` können das Archiv über den „Archiv durchsu
 | `dockerUpdateCheck.js` | Neue Docker-Images → Mattermost |
 | `feedbackReport.js` | Sammelt In-App-Feedback für die Administration |
 
-Paperless-Sync (Wissen/Archiv) läuft als eigener Container (`paperless-sync/`, Repo-Wurzel), Mattermost-Bots über `src/core/integrations/` – beide nativ, nicht mehr über n8n-Workflows.
+Paperless-Sync (Wissen/Archiv) läuft als eigener Container (`paperless-sync/`, Repo-Wurzel), Mattermost-Bots über `src/core/integrations/` – beide native Implementierungen.
 
 ### Nach Änderungen an Jobs
 
@@ -620,13 +616,12 @@ docker logs -f freiki-ui | grep -i job
 
 ---
 
-## 10. Monitoring (Uptime Kuma, Beszel & n8n)
+## 10. Monitoring (Uptime Kuma & Beszel)
 
 | Monitor | URL |
 |---|---|
 | KorKI-UI | `https://assi.diakonie-kork-ki.de` |
 | Mattermost | `https://chat.diakonie-kork-ki.de` |
-| n8n | `http://n8n:5678/healthz` (intern!) |
 | Paperless | `http://Paperless:8000` (intern!) |
 | Mailserver | SMTP-Port-Check auf `mailserver:587` |
 
@@ -704,7 +699,6 @@ docker logs freiki-ui --tail 50
 | korki-ui | 3003 | ja (via Caddy) |
 | vLLM | 8000 | nein |
 | PostgreSQL | 5432 | nein |
-| n8n | 5678 | nein (Webhooks via Caddy) |
 | Paperless | 3005 | nein (nur Tailscale) |
 | Mattermost | 8065 | ja (via Caddy) |
 | Uptime Kuma | 3006 | nein (nur Tailscale) |
@@ -869,4 +863,4 @@ sudo fail2ban-client set korki-app unbanip <IP>
 
 ---
 
-*Stand: September 2026 (Version 0.8.10) – FreiKI/KorKI mit pgvector-RAG, eigenem Mailserver, Mattermost, Paperless, nativer Job-Automatisierung (n8n abgelöst, siehe Kapitel 9).*
+*Stand: Oktober 2026 (Version 0.8.13+) – FreiKI/KorKI mit pgvector-RAG, eigenem Mailserver, Mattermost, Paperless, nativer Node.js-Job-Automatisierung.*

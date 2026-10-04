@@ -20,7 +20,6 @@ Browser → Caddy (Reverse Proxy)
                ├── freiki-ui (Node.js / Express)    ← Frontend + API-Gateway + native Berichts-Jobs (src/jobs/)
                ├── PostgreSQL (pgvector)             ← User-DB + direktes RAG (kb_*-Tabellen)
                ├── vLLM (lokal) / DeepInfra / Mistral ← LLM-Inferenz (instanzabhängig)
-               ├── n8n                               ← noch installiert, aber inaktiv (siehe unten)
                ├── Paperless-ngx (+Gotenberg, Tika)   ← Dokumentenarchiv
                ├── Mattermost                        ← Team-Chat (FreiKI/KorKI, nicht FrankKI)
                ├── Mailserver (docker-mailserver)     ← eigener SMTP/IMAP
@@ -31,7 +30,7 @@ Browser → Caddy (Reverse Proxy)
 
 Alle Services laufen als Docker-Container via `docker compose`. Die Datenhaltung erfolgt in PostgreSQL (eigene `freiki_users`-Tabelle + direkte pgvector-RAG-Tabellen `kb_*`, kein Flowise/AnythingLLM — diese Ansätze wurden verworfen) sowie in gemounteten Volumes für Modelle und Konfiguration.
 
-**n8n-Ablösung (Stand 0.7.8):** Automatisierung (Paperless-Sync, Tageslosung, Wetter-/NINA-Warnungen, Sicherheitslage, Health-Checks, Mattermost-Bots, Content-Extras, Tages-/Datenabfluss-Berichte) läuft inzwischen als native Node.js-Jobs in `freiki-ui/src/jobs/` statt über n8n-Workflows. Der n8n-Container läuft auf FreiKI/KorKI zwar noch, alle Workflows sind aber deaktiviert (nur noch als Referenz/Fallback vorhanden, nicht mehr Teil des aktiven Betriebs).
+**Automatisierung (seit 0.7.8):** Alle Workflows (Paperless-Sync, Tageslosung, Wetter-/NINA-Warnungen, Sicherheitslage, Health-Checks, Mattermost-Bots, Content-Extras, Tages-/Datenabfluss-Berichte) laufen als native Node.js-Jobs in `freiki-ui/src/jobs/`. n8n ist nicht mehr installiert.
 
 ## Features
 
@@ -68,7 +67,7 @@ Alle drei laufen auf IONOS VPS. Codebasis: Seit der auf FreiKI begonnenen Modula
 | Dokumentenarchiv | Paperless-ngx (+ Gotenberg, Tika) |
 | Team-Chat | Mattermost (FreiKI, KorKI) |
 | Mail | docker-mailserver (eigener SMTP/IMAP) |
-| Automatisierung | Native Node.js-Jobs (`src/jobs/`) — n8n-Container läuft noch mit, alle Workflows sind aber deaktiviert |
+| Automatisierung | Native Node.js-Jobs (`src/jobs/`) |
 | Proxy | Caddy |
 | Orchestrierung | Docker Compose |
 

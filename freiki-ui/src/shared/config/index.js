@@ -19,7 +19,7 @@ const config = {
 
   VLLM_URL: process.env.VLLM_URL || 'http://vllm:8000',
   VLLM_API_KEY: process.env.VLLM_API_KEY || '',
-  VLLM_MODEL: process.env.VLLM_MODEL || 'Qwen/Qwen3-32B',
+  VLLM_MODEL: process.env.VLLM_MODEL || 'barrydeen/Qwen3.8-27B-AWQ-4bit',
   VLLM_EMBED_URL: process.env.VLLM_EMBED_URL || 'http://vLLM-Embedding:8001/v1/embeddings',
   VLLM_EMBED_MODEL: process.env.VLLM_EMBED_MODEL || 'BAAI/bge-m3',
 
@@ -113,7 +113,7 @@ const config = {
 
   PG_HOST: process.env.PG_HOST || 'PostgreSQL',
   PG_DB: process.env.PG_DB || 'freiki',
-  PG_USER_KB: process.env.PG_USER_KB || 'n8n_user',
+  PG_USER_KB: process.env.PG_USER_KB || 'freiki_user',
   PG_PASS_KB: process.env.PG_PASS_KB || '',
 
   HILFE_KB_TABLE: process.env.HILFE_KB_TABLE || '',
