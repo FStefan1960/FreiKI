@@ -643,10 +643,14 @@
     try {
       const { blob, w, h } = await renderProcessed(EXPORT_MAX_SIDE, EXPORT_MAX_PIXELS);
       setStatus('success', `Gespeichert: ${w} × ${h} Pixel, ${(blob.size / 1048576).toFixed(1)} MB.`);
-      const a = document.createElement('a');
+      // Klick im übergeordneten Fenster auslösen: Firefox behandelt einen Blob-Download aus dem
+      // iframe als Frame-Laden und blockiert ihn per CSP (frame-src). Gleiche Origin, kein Server-Upload.
+      let host = document;
+      try { if (window.parent !== window && window.parent.document) host = window.parent.document; } catch (e) { /* eigenes Dokument */ }
+      const a = host.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = baseName + '-verbessert.jpg';
-      document.body.appendChild(a);
+      host.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
