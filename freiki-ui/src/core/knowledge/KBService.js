@@ -136,7 +136,10 @@ const WISSEN_KEYWORD_BOOST = 0.12; // wird von der Distanz abgezogen beim Rankin
 
 // Instanzspezifische Synonyme (Format: { suchbegriff: ['synonym1', 'synonym2', ...] }),
 // analog KorKI - aktuell leer, da keine passende Fachvokabular-Liste für diese Instanz vorliegt.
-const QUERY_SYNONYMS = {};
+const QUERY_SYNONYMS = {
+  // Umgangssprache -> Gesetzeswortlaut (StVO § 16 heißt "Warnzeichen", "hupen" kommt dort nicht vor)
+  hup: ['hupe', 'schallzeichen', 'warnzeichen', 'leuchtzeichen'],
+};
 
 function normalizeChunkRow(row) {
   let metadata = row.metadata;
@@ -171,6 +174,46 @@ function extractKeywordTerms(queryText) {
   return [...terms].slice(0, 12);
 }
 
+// "§ 16", "§16", "Paragraph 16", "Paragraf 36a" -> ['16', '36a']. Embeddings treffen Paragraphen-
+// nummern kaum, deshalb werden sie zusätzlich direkt über die Überschrift "§ N" im Chunk gesucht.
+function extractParagraphRefs(queryText) {
+  const refs = new Set();
+  for (const m of (queryText || '').matchAll(/(?:§|paragra(?:ph|f))\s*(\d{1,4}[a-z]?)(?![0-9a-z])/gi)) {
+    refs.add(m[1].toLowerCase());
+  }
+  return [...refs].slice(0, 3);
+}
+
+// Quellen mit mehr Chunks (z.B. ein ganzes Gesetz als eine Datei) werden nicht komplett nachgeladen.
+const PARAGRAPH_SIBLING_MAX_CHUNKS = 10;
+
+async function paragraphRefChunks(client, table, refs) {
+  const patterns = refs.map((n) => `(^|\n)§ ?${n}([^0-9a-z]|$)`);
+  const { rows: heads } = await client.query(
+    `SELECT "pageContent", metadata, 0::float8 AS distance FROM ${table}
+     WHERE "pageContent" ~ ANY($1::text[]) ORDER BY ctid LIMIT 10`,
+    [patterns]
+  );
+  if (!heads.length) return [];
+  const sources = [...new Set(heads.map((r) => normalizeChunkRow(r).metadata.source).filter(Boolean))];
+  let rows = heads;
+  if (sources.length) {
+    const { rows: sib } = await client.query(
+      `SELECT "pageContent", metadata, 0::float8 AS distance FROM ${table}
+       WHERE metadata->>'source' = ANY($1::text[])
+         AND metadata->>'source' IN (
+           SELECT metadata->>'source' FROM ${table} WHERE metadata->>'source' = ANY($1::text[])
+           GROUP BY 1 HAVING count(*) <= $2)
+       ORDER BY ctid LIMIT 20`,
+      [sources, PARAGRAPH_SIBLING_MAX_CHUNKS]
+    );
+    const seen = new Set(sib.map((r) => r.pageContent));
+    rows = [...sib, ...heads.filter((r) => !seen.has(r.pageContent))];
+  }
+  // Distanz 0 + Reihenfolge, damit die Treffer vor der Vektorsuche stehen und in Dokumentreihenfolge bleiben
+  return rows.map((r, i) => ({ ...normalizeChunkRow(r), distance: i * 1e-4 }));
+}
+
 function mergeChunksByDistance(chunks, limit, maxPerSource = 3) {
   const seen = new Set();
   const perSource = new Map();
@@ -202,7 +245,7 @@ function mergeChunksByDistance(chunks, limit, maxPerSource = 3) {
 
 // Hybrid-Suche (Vektor + Keyword) auf genau einer Bereichs-Tabelle. Von retrieveWissenChunks
 // (ein Bereich) und retrieveWissenChunksMulti (alle erlaubten Bereiche) gemeinsam genutzt.
-async function hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistance, fetchLimit) {
+async function hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistance, fetchLimit, paragraphRefs = []) {
   const { rows: vectorRows } = await client.query(
     `SELECT "pageContent", metadata, embedding <=> $1::vector AS distance
      FROM ${table} ORDER BY distance ASC LIMIT $2`,
@@ -233,6 +276,10 @@ async function hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistan
     }
   }
 
+  if (paragraphRefs.length) {
+    merged.push(...await paragraphRefChunks(client, table, paragraphRefs));
+  }
+
   const area = kbAreas.getLabel(areaKey) || areaKey;
   return merged.map((r) => ({ ...r, area }));
 }
@@ -251,7 +298,7 @@ async function retrieveWissenChunks(wissenKey, queryText, limit = 10, maxDistanc
   const fetchLimit = Math.min(50, Math.max(limit * 4, 20));
   const client = await pool.connect();
   try {
-    const rows = await hybridAreaChunks(client, wissenKey, table, vecStr, terms, maxDistance, fetchLimit);
+    const rows = await hybridAreaChunks(client, wissenKey, table, vecStr, terms, maxDistance, fetchLimit, extractParagraphRefs(queryText));
     return mergeChunksByDistance(rows, limit);
   } finally {
     client.release();
@@ -283,6 +330,7 @@ async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 1
   if (!areaEntries.length) return [];
 
   const terms = extractKeywordTerms(queryText);
+  const paragraphRefs = extractParagraphRefs(queryText);
   const embedQuery = terms.length
     ? `${queryText}\n${terms.slice(0, 8).join(' ')}`
     : queryText;
@@ -296,7 +344,8 @@ async function retrieveWissenChunksMulti(allowedAreaKeys, queryText, { limit = 1
   try {
     let all = [];
     for (const [areaKey, table] of areaEntries) {
-      const rows = await hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistance, fetchLimit);
+      const isPreferred = preferredKey && normArea(areaKey) === preferredKey;
+      const rows = await hybridAreaChunks(client, areaKey, table, vecStr, terms, maxDistance, fetchLimit, isPreferred ? paragraphRefs : []);
       const boosted = preferredKey && normArea(areaKey) === preferredKey
         ? rows.map((r) => ({ ...r, distance: Math.max(0, r.distance - WISSEN_CURRENT_AREA_BOOST) }))
         : rows;
