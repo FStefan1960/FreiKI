@@ -16,7 +16,12 @@ const { handleWissenMode } = require('./WissenChatMode');
 const { handleDirectMode } = require('./DirectChatMode');
 
 async function handleChat(req, res) {
-  const { message, mode, history, multidoc_task, searchAllAreas } = req.body;
+  const { message, history, multidoc_task, searchAllAreas } = req.body;
+  // Ohne bewusst gewähltes Werkzeug ist der Nutzer im Standard-Chat (0chat). Ein leerer Modus oder
+  // die Zeichenkette 'null'/'undefined' (FormData stringifiziert null) würde sonst als eigenes
+  // "Werkzeug" 'null' in der Nutzungsstatistik landen und ohne Modus-Prompt antworten.
+  const rawMode = typeof req.body.mode === 'string' ? req.body.mode.trim() : '';
+  const mode = (!rawMode || rawMode === 'null' || rawMode === 'undefined') ? '0chat' : rawMode;
   const modeConf = prompts.findMode(mode);
   const isMulti = modeConf?.multifile || false;
   const file = req.files?.['file']?.[0] || null;

@@ -49,7 +49,7 @@ async function sendMessage(forceSearchAllAreas = false) {
   try {
     const formData = new FormData();
     formData.append('message', text || t('chat.process_files_fallback', 'Bitte verarbeite diese Datei(en).'));
-    formData.append('mode', State.currentMode);
+    formData.append('mode', State.currentMode || '0chat'); // kein Modus gewählt = Standard-Chat
     formData.append('username', State.currentUsername);
     formData.append('history', JSON.stringify(State.chatHistory.slice(-4)));
     const usedSearchAllAreas = !!forceSearchAllAreas;
@@ -156,7 +156,7 @@ async function sendMessage(forceSearchAllAreas = false) {
       // treffen, dass er echte Nahtreffer durchlässt, aber verwandte Falschtreffer aus einem
       // engen Bereich zuverlässig ausschließt (siehe KBService.WISSEN_SINGLE_AREA_MAX_DISTANCE).
       const isWissenNonHilfe = State.modes[State.currentMode]?.workspace === 'wissen' &&
-        State.currentMode.replace(/^w_/, '') !== 'hilfe';
+        (State.currentMode || '0chat').replace(/^w_/, '') !== 'hilfe';
       addMessageActions(bubble, msgId, !!(State.modes[State.currentMode]?.imagegen || State.modes[State.currentMode]?.qrgen), isWissenNonHilfe && !usedSearchAllAreas);
       addStarRating(bubble, msgId);
       if (stick) requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
