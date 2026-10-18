@@ -13,15 +13,22 @@ const { parseHistory } = require('./ChatHistory');
 const GENERATED_IMAGES_DIR = path.join(config.APP_ROOT, 'generated_images');
 fs.mkdirSync(GENERATED_IMAGES_DIR, { recursive: true });
 
-function cleanupGeneratedImages() {
-  try {
-    for (const file of fs.readdirSync(GENERATED_IMAGES_DIR)) {
-      const fp = path.join(GENERATED_IMAGES_DIR, file);
-      if (Date.now() - fs.statSync(fp).mtimeMs > 24 * 60 * 60 * 1000) fs.unlinkSync(fp);
-    }
-  } catch (_) { /* Verzeichnis ggf. noch leer/nicht vorhanden */ }
+// Erzeugte Bilder (Bildgenerierung, Comic, QR) liegen nur kurz auf dem Server: Nutzer laden sie
+// direkt herunter, nach 15 Minuten werden sie gelöscht (minütlich geprüft). Im Chatverlauf bleibt
+// danach nur die tote Verknüpfung.
+const IMAGE_MAX_AGE_MS = 15 * 60 * 1000;
+
+function cleanupGeneratedImages(maxAgeMs = IMAGE_MAX_AGE_MS) {
+  let files = [];
+  try { files = fs.readdirSync(GENERATED_IMAGES_DIR); } catch (_) { return; }
+  for (const file of files) {
+    const fp = path.join(GENERATED_IMAGES_DIR, file);
+    try {
+      if (Date.now() - fs.statSync(fp).mtimeMs > maxAgeMs) fs.unlinkSync(fp);
+    } catch (_) { /* Datei ist inzwischen weg oder gesperrt: beim nächsten Lauf erneut */ }
+  }
 }
-setInterval(cleanupGeneratedImages, 6 * 60 * 60 * 1000).unref();
+setInterval(cleanupGeneratedImages, 60 * 1000).unref();
 
 // Seitenverhältnis aus der freien Nutzereingabe ableiten. Ohne erkennbare Angabe bleibt es
 // beim quadratischen Modell-Default (dims=null → keine size/width/height im Request → keine
@@ -256,7 +263,8 @@ async function generateAiImage(prompt, { onQueued, onStarted, width, height, pri
     // DeepInfra liefert trotz OpenAI-kompatiblem Response-Schema teils JPEG statt PNG -
     // Format anhand der echten Magic Bytes bestimmen statt blind ".png" anzunehmen.
     const ext = (buf[0] === 0x89 && buf[1] === 0x50) ? 'png' : 'jpg';
-    return { buffer: markAiImage(buf, ext, 'generated'), ext };
+    // raw = Bild ohne KI-Label: Der Comic-Modus braucht es als saubere Referenz fürs Bearbeiten.
+    return { buffer: markAiImage(buf, ext, 'generated'), ext, raw: buf };
   } finally {
     done = true;
     await watch.catch(() => {});
@@ -345,6 +353,12 @@ async function handleQrGenMode(res, message) {
 }
 
 module.exports = {
+  GENERATED_IMAGES_DIR,
+  cleanupGeneratedImages,
+  parseImageAspect,
+  enhanceImagePrompt,
+  isLocalGpuService,
+  writeSseText,
   handleImageGenMode,
   handleMusicGenMode,
   handleQrGenMode,

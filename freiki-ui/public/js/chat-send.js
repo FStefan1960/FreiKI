@@ -48,7 +48,8 @@ async function sendMessage(forceSearchAllAreas = false) {
 
   try {
     const formData = new FormData();
-    formData.append('message', text || t('chat.process_files_fallback', 'Bitte verarbeite diese Datei(en).'));
+    // Comic-Modus: Anhang ohne Text = nur Referenzbild setzen, kein Platzhaltertext als "Szene"
+    formData.append('message', text || (State.modes[State.currentMode]?.comic ? '' : t('chat.process_files_fallback', 'Bitte verarbeite diese Datei(en).')));
     formData.append('mode', State.currentMode || '0chat'); // kein Modus gewählt = Standard-Chat
     formData.append('username', State.currentUsername);
     formData.append('history', JSON.stringify(State.chatHistory.slice(-4)));

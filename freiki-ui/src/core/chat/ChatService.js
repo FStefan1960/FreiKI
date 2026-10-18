@@ -10,6 +10,7 @@ const documents = require('../documents/DocumentService');
 const users = require('../auth/UserRepository');
 const { webSearch } = require('../integrations/SearXNGService');
 const { recordChatEvent, isSystemUser } = require('../../jobs/usageStatsReport');
+const { handleComicMode } = require('./ComicChatMode');
 const { handleImageGenMode, handleMusicGenMode, handleQrGenMode, waitWhileImageGenerating, GPU_CHAT_WAIT_HINT } = require('./MediaGenChatMode');
 const { handlePaperlessMode } = require('./PaperlessChatMode');
 const { handleWissenMode } = require('./WissenChatMode');
@@ -39,7 +40,11 @@ async function handleChat(req, res) {
     let isOcr = false;
     let contentTruncated = false;
 
-    if (file) {
+    // Comic-Modus: Ein angehängtes Bild ist die Referenzfigur, kein Text-/OCR-Fall.
+    let comicUpload = null;
+    if (file && modeConf?.comic) {
+      try { comicUpload = fs.readFileSync(file.path); } finally { fs.unlinkSync(file.path); }
+    } else if (file) {
       console.log(`Verarbeite Datei: ${file.originalname}`);
       try {
         const result = await documents.extractForChat(file);
@@ -74,6 +79,7 @@ async function handleChat(req, res) {
     const useWebSearch = modeConf?.websearch || false;
     const isPaperless  = modeConf?.paperless || false;
     const isImageGen   = modeConf?.imagegen || false;
+    const isComic      = modeConf?.comic || false;
     const isMusicGen   = modeConf?.musicgen || false;
     const isQrGen      = modeConf?.qrgen || false;
     const wissenKey    = mode.startsWith('w_') ? mode.slice(2) : mode;
@@ -177,6 +183,8 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
 
     if (isPaperless) {
       await handlePaperlessMode(res, message);
+    } else if (isComic) {
+      await handleComicMode(res, message, { userKey: req.session?.uid ?? username, upload: comicUpload });
     } else if (isImageGen) {
       await handleImageGenMode(res, message, history);
     } else if (isMusicGen) {

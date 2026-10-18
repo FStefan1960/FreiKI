@@ -16,7 +16,7 @@ const assert = require('node:assert');
 // Vorbelegung durch In-Memory-Fakes ersetzt, BEVOR ChatService requiret wird - gleiches Muster
 // wie tests/unit/AuthService.test.js.
 const calls = {
-  paperless: [], imagegen: [], musicgen: [], qrgen: [], wissen: [], direct: [],
+  paperless: [], imagegen: [], comic: [], musicgen: [], qrgen: [], wissen: [], direct: [],
 };
 let fakeModes = {};
 let fakeUseAreas = {};
@@ -52,6 +52,9 @@ fakeModule('../../src/core/integrations/SearXNGService', {
 fakeModule('../../src/jobs/usageStatsReport', {
   recordChatEvent: () => {},
   isSystemUser: () => false,
+});
+fakeModule('../../src/core/chat/ComicChatMode', {
+  handleComicMode: async (res, message, opts) => { calls.comic.push({ message, opts }); },
 });
 fakeModule('../../src/core/chat/MediaGenChatMode', {
   handleImageGenMode: async (res, message) => { calls.imagegen.push({ message }); },
@@ -92,13 +95,14 @@ function makeRes() {
 
 describe('ChatService.handleChat Routing (produktiver Haupt-Chat-Pfad)', () => {
   beforeEach(() => {
-    calls.paperless = []; calls.imagegen = []; calls.musicgen = []; calls.qrgen = []; calls.wissen = []; calls.direct = [];
+    calls.paperless = []; calls.imagegen = []; calls.comic = []; calls.musicgen = []; calls.qrgen = []; calls.wissen = []; calls.direct = [];
     fakeModes = {
       chat: { key: 'chat', title: 'Chat' },
       w_allgemein: { key: 'w_allgemein', workspace: 'wissen' },
       w_vip: { key: 'w_vip', workspace: 'wissen' },
       archiv: { key: 'archiv', paperless: true },
       bilder: { key: 'bilder', imagegen: true },
+      comic: { key: 'comic', imagegen: true, comic: true },
       musik: { key: 'musik', musicgen: true },
       qr: { key: 'qr', qrgen: true },
     };
@@ -126,6 +130,12 @@ describe('ChatService.handleChat Routing (produktiver Haupt-Chat-Pfad)', () => {
   it('routet imagegen:true in die Bildgenerierung', async () => {
     await handleChat(makeReq({ mode: 'bilder' }), makeRes());
     assert.strictEqual(calls.imagegen.length, 1);
+  });
+
+  it('routet comic:true in den Comic-Modus (nicht in die normale Bildgenerierung)', async () => {
+    await handleChat(makeReq({ mode: 'comic' }), makeRes());
+    assert.strictEqual(calls.comic.length, 1);
+    assert.strictEqual(calls.imagegen.length, 0);
   });
 
   it('routet musicgen:true in die Musikgenerierung', async () => {

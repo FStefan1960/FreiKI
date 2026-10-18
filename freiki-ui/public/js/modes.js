@@ -18,6 +18,7 @@ const ICON_MAP = {
   '📝': 'report',
   '📚': 'multidoc',
   '🖼️': 'image',
+  '🎞️': 'comic',
   '🎙️': 'mic',
   '📅': 'calendar',
   '🙏': 'book',
