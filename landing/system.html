@@ -378,6 +378,8 @@
   .price-card li::before { content: "✓"; position: absolute; left: 0; color: var(--fk-green-text); font-weight: 800; }
   .price-card li.warn::before { content: "⚠"; color: #b45309; }
   .price-card li.warn { color: #92400e; font-weight: 600; }
+  .price-note { background: #fff; border: 1px solid var(--fk-line); border-left: 4px solid var(--fk-primary); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-size: 15px; }
+  .price-card .badge { display: inline-block; font-size: 12px; font-weight: 700; color: var(--fk-primary); border: 1px solid var(--fk-primary); border-radius: 999px; padding: 2px 10px; margin-bottom: 6px; }
 
   /* FAQ */
   details.faq { background: #fff; border: 1px solid var(--fk-line); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
@@ -411,7 +413,6 @@
     <div class="links">
       <a href="#funktionen">Funktionen</a>
       <a href="#wissen">Wissen</a>
-      <a href="#teamchat">Team-Chat</a>
       <a href="#dms">Dokumente</a>
       <a href="#datenschutz">Datenschutz</a>
       <a href="#rollen">Sicherheit</a>
@@ -429,7 +430,6 @@
   <div class="mobile-menu" id="mobileMenu">
     <a href="#funktionen">Funktionen</a>
     <a href="#wissen">Wissen</a>
-    <a href="#teamchat">Team-Chat</a>
     <a href="#dms">Dokumente</a>
     <a href="#datenschutz">Datenschutz</a>
     <a href="#rollen">Sicherheit</a>
@@ -612,32 +612,6 @@
   </div>
 </section>
 
-<!-- 3c. Team-Chat -->
-<section id="teamchat" class="tint">
-  <div class="wrap">
-    <span class="eyebrow">Team-Chat</span>
-    <h2 class="title">Mattermost – Team-Kommunikation und KI in einem</h2>
-    <p class="intro">Zum Werkzeugkasten gehört ein vollständig selbst gehosteter Team-Chat: <strong>Mattermost</strong> (Open Source). Teamkommunikation und KI-Unterstützung laufen auf derselben Infrastruktur – ohne Cloud-Abhängigkeit.</p>
-    <div class="grid cols-3">
-      <div class="card">
-        <div class="icon" aria-hidden="true">🔒</div>
-        <h3>Kein Slack, kein Teams – Ihre Daten bleiben bei Ihnen</h3>
-        <p>Bei Slack, Microsoft Teams oder Google Chat liegen Ihre Gespräche auf fremden Servern – oft in den USA. Mattermost läuft ausschließlich auf Ihrer eigenen Infrastruktur. Niemand außer Ihrer Organisation kann auf die Chats zugreifen.</p>
-      </div>
-      <div class="card">
-        <div class="icon" aria-hidden="true">🇩🇪</div>
-        <h3>DSGVO-konform ohne Kompromisse</h3>
-        <p>Keine Drittanbieter, keine Datenweitergabe, kein Auftragsverarbeitungsvertrag mit einem US-Konzern nötig. Mattermost läuft auf demselben deutschen Server wie FreiKI – datenschutzrechtlich sauber von Anfang an.</p>
-      </div>
-      <div class="card">
-        <div class="icon" aria-hidden="true">🤖</div>
-        <h3>FreiKI-Bot direkt im Chat</h3>
-        <p>Die KI ist mitten im Team-Gespräch erreichbar – Antworten inklusive Quellenangaben aus den internen Wissensbereichen. Im produktiven Betrieb verlassen Ihre Fragen dabei nicht das Haus.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- 5. Kein Gedächtnis / Datenschutz konkret -->
 <section id="datenschutz" class="tint">
   <div class="wrap">
@@ -685,8 +659,7 @@
       <div class="card"><div class="icon" aria-hidden="true">🧠</div><h3>Lokales LLM</h3><p>Im Produktivbetrieb Inferenz auf eigener GPU (vLLM). Aktuell Qwen3-32B, andere Open-Source-Modelle möglich.</p></div>
       <div class="card"><div class="icon" aria-hidden="true">🎙️</div><h3>Whisper + Piper + Tesseract</h3><p>Diktat und Transkription, Vorlesen, Texterkennung – lokal, ohne Cloud-Stimme.</p></div>
       <div class="card"><div class="icon" aria-hidden="true">🔎</div><h3>SearXNG</h3><p>Datenschutzkonforme Metasuche für die Webrecherche im Chat.</p></div>
-      <div class="card"><div class="icon" aria-hidden="true">⚙️</div><h3>Hintergrund-Jobs</h3><p>Automatisierung direkt in der App: Berichte, Team-Chat-Bot, Wetter- und Katastrophenwarnungen.</p></div>
-      <div class="card"><div class="icon" aria-hidden="true">💬</div><h3>Mattermost</h3><p>Self-hosted Team-Chat mit SSO und FreiKI-Bot.</p></div>
+      <div class="card"><div class="icon" aria-hidden="true">⚙️</div><h3>Hintergrund-Jobs</h3><p>Automatisierung direkt in der App: Berichte, Wetter- und Katastrophenwarnungen.</p></div>
       <div class="card"><div class="icon" aria-hidden="true">📄</div><h3>Paperless-ngx</h3><p>KI-gestütztes Dokumentenarchiv mit Volltextsuche.</p></div>
       <div class="card"><div class="icon" aria-hidden="true">✉️</div><h3>Eigener Mailserver</h3><p>SMTP/IMAP in derselben Infrastruktur – Transkripte und Benachrichtigungen ohne fremden Maildienst.</p></div>
     </div>
@@ -704,8 +677,10 @@
       <div><div class="num">100 %</div><div class="label">Daten in eigener Infrastruktur</div></div>
       <div><div class="num">frei</div><div class="label">wählbares LLM</div></div>
     </div>
-    <div class="grid cols-3">
+    <p class="price-note"><strong>Vier Alternativen – keine Summe.</strong> Die folgenden Preise sind <strong>Varianten für denselben Betrieb</strong>: Sie wählen genau eine. Die Beträge werden nicht addiert.</p>
+    <div class="grid cols-2">
       <div class="price-card">
+        <span class="badge">Alternative 1</span>
         <h3>Cloud (EU)</h3>
         <div class="amount">ca. 1.500 €/Monat</div>
         <ul>
@@ -716,15 +691,29 @@
         </ul>
       </div>
       <div class="price-card">
+        <span class="badge">Alternative 2</span>
         <h3>On-Premises</h3>
         <div class="amount">ab ca. 50.000 € einmalig</div>
         <ul>
           <li>Eigener GPU-Server, einmalige Anschaffung</li>
+          <li>Voller Funktionsumfang inkl. Grafik- und Musikgeneration</li>
           <li>Danach nur Strom &amp; Netzanbindung</li>
           <li>Ab ca. 3 Jahren günstiger als Cloud-Miete</li>
         </ul>
       </div>
       <div class="price-card">
+        <span class="badge">Alternative 3 · für kleinere Häuser</span>
+        <h3>Appliance (Mac Studio)</h3>
+        <div class="amount">ab ca. 10.000 € einmalig</div>
+        <ul>
+          <li>Kompaktes Komplettgerät auf Mac-Studio-Basis, vorinstalliert</li>
+          <li>Chat, Dokumenten- und Wissensfunktionen vollständig in Ihrem Haus</li>
+          <li>Ohne Grafik- und Musikgeneration</li>
+          <li>Danach nur Strom &amp; Netzanbindung</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <span class="badge">Alternative 4</span>
         <h3>API-Anbindung</h3>
         <div class="amount">ca. 100 €/Monat</div>
         <ul>
