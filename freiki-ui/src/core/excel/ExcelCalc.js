@@ -171,6 +171,13 @@ function resolveColumn(spec, sheet, headerRow, what) {
   throw new Error(`Spalte "${s}" in Blatt "${sheet.name}" nicht gefunden. Kopfzeile ${headerRow}: ${known}`);
 }
 
+// Überschrift der Spalte (aus der Kopfzeile) - steht im Ergebnis neben dem Buchstaben, damit eine Verwechslung
+// (z. B. Buchstabe "M" statt Überschrift "M1") für Modell und Nutzer erkennbar ist.
+function headerOf(sheet, headerRow, idx) {
+  const v = sheet.rows.get(headerRow)?.get(idx);
+  return v == null ? null : String(v).trim();
+}
+
 function rowRange(sheet, a) {
   const headerRow = Number.isInteger(a.headerRow) ? a.headerRow : 1;
   const first = Number.isInteger(a.firstRow) ? a.firstRow : headerRow + 1;
@@ -218,13 +225,14 @@ async function calcAggregate(filePath, a) {
       add(groups.get(key), x);
     }
   }
-  const out = { sheet: sheet.name, op, rows: `${first}-${last}`, valueCol: indexToCol(valueIdx), count: total.count, result: finish(total) };
+  const out = { sheet: sheet.name, op, rows: `${first}-${last}`, valueCol: indexToCol(valueIdx), valueColHeader: headerOf(sheet, headerRow, valueIdx), count: total.count, result: finish(total) };
   if (skipped) out.skippedNonNumeric = skipped;
   if (groupIdx) {
     const n = clampN(a.topN ?? 20);
     const list = [...groups].map(([key, g]) => ({ key, value: finish(g), count: g.count }));
     list.sort((x, y) => Math.abs(y.value) - Math.abs(x.value));
     out.groupByCol = indexToCol(groupIdx);
+    out.groupByColHeader = headerOf(sheet, headerRow, groupIdx);
     out.groupCount = list.length;
     out.groups = list.slice(0, n);
     if (list.length > n) out.note = `Nur die ${n} größten von ${list.length} Gruppen gezeigt.`;
@@ -249,7 +257,7 @@ async function calcTopN(filePath, a) {
   }
   const asc = a.order === 'asc';
   items.sort((p, q) => (asc ? p.value - q.value : q.value - p.value));
-  return { sheet: sheet.name, valueCol: indexToCol(valueIdx), order: asc ? 'asc' : 'desc', numericRows: items.length, top: items.slice(0, n) };
+  return { sheet: sheet.name, valueCol: indexToCol(valueIdx), valueColHeader: headerOf(sheet, headerRow, valueIdx), order: asc ? 'asc' : 'desc', numericRows: items.length, top: items.slice(0, n) };
 }
 
 function collectByKey(sheet, headerRow, first, last, keyIdx, valueIdx) {
@@ -297,7 +305,8 @@ async function calcCompare(filePath, a) {
   const onlyB = [...mapB.keys()].filter(k => !mapA.has(k)).length;
   const byDesc = [...diffs].sort((p, q) => q.diff - p.diff);
   const out = {
-    sheetA: sheetA.name, valueColA: indexToCol(valA), sheetB: sheetB.name, valueColB: indexToCol(valB),
+    sheetA: sheetA.name, valueColA: indexToCol(valA), valueColAHeader: headerOf(sheetA, ra.headerRow, valA),
+    sheetB: sheetB.name, valueColB: indexToCol(valB), valueColBHeader: headerOf(sheetB, rb.headerRow, valB),
     matchedKeys: diffs.length, onlyInA: onlyA, onlyInB: onlyB,
     totalA: round2(totalA), totalB: round2(totalB), totalDiff: round2(totalA - totalB),
     largestPositiveDiff: byDesc.filter(d => d.diff > 0).slice(0, n),
@@ -308,7 +317,7 @@ async function calcCompare(filePath, a) {
   return out;
 }
 
-const colProp = (desc) => ({ type: 'string', description: `${desc} (Spaltenbuchstabe wie "C" oder Text der Überschrift)` });
+const colProp = (desc) => ({ type: 'string', description: `${desc} (Text der Überschrift exakt wie in der Kopfzeile, z. B. "M1" oder "Betrag" – oder Spaltenbuchstabe wie "C". Steht eine Überschrift wie "M1" in der Kopfzeile, nie nur den Buchstaben "M" verwenden)` });
 const common = {
   headerRow: { type: 'integer', description: 'Zeile mit den Überschriften (Standard 1)' },
   firstRow: { type: 'integer', description: 'Erste Datenzeile (Standard: Zeile nach der Kopfzeile)' },

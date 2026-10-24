@@ -53,6 +53,8 @@ describe('ExcelCalc', () => {
     const byHeader = await runCalcTool('calc_aggregate', file, { sheetName: 'Plan', valueCol: 'Betrag', op: 'sum' });
     assert.strictEqual(byHeader.result, 150.5);
     assert.strictEqual(byHeader.count, 2);
+    assert.strictEqual(byHeader.valueCol, 'C');
+    assert.strictEqual(byHeader.valueColHeader, 'Betrag'); // Überschrift im Ergebnis sichtbar
     const byLetter = await runCalcTool('calc_aggregate', file, { sheetName: 'plan', valueCol: 'c', op: 'max' });
     assert.strictEqual(byLetter.result, 100);
   });
