@@ -230,6 +230,7 @@ async function loadModes() {
     const builtinTools = [
       { panel: '/scanner.html', icon: '📷', title: t('tools.scanner.title', 'QR/Barcode-Scanner'), desc: t('tools.scanner.desc', 'Code mit der Kamera scannen') },
       { panel: '/formular-chat.html', icon: '📋', title: t('tools.form_chat.title', 'Formular-Chat'), desc: t('tools.form_chat.desc', 'Formular per Dialog ausfüllen & drucken') },
+      { panel: '/excel-chat.html', icon: '📊', title: t('tools.excel.title', 'Excel-Chat (Test)'), desc: t('tools.excel.desc', 'Excel-Datei hochladen und per Chat lesen oder bearbeiten') },
     ];
     if (['admin', 'manager'].includes(State.currentRole)) {
       builtinTools.push({ panel: '/admin-formulare.html', icon: '📋', title: t('tools.form_templates.title', 'Formular-Vorlagen'), desc: t('tools.form_templates.desc', 'Scans hochladen & Felder markieren') });
