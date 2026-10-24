@@ -3,9 +3,18 @@ const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio
 
 const EXCEL_MCP_LAUNCHER = require.resolve('@negokaz/excel-mcp-server/dist/launcher.js');
 const MAX_TOOL_ITERATIONS = 5;
+const TOOL_TIMEOUT_MS = 60 * 1000;
+const TOTAL_TIMEOUT_MS = 3 * 60 * 1000;
+const MAX_CONCURRENT = 3;
+// Feste Werkzeugliste: neue/unbekannte MCP-Tools nach einem Paket-Update werden nicht automatisch ans Modell durchgereicht.
+const ALLOWED_TOOLS = new Set([
+  'excel_describe_sheets', 'excel_read_sheet', 'excel_write_to_sheet',
+  'excel_create_table', 'excel_copy_sheet', 'excel_format_range'
+]);
+let activeRuns = 0;
 
 function mcpToolsToOpenAI(mcpTools) {
-  return mcpTools.map(t => {
+  return mcpTools.filter(t => ALLOWED_TOOLS.has(t.name)).map(t => {
     const schema = t.inputSchema || { type: 'object', properties: {} };
     const properties = { ...(schema.properties || {}) };
     delete properties.fileAbsolutePath; // wird immer serverseitig erzwungen, Modell soll ihn nicht raten müssen
@@ -21,7 +30,7 @@ function mcpToolsToOpenAI(mcpTools) {
   });
 }
 
-async function runExcelChat(filePath, messages, { vllmUrl, vllmModel, vllmApiKey, fetchWithTimeout }) {
+async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmApiKey, fetchWithTimeout }, deadline) {
   const transport = new StdioClientTransport({ command: 'node', args: [EXCEL_MCP_LAUNCHER] });
   const client = new Client({ name: 'freiki-excel-test', version: '0.1.0' }, { capabilities: {} });
 
@@ -34,6 +43,7 @@ async function runExcelChat(filePath, messages, { vllmUrl, vllmModel, vllmApiKey
     let finalText = '';
 
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      if (Date.now() > deadline) throw new Error('Zeitlimit überschritten');
       const res = await fetchWithTimeout(`${vllmUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${vllmApiKey}` },
@@ -59,7 +69,8 @@ async function runExcelChat(filePath, messages, { vllmUrl, vllmModel, vllmApiKey
           args.fileAbsolutePath = filePath; // nie dem Modell vertrauen, immer serverseitig erzwingen
           let toolResultText;
           try {
-            const result = await client.callTool({ name: tc.function.name, arguments: args });
+            if (!ALLOWED_TOOLS.has(tc.function.name)) throw new Error('Werkzeug nicht erlaubt');
+            const result = await client.callTool({ name: tc.function.name, arguments: args }, undefined, { timeout: TOOL_TIMEOUT_MS });
             toolResultText = JSON.stringify(result.content ?? result);
           } catch (toolErr) {
             toolResultText = JSON.stringify({ error: toolErr.message });
@@ -77,6 +88,26 @@ async function runExcelChat(filePath, messages, { vllmUrl, vllmModel, vllmApiKey
     return finalText;
   } finally {
     try { await client.close(); } catch (_) {}
+  }
+}
+
+async function runExcelChat(filePath, messages, deps) {
+  if (activeRuns >= MAX_CONCURRENT) {
+    const err = new Error('Excel-Chat ist gerade ausgelastet. Bitte in einer Minute erneut versuchen.');
+    err.code = 'EXCEL_BUSY';
+    throw err;
+  }
+  activeRuns++;
+  const run = runExcelChatInner(filePath, messages, deps, Date.now() + TOTAL_TIMEOUT_MS);
+  run.catch(() => {}).finally(() => { activeRuns--; });
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Zeitlimit überschritten')), TOTAL_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([run, timeout]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
