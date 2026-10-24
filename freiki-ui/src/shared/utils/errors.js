@@ -3,7 +3,7 @@
 // unerwarteter Server-Fehler, kein Client-Fehler.
 function errorHandler(err, req, res, next) {
   if (res.headersSent) return next(err);
-  console.error('Request-Fehler:', err);
+  console.error('Request-Fehler:', err?.stack || err?.message || err);
   const status = err.status || 500;
   // Bei explizit gesetztem Status (bewusster Client-Fehler, z.B. 400) ist die
   // Meldung zur Anzeige gedacht. Bei einem unerwarteten 500 keine internen

@@ -51,7 +51,7 @@ if (getBrandConfig().selfRegistration) app.use(require('./routes/registrationRou
 app.use(errorHandler);
 
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception – beende Prozess:', err);
+  console.error('Uncaught Exception – beende Prozess:', err?.stack || err?.message || err);
   process.exit(1);
 });
 

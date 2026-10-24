@@ -149,7 +149,7 @@ router.post('/api/hilfe-chat', asyncHandler(async (req, res) => {
     if (result.error) return res.status(result.status || 500).json({ error: result.error });
     res.json(result);
   } catch (e) {
-    console.error('Hilfe-Chat Fehler:', e);
+    console.error('Hilfe-Chat Fehler:', e?.stack || e?.message || e);
     res.status(500).json({ error: 'Interner Fehler' });
   }
 }));
@@ -181,7 +181,7 @@ router.post('/api/bot-chat', asyncHandler(async (req, res) => {
     const result = await kb.answerBotChat(message, username);
     res.json(result);
   } catch (e) {
-    console.error('bot-chat Fehler:', e);
+    console.error('bot-chat Fehler:', e?.stack || e?.message || e);
     res.status(500).json({ error: 'Fehler bei der Bot-Anfrage' });
   }
 }));
@@ -207,7 +207,7 @@ router.post('/api/mattermost/slash-command', express.urlencoded({ extended: fals
       body: JSON.stringify({ response_type: 'in_channel', text: result.answer }),
     });
   }).catch((e) => {
-    console.error('Mattermost Slash-Command Fehler:', e);
+    console.error('Mattermost Slash-Command Fehler:', e?.stack || e?.message || e);
     fetch(response_url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -237,7 +237,7 @@ router.post('/api/mattermost/mention', express.urlencoded({ extended: false, lim
       body: JSON.stringify({ channel_id, message: result.answer }),
     });
   }).catch((e) => {
-    console.error('Mattermost @mention Fehler:', e);
+    console.error('Mattermost @mention Fehler:', e?.stack || e?.message || e);
   });
 });
 

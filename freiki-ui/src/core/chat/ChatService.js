@@ -197,7 +197,7 @@ Sei so konkret wie möglich – keine allgemeinen Aussagen.`
       await handleDirectMode(res, { userMessage, history, mode, isMulti, now, hasFileContent: !!fileContent, userLanguage });
     }
   } catch (e) {
-    console.error('Chat error:', e);
+    console.error('Chat error:', e?.stack || e?.message || e);
     const detailedMsg = getDetailedErrorMessage(e);
 
     if (!res.headersSent) {
