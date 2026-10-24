@@ -6,6 +6,7 @@ const { cleanupUploads } = require('../../src/infrastructure/storage/FileStorage
 
 const EXCEL_DIR = '/tmp/excel_uploads/';
 const OTHER_DIR = '/tmp/uploads/';
+const KB_DIR = '/tmp/kb_uploads/';
 const H = 60 * 60 * 1000;
 const created = [];
 
@@ -36,11 +37,19 @@ describe('cleanupUploads', () => {
     assert.ok(fs.existsSync(editedC) && fs.existsSync(editedCm), 'frisch bearbeitet bleibt samt Meta');
   });
 
-  it('andere Upload-Ordner behalten die 24-h-Grenze', () => {
-    const threeH = make(OTHER_DIR, 'cleanup-test-3h', 3 * H);
-    const thirtyH = make(OTHER_DIR, 'cleanup-test-30h', 30 * H);
+  it('/tmp/uploads/ (Audio/Video-Transkription) bleibt 6 h, danach weg', () => {
+    const fiveH = make(OTHER_DIR, 'cleanup-test-5h', 5 * H);
+    const sevenH = make(OTHER_DIR, 'cleanup-test-7h', 7 * H);
     cleanupUploads();
-    assert.ok(fs.existsSync(threeH), '3 h alt bleibt');
-    assert.ok(!fs.existsSync(thirtyH), '30 h alt wird gelöscht');
+    assert.ok(fs.existsSync(fiveH), '5 h alt bleibt');
+    assert.ok(!fs.existsSync(sevenH), '7 h alt wird gelöscht');
+  });
+
+  it('übrige Upload-Ordner: Standard 2 h', () => {
+    const oneH = make(KB_DIR, 'cleanup-test-1h', 1 * H);
+    const threeH = make(KB_DIR, 'cleanup-test-3h', 3 * H);
+    cleanupUploads();
+    assert.ok(fs.existsSync(oneH), '1 h alt bleibt');
+    assert.ok(!fs.existsSync(threeH), '3 h alt wird gelöscht');
   });
 });

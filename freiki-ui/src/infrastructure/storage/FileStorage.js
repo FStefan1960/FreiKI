@@ -99,18 +99,20 @@ const uploadPptxTemplate = multer({
   }
 });
 
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
-// Excel-Uploads enthalten Geschäftsdaten: nur kurz aufbewahren. Dateien einer Upload-ID (<uuid>.xlsx und
-// <uuid>.meta.json) zählen gemeinsam - maßgeblich ist die jüngste Änderung, damit der Besitzer-Eintrag
-// nicht vor einer gerade bearbeiteten Datei verschwindet.
+// Die Routen löschen ihre Uploads nach Gebrauch selbst; das hier ist nur das Auffangnetz für Reste
+// (abgebrochene Anfragen, Neustarts). Standard 2 h. /tmp/uploads/ enthält u. a. Audio/Video für die
+// Hintergrund-Transkription (kann bei belegter GPU lange warten) und bekommt deshalb 6 h.
+const DEFAULT_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+const DIR_MAX_AGE_MS = { '/tmp/uploads/': 6 * 60 * 60 * 1000 };
+// Excel-Uploads: Dateien einer Upload-ID (<uuid>.xlsx und <uuid>.meta.json) zählen gemeinsam - maßgeblich
+// ist die jüngste Änderung, damit der Besitzer-Eintrag nicht vor einer gerade bearbeiteten Datei verschwindet.
 const EXCEL_DIR = '/tmp/excel_uploads/';
-const EXCEL_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
-// Temp-Dateien aus den Upload-Verzeichnissen löschen (Standard 24 h, Excel 2 h)
+// Temp-Dateien aus den Upload-Verzeichnissen löschen (Standard 2 h, /tmp/uploads/ 6 h)
 function cleanupUploads() {
   ['/tmp/uploads/', '/tmp/kb_uploads/', '/tmp/excel_uploads/', '/tmp/form_scan_uploads/', '/tmp/pptx_template_uploads/'].forEach(dir => {
     try {
-      const maxAge = dir === EXCEL_DIR ? EXCEL_MAX_AGE_MS : MAX_AGE_MS;
+      const maxAge = DIR_MAX_AGE_MS[dir] || DEFAULT_MAX_AGE_MS;
       const files = fs.readdirSync(dir);
       const newest = {}; // nur für EXCEL_DIR: jüngste Änderung je Upload-ID
       if (dir === EXCEL_DIR) {
@@ -143,7 +145,7 @@ function cleanupUploads() {
 
 function startUploadCleanupSchedule() {
   cleanupUploads();
-  // Alle 15 Minuten (der Lauf ist billig), damit die 2-h-Grenze für Excel-Uploads zeitnah greift.
+  // Alle 15 Minuten (der Lauf ist billig), damit die Grenzen zeitnah greifen.
   setInterval(cleanupUploads, 15 * 60 * 1000).unref();
 }
 
