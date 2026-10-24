@@ -99,15 +99,33 @@ const uploadPptxTemplate = multer({
   }
 });
 
-// Temp-Dateien älter als 24h aus den Upload-Verzeichnissen löschen
+const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// Excel-Uploads enthalten Geschäftsdaten: nur kurz aufbewahren. Dateien einer Upload-ID (<uuid>.xlsx und
+// <uuid>.meta.json) zählen gemeinsam - maßgeblich ist die jüngste Änderung, damit der Besitzer-Eintrag
+// nicht vor einer gerade bearbeiteten Datei verschwindet.
+const EXCEL_DIR = '/tmp/excel_uploads/';
+const EXCEL_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+
+// Temp-Dateien aus den Upload-Verzeichnissen löschen (Standard 24 h, Excel 2 h)
 function cleanupUploads() {
   ['/tmp/uploads/', '/tmp/kb_uploads/', '/tmp/excel_uploads/', '/tmp/form_scan_uploads/', '/tmp/pptx_template_uploads/'].forEach(dir => {
     try {
-      fs.readdirSync(dir).forEach(file => {
+      const maxAge = dir === EXCEL_DIR ? EXCEL_MAX_AGE_MS : MAX_AGE_MS;
+      const files = fs.readdirSync(dir);
+      const newest = {}; // nur für EXCEL_DIR: jüngste Änderung je Upload-ID
+      if (dir === EXCEL_DIR) {
+        files.forEach(file => {
+          try {
+            const id = file.split('.')[0];
+            newest[id] = Math.max(newest[id] || 0, fs.statSync(path.join(dir, file)).mtimeMs);
+          } catch (_) {}
+        });
+      }
+      files.forEach(file => {
         const fp = path.join(dir, file);
         try {
-          const stat = fs.statSync(fp);
-          if (Date.now() - stat.mtimeMs > 24 * 60 * 60 * 1000) {
+          const mtime = dir === EXCEL_DIR ? newest[file.split('.')[0]] : fs.statSync(fp).mtimeMs;
+          if (Date.now() - mtime > maxAge) {
             fs.unlinkSync(fp);
           }
         } catch (err) {
@@ -125,7 +143,8 @@ function cleanupUploads() {
 
 function startUploadCleanupSchedule() {
   cleanupUploads();
-  setInterval(cleanupUploads, 6 * 60 * 60 * 1000).unref();
+  // Alle 15 Minuten (der Lauf ist billig), damit die 2-h-Grenze für Excel-Uploads zeitnah greift.
+  setInterval(cleanupUploads, 15 * 60 * 1000).unref();
 }
 
 module.exports = { upload, uploadAudio, uploadVideo, uploadDictation, uploadKB, uploadFormScan, uploadPptxTemplate, cleanupUploads, startUploadCleanupSchedule };
