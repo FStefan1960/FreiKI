@@ -3,7 +3,10 @@ const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio
 
 const EXCEL_MCP_LAUNCHER = require.resolve('@negokaz/excel-mcp-server/dist/launcher.js');
 const MAX_TOOL_ITERATIONS = 10;
-const MAX_TOOL_RESULT_CHARS = 30000;
+const MAX_TOOL_RESULT_CHARS = 12000;
+// Gesamtbudget aller Werkzeug-Ergebnisse pro Anfrage (vLLM-Kontext: 60000 Tokens, Tabellenzahlen tokenisieren schlecht).
+const MAX_TOOL_TOTAL_CHARS = 70000;
+const MIN_USEFUL_RESULT_CHARS = 2000;
 const TOOL_TIMEOUT_MS = 60 * 1000;
 const TOTAL_TIMEOUT_MS = 3 * 60 * 1000;
 const MAX_CONCURRENT = 3;
@@ -31,6 +34,16 @@ function mcpToolsToOpenAI(mcpTools) {
   });
 }
 
+async function llmError(res) {
+  const body = await res.text();
+  if (/maximum context length/i.test(body)) {
+    const err = new Error('Die Datei bzw. der Gesprächsverlauf ist für das Modell zu umfangreich. Bitte eine neue Frage zu einem kleineren Bereich stellen oder mit "Neue Datei" neu beginnen.');
+    err.code = 'EXCEL_TOO_LARGE';
+    return err;
+  }
+  return new Error(`LLM Fehler: ${res.status} – ${body}`);
+}
+
 async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmApiKey, fetchWithTimeout }, deadline) {
   const transport = new StdioClientTransport({ command: 'node', args: [EXCEL_MCP_LAUNCHER] });
   const client = new Client({ name: 'freiki-excel-test', version: '0.1.0' }, { capabilities: {} });
@@ -42,6 +55,8 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
 
     let convo = [...messages];
     let finalText = '';
+    let toolCharsUsed = 0;
+    let budgetExhausted = false;
 
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
       if (Date.now() > deadline) throw new Error('Zeitlimit überschritten');
@@ -57,7 +72,7 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
           temperature: 0.2
         })
       });
-      if (!res.ok) throw new Error(`LLM Fehler: ${res.status} – ${await res.text()}`);
+      if (!res.ok) throw await llmError(res);
       const json = await res.json();
       const msg = json.choices?.[0]?.message;
       if (!msg) throw new Error('Keine Antwort vom Modell');
@@ -73,14 +88,21 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
             if (!ALLOWED_TOOLS.has(tc.function.name)) throw new Error('Werkzeug nicht erlaubt');
             const result = await client.callTool({ name: tc.function.name, arguments: args }, undefined, { timeout: TOOL_TIMEOUT_MS });
             toolResultText = JSON.stringify(result.content ?? result);
-            if (toolResultText.length > MAX_TOOL_RESULT_CHARS) {
-              toolResultText = toolResultText.slice(0, MAX_TOOL_RESULT_CHARS) + ' …[gekürzt – kleineren Bereich (range) anfragen]';
+            const remaining = MAX_TOOL_TOTAL_CHARS - toolCharsUsed;
+            const allowed = Math.min(MAX_TOOL_RESULT_CHARS, remaining);
+            if (allowed < MIN_USEFUL_RESULT_CHARS) {
+              budgetExhausted = true;
+              toolResultText = JSON.stringify({ error: 'Datenbudget erschöpft – bitte jetzt mit den bisher gelesenen Daten antworten.' });
+            } else if (toolResultText.length > allowed) {
+              toolResultText = toolResultText.slice(0, allowed) + ' …[gekürzt – kleineren Bereich (range) anfragen]';
             }
+            toolCharsUsed += toolResultText.length;
           } catch (toolErr) {
             toolResultText = JSON.stringify({ error: toolErr.message });
           }
           convo.push({ role: 'tool', tool_call_id: tc.id, content: toolResultText });
         }
+        if (budgetExhausted) break;
         continue;
       }
 
