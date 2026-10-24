@@ -8,7 +8,9 @@ const MAX_TOOL_RESULT_CHARS = 12000;
 const MAX_TOOL_TOTAL_CHARS = 70000;
 const MIN_USEFUL_RESULT_CHARS = 2000;
 const TOOL_TIMEOUT_MS = 60 * 1000;
-const TOTAL_TIMEOUT_MS = 3 * 60 * 1000;
+const TOTAL_TIMEOUT_MS = 8 * 60 * 1000;
+// Ein Modellaufruf mit ~50k Tokens Prompt braucht auf der A100 über 100 s (Standard von fetchWithTimeout: 120 s).
+const LLM_CALL_TIMEOUT_MS = 4 * 60 * 1000;
 const MAX_CONCURRENT = 3;
 // Feste Werkzeugliste: neue/unbekannte MCP-Tools nach einem Paket-Update werden nicht automatisch ans Modell durchgereicht.
 const ALLOWED_TOOLS = new Set([
@@ -71,7 +73,7 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
           max_tokens: 4096,
           temperature: 0.2
         })
-      });
+      }, LLM_CALL_TIMEOUT_MS);
       if (!res.ok) throw await llmError(res);
       const json = await res.json();
       const msg = json.choices?.[0]?.message;
@@ -122,7 +124,7 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
           max_tokens: 4096,
           temperature: 0.2
         })
-      });
+      }, LLM_CALL_TIMEOUT_MS);
       if (res.ok) {
         const json = await res.json();
         finalText = (json.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
