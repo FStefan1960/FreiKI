@@ -9,6 +9,9 @@ const MAX_TOOL_RESULT_CHARS = 12000;
 // Gesamtbudget aller Werkzeug-Ergebnisse pro Anfrage (vLLM-Kontext: 60000 Tokens, Tabellenzahlen tokenisieren schlecht).
 const MAX_TOOL_TOTAL_CHARS = 70000;
 const MIN_USEFUL_RESULT_CHARS = 2000;
+// Obergrenze für die vom Modell gelieferten Werkzeug-Argumente (heute begrenzt max_tokens sie ohnehin auf ~12k Zeichen;
+// das Limit sichert gegen spätere Erhöhungen ab).
+const MAX_TOOL_ARGS_CHARS = 60000;
 const TOOL_TIMEOUT_MS = 60 * 1000;
 const TOTAL_TIMEOUT_MS = 8 * 60 * 1000;
 // Ein Modellaufruf mit ~50k Tokens Prompt braucht auf der A100 über 100 s (Standard von fetchWithTimeout: 120 s).
@@ -86,8 +89,13 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
       if (msg.tool_calls && msg.tool_calls.length) {
         convo.push(msg);
         for (const tc of msg.tool_calls) {
+          const rawArgs = tc.function.arguments || '{}';
+          if (rawArgs.length > MAX_TOOL_ARGS_CHARS) {
+            convo.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ error: 'Werkzeug-Argumente zu groß – bitte in kleineren Schritten arbeiten.' }) });
+            continue;
+          }
           let args = {};
-          try { args = JSON.parse(tc.function.arguments || '{}'); } catch (_) {}
+          try { args = JSON.parse(rawArgs); } catch (_) {}
           args.fileAbsolutePath = filePath; // nie dem Modell vertrauen, immer serverseitig erzwingen
           let toolResultText;
           try {
