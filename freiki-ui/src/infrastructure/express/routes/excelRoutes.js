@@ -37,7 +37,7 @@ router.post('/api/excel-upload', uploadExcel.single('file'), async (req, res, ne
     await fs.promises.rename(req.file.path, destPath);
     await writeMeta(fileId, { uid: s.uid, filename: req.file.originalname });
     excelLog.log(s, 'upload', req.file.originalname);
-    res.json({ ok: true, fileId, filename: req.file.originalname });
+    res.json({ ok: true, fileId, filename: req.file.originalname, canWrite: await users.findExcelWriteById(s.uid) });
   } catch (e) {
     fs.unlink(req.file.path, () => {});
     next(e);

@@ -132,6 +132,32 @@
       color: #991b1b;
     }
 
+    .ideas {
+      margin-top: 22px;
+      padding: 16px 18px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #374151;
+    }
+    .ideas h2 { font-size: 14px; color: #1E3A8A; margin: 0 0 8px; }
+    .ideas h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; margin: 12px 0 4px; }
+    .ideas ul { margin: 0; padding-left: 18px; }
+    .ideas li { margin: 2px 0; }
+    .ideas .tip { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; color: #475569; }
+    .ideas .write-only { display: none; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+    .chips .chips-label { width: 100%; font-size: 12px; color: #6b7280; }
+    .chips button {
+      background: #eff6ff; color: #1E3A8A; border: 1px solid #bfdbfe; border-radius: 999px;
+      padding: 5px 11px; font-size: 12px; font-family: inherit; cursor: pointer; text-align: left;
+    }
+    .chips button:hover { background: #dbeafe; }
+    .chips button.write-only { display: none; }
+    .chips.can-write button.write-only { display: inline-block; }
+
     .chat-view { display: none; }
     .chat-view.visible { display: block; }
 
@@ -266,6 +292,34 @@
 
   <div class="status" id="status"></div>
 
+  <div class="ideas" id="ideas">
+    <h2>💡 Was Sie die Tabelle fragen können</h2>
+    <h3>Überblick verschaffen</h3>
+    <ul>
+      <li>„Welche Blätter und Spalten hat die Datei?“</li>
+      <li>„Zeige mir die ersten 15 Zeilen von Blatt <i>Ist</i>.“</li>
+      <li>„Was steht in Zelle <i>B7</i> von Blatt <i>Plan</i>?“</li>
+    </ul>
+    <h3>Rechnen – der Server rechnet exakt, nicht die KI</h3>
+    <ul>
+      <li>„Wie hoch ist die <b>Summe</b> der Spalte <i>Betrag</i> im Blatt <i>Ist</i>?“ (auch Durchschnitt, Minimum, Maximum, Anzahl)</li>
+      <li>„<b>Summe je Kostenstelle</b> aus Spalte <i>Betrag</i>, gruppiert nach Spalte <i>A</i>.“</li>
+      <li>„Die <b>10 größten</b> Werte in Spalte <i>E</i> – mit der Bezeichnung aus Spalte <i>A</i>.“</li>
+      <li>„<b>Vergleiche</b> Blatt <i>Ist</i> mit Blatt <i>Plan</i> in Spalte <i>M1</i> über die <i>Kostenstelle</i>: wo liegen wir am stärksten über bzw. unter Plan?“</li>
+      <li>„Wie groß ist die Gesamtabweichung zwischen Spalte <i>D</i> und Spalte <i>E</i>?“</li>
+    </ul>
+    <div class="write-only" id="ideas-write">
+      <h3>Ändern (nur mit Freigabe „EXCEL schreiben“)</h3>
+      <ul>
+        <li>„Schreibe in Zelle <i>G1</i> die Überschrift <i>Abweichung</i>.“</li>
+        <li>„Trage in Spalte <i>G</i> ab Zeile 2 die Differenz aus <i>E</i> minus <i>D</i> als Formel ein.“</li>
+        <li>„Lege ein neues Blatt <i>Auswertung</i> mit der Summe je Kostenstelle an.“</li>
+        <li>„Formatiere Zeile 1 fett.“ – danach oben auf <i>Geänderte Datei herunterladen</i> klicken.</li>
+      </ul>
+    </div>
+    <div class="tip"><b>Tipp:</b> Nennen Sie Blatt und Spalte (Buchstabe oder Überschrift). Gezielte Fragen sind schnell und exakt – „Lies alles und fasse zusammen“ bei großen Tabellen führt dagegen oft ins Leere. Ihre Originaldatei bleibt unverändert, der Chat arbeitet mit einer Kopie.</div>
+  </div>
+
   <div class="chat-view" id="chat-view">
     <div class="file-bar">
       <span>📄 <span id="file-name"></span></span>
@@ -273,6 +327,16 @@
       <button type="button" id="reset-btn">Neue Datei</button>
     </div>
     <div class="thread" id="thread"></div>
+    <div class="chips" id="chips">
+      <span class="chips-label">Ideen zum Anklicken (Platzhalter in [ ] anpassen):</span>
+      <button type="button" data-q="Welche Blätter und Spalten hat die Datei? Zeige mir außerdem die ersten 10 Zeilen.">Überblick</button>
+      <button type="button" data-q="Wie hoch ist die Summe der Spalte [Spalte] im Blatt [Blatt]?">Summe einer Spalte</button>
+      <button type="button" data-q="Summe der Spalte [Spalte] je [Gruppe, z. B. Kostenstelle] im Blatt [Blatt].">Summe je Gruppe</button>
+      <button type="button" data-q="Nenne die 10 größten Werte in Spalte [Spalte] im Blatt [Blatt], mit der Bezeichnung aus Spalte [Bezeichnung].">Top 10</button>
+      <button type="button" data-q="Vergleiche Blatt [Ist] mit Blatt [Plan] in Spalte [Spalte] über [Schlüssel, z. B. Kostenstelle]: Wo liegen wir am stärksten über und unter Plan?">Plan/Ist-Vergleich</button>
+      <button type="button" class="write-only" data-q="Schreibe in Zelle [Zelle] im Blatt [Blatt] den Wert [Wert].">Zelle schreiben</button>
+      <button type="button" class="write-only" data-q="Lege ein neues Blatt [Name] an und trage dort [Auswertung] ein.">Neues Blatt</button>
+    </div>
     <div class="input-row">
       <input type="text" id="chat-input" placeholder="Frage zur Tabelle stellen …">
       <button type="button" id="send-btn">Senden</button>
@@ -299,6 +363,23 @@
   const chatView = document.getElementById('chat-view');
   const fileNameEl = document.getElementById('file-name');
   const downloadLink = document.getElementById('download-link');
+  const ideasEl = document.getElementById('ideas');
+  const ideasWrite = document.getElementById('ideas-write');
+  const chipsEl = document.getElementById('chips');
+
+  // Beispielfragen: Klick übernimmt den Text ins Eingabefeld; Platzhalter in [ ] markiert man und überschreibt sie.
+  chipsEl.addEventListener('click', e => {
+    const b = e.target.closest('button[data-q]');
+    if (!b) return;
+    chatInput.value = b.dataset.q;
+    chatInput.focus();
+    const i = b.dataset.q.indexOf('[');
+    if (i >= 0) chatInput.setSelectionRange(i, b.dataset.q.indexOf(']', i) + 1);
+  });
+  function setCanWrite(ok) {
+    chipsEl.classList.toggle('can-write', !!ok);
+    ideasWrite.style.display = ok ? 'block' : 'none';
+  }
   const thread = document.getElementById('thread');
   const chatInput = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
@@ -332,6 +413,9 @@
       const data = await res.json();
       if (res.ok && data.ok) {
         fileId = data.fileId;
+        setCanWrite(data.canWrite);
+        chipsEl.style.display = '';
+        ideasEl.style.display = 'none';
         downloadLink.classList.remove('visible');
         history = [];
         thread.innerHTML = '';
@@ -361,6 +445,7 @@
     if (!text || !fileId) return;
     chatInput.value = '';
     sendBtn.disabled = true;
+    chipsEl.style.display = 'none';
     addMessage('user', text);
     const pending = document.createElement('div');
     pending.className = 'msg pending';
@@ -400,6 +485,7 @@
 
   resetBtn.addEventListener('click', () => {
     fileId = null;
+    ideasEl.style.display = '';
     downloadLink.classList.remove('visible');
     history = [];
     thread.innerHTML = '';
