@@ -158,6 +158,24 @@
     .chips button.write-only { display: none; }
     .chips.can-write button.write-only { display: inline-block; }
 
+    .input-row button.mic-btn {
+      display: none;
+      flex: 0 0 auto;
+      width: 42px;
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      background: #eff6ff;
+      color: #1E3A8A;
+      border: 1px solid #bfdbfe;
+      cursor: pointer;
+    }
+    .input-row button.mic-btn.available { display: inline-flex; }
+    .input-row button.mic-btn:hover { background: #dbeafe; }
+    .input-row button.mic-btn.recording { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; animation: micpulse 1.2s infinite; }
+    .input-row button.mic-btn:disabled { opacity: .6; cursor: default; }
+    @keyframes micpulse { 50% { box-shadow: 0 0 0 4px rgba(185, 28, 28, .18); } }
+
     .chat-view { display: none; }
     .chat-view.visible { display: block; }
 
@@ -317,6 +335,7 @@
         <li>„Formatiere Zeile 1 fett.“ – danach oben auf <i>Geänderte Datei herunterladen</i> klicken.</li>
       </ul>
     </div>
+    <div class="tip">🎤 <b>Spracheingabe:</b> Mikrofon-Knopf neben dem Eingabefeld, sprechen, erneut klicken. Der erkannte Text erscheint im Feld und kann vor dem Senden korrigiert werden – besonders Zellbezüge wie „B7“ bitte kurz prüfen.</div>
     <div class="tip"><b>Tipp:</b> Nennen Sie Blatt und Spalte (Buchstabe oder Überschrift). Gezielte Fragen sind schnell und exakt – „Lies alles und fasse zusammen“ bei großen Tabellen führt dagegen oft ins Leere. Ihre Originaldatei bleibt unverändert, der Chat arbeitet mit einer Kopie.</div>
   </div>
 
@@ -339,6 +358,7 @@
     </div>
     <div class="input-row">
       <input type="text" id="chat-input" placeholder="Frage zur Tabelle stellen …">
+      <button type="button" class="mic-btn" id="mic-btn" title="Frage einsprechen (zum Beenden erneut klicken)" aria-label="Frage einsprechen"></button>
       <button type="button" id="send-btn">Senden</button>
     </div>
   </div>
@@ -376,6 +396,60 @@
     const i = b.dataset.q.indexOf('[');
     if (i >= 0) chatInput.setSelectionRange(i, b.dataset.q.indexOf(']', i) + 1);
   });
+  // ── Spracheingabe: gleicher Server-Endpunkt wie das Diktat im Hauptchat (/api/dictate, Whisper).
+  // Der Text kommt ins Eingabefeld und wird NICHT automatisch gesendet (Zellbezüge vor dem Senden prüfen).
+  const micBtn = document.getElementById('mic-btn');
+  const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+  const STOP_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>';
+  let recorder = null, recChunks = [], recStream = null;
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) {
+    micBtn.innerHTML = MIC_SVG;
+    micBtn.classList.add('available');
+  }
+
+  micBtn.addEventListener('click', async () => {
+    if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+    showError('');
+    try {
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      showError('Mikrofonzugriff wurde verweigert oder ist nicht verfügbar.');
+      return;
+    }
+    recChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+    recorder = mimeType ? new MediaRecorder(recStream, { mimeType }) : new MediaRecorder(recStream);
+    recorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
+    recorder.onstop = async () => {
+      recStream.getTracks().forEach(t => t.stop());
+      micBtn.classList.remove('recording');
+      micBtn.disabled = true;
+      micBtn.innerHTML = '…';
+      try {
+        const blob = new Blob(recChunks, { type: recorder.mimeType || 'audio/webm' });
+        const fd = new FormData();
+        fd.append('audio', blob, 'diktat.' + (blob.type.includes('mp4') ? 'm4a' : 'webm'));
+        const res = await fetch('/api/dictate', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Spracherkennung fehlgeschlagen');
+        const sep = chatInput.value && !/\s$/.test(chatInput.value) ? ' ' : '';
+        chatInput.value += sep + (data.text || '').trim();
+        chipsEl.style.display = 'none';
+      } catch (e) {
+        showError('Spracherkennung fehlgeschlagen: ' + e.message);
+      } finally {
+        micBtn.disabled = false;
+        micBtn.innerHTML = MIC_SVG;
+        recorder = null;
+        chatInput.focus();
+      }
+    };
+    recorder.start();
+    micBtn.classList.add('recording');
+    micBtn.innerHTML = STOP_SVG;
+  });
+
   function setCanWrite(ok) {
     chipsEl.classList.toggle('can-write', !!ok);
     ideasWrite.style.display = ok ? 'block' : 'none';
