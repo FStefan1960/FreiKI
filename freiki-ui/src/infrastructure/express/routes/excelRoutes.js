@@ -7,6 +7,7 @@ const { getSession } = require('../../../core/auth/AuthMiddleware');
 const { uploadExcel, isValidFileId } = require('../../../core/excel/ExcelValidator');
 const { runExcelChat } = require('../../../core/excel/ExcelService');
 const { fetchWithTimeout } = require('../../../shared/utils/text');
+const users = require('../../../core/auth/UserRepository');
 const sensitiveLog = require('../../../core/audit/SensitiveQueryLog');
 
 const MAX_MESSAGE_CHARS = 20000;
@@ -54,13 +55,14 @@ router.post('/api/excel-chat', async (req, res, next) => {
   sensitiveLog.checkAndLog(s, 'excel-chat', message);
 
   try {
+    const canWrite = await users.findExcelWriteById(s.uid);
     const messages = [
-      { role: 'system', content: 'Du bist ein Assistent, der Excel-Dateien über bereitgestellte Werkzeuge liest und bearbeitet. Nutze ausschließlich die Werkzeuge, um Zellinhalte zu lesen oder zu schreiben – erfinde keine Werte. Rechne niemals selbst: Für Summen, Durchschnitte, Rangfolgen und Vergleiche (z. B. Plan gegen Ist) nutze die Werkzeuge calc_aggregate, calc_top_n und calc_compare. Lies vorher nur einen kleinen Ausschnitt (z. B. die ersten 15 Zeilen), um Kopfzeile und Spalten zu finden, und lies nie komplette große Blätter. Antworte auf Deutsch.' },
+      { role: 'system', content: 'Du bist ein Assistent, der Excel-Dateien über bereitgestellte Werkzeuge liest und bearbeitet. Nutze ausschließlich die Werkzeuge, um Zellinhalte zu lesen oder zu schreiben – erfinde keine Werte. Rechne niemals selbst: Für Summen, Durchschnitte, Rangfolgen und Vergleiche (z. B. Plan gegen Ist) nutze die Werkzeuge calc_aggregate, calc_top_n und calc_compare. Lies vorher nur einen kleinen Ausschnitt (z. B. die ersten 15 Zeilen), um Kopfzeile und Spalten zu finden, und lies nie komplette große Blätter. Antworte auf Deutsch.' + (canWrite ? '' : ' Du hast nur Lesezugriff: Änderungen an der Datei sind für dieses Konto nicht freigeschaltet. Weise bei Änderungswünschen kurz darauf hin und biete stattdessen eine Auswertung an.') },
       ...sanitizeHistory(history),
       { role: 'user', content: String(message) }
     ];
     const reply = await runExcelChat(filePath, messages, {
-      vllmUrl: config.VLLM_URL, vllmModel: config.VLLM_MODEL, vllmApiKey: config.VLLM_API_KEY, fetchWithTimeout
+      vllmUrl: config.VLLM_URL, vllmModel: config.VLLM_MODEL, vllmApiKey: config.VLLM_API_KEY, fetchWithTimeout, canWrite
     });
     res.json({ ok: true, reply });
   } catch (e) {

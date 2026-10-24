@@ -39,6 +39,7 @@ async function ensureSchema() {
       ADD COLUMN IF NOT EXISTS training_completed_at TIMESTAMP,
       ADD COLUMN IF NOT EXISTS enter_to_send BOOLEAN NOT NULL DEFAULT true,
       ADD COLUMN IF NOT EXISTS use_metacom BOOLEAN NOT NULL DEFAULT false,
+      ADD COLUMN IF NOT EXISTS excel_write BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS pending_approval BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS dienststelle TEXT NOT NULL DEFAULT '',
       ADD COLUMN IF NOT EXISTS news_ack_version INTEGER NOT NULL DEFAULT 0,
@@ -91,6 +92,13 @@ function findLiveAreasById(id) {
     .then(r => r.rows[0] || null);
 }
 
+// Schreibfreigabe für den Excel-Chat live aus der DB (nicht aus dem JWT): Änderungen durch den Admin
+// wirken sofort, ohne dass sich der Nutzer neu anmelden muss.
+function findExcelWriteById(id) {
+  return pool.query('SELECT excel_write FROM freiki_users WHERE id=$1', [id])
+    .then(r => !!r.rows[0]?.excel_write);
+}
+
 // Sprache live aus der DB lesen statt aus dem Login-Token (JWT) - sonst wirkt eine
 // Sprachänderung durch den Admin erst nach dem nächsten Login des Nutzers, analog zu
 // findLiveAreasById() für use_areas.
@@ -102,13 +110,13 @@ function findLiveLanguageById(id) {
 async function listAll() {
   const { rows } = await pool.query(
     `SELECT id, username, role, first_name, last_name, funktion, telefon, email, language,
-            use_areas, manage_areas, suspended, use_paperless, use_metacom, dienststelle FROM freiki_users
+            use_areas, manage_areas, suspended, use_paperless, use_metacom, excel_write, dienststelle FROM freiki_users
      WHERE pending_approval=false ORDER BY username`);
   return rows.map(u => ({
     id: u.id, username: u.username, role: u.role, suspended: !!u.suspended,
     first_name: u.first_name || '', last_name: u.last_name || '', funktion: u.funktion || '', telefon: u.telefon || '', email: u.email || '',
     language: u.language || 'de', dienststelle: u.dienststelle || '',
-    use: u.use_areas || [], manage: u.manage_areas || [], use_paperless: !!u.use_paperless, use_metacom: !!u.use_metacom,
+    use: u.use_areas || [], manage: u.manage_areas || [], use_paperless: !!u.use_paperless, use_metacom: !!u.use_metacom, excel_write: !!u.excel_write,
   }));
 }
 
@@ -126,22 +134,23 @@ async function listPending() {
   }));
 }
 
-async function create({ username, passwordHash, role, first_name, last_name, funktion, telefon, email, language, dienststelle, use, manage, use_paperless, use_metacom, suspended, pending_approval }) {
+async function create({ username, passwordHash, role, first_name, last_name, funktion, telefon, email, language, dienststelle, use, manage, use_paperless, use_metacom, excel_write, suspended, pending_approval }) {
   const r = VALID_ROLES.includes(role) ? role : 'default';
   const { rows } = await pool.query(
-    `INSERT INTO freiki_users (username,password_hash,role,first_name,last_name,funktion,telefon,email,language,dienststelle,use_areas,manage_areas,use_paperless,use_metacom,suspended,pending_approval)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
-    [username.trim(), passwordHash, r, first_name||'', last_name||'', funktion||'', telefon||'', email||'', (language||'').trim() || 'de', dienststelle||'', cleanAreas(use), cleanAreas(manage), !!use_paperless, !!use_metacom, !!suspended, !!pending_approval]);
+    `INSERT INTO freiki_users (username,password_hash,role,first_name,last_name,funktion,telefon,email,language,dienststelle,use_areas,manage_areas,use_paperless,use_metacom,excel_write,suspended,pending_approval)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+    [username.trim(), passwordHash, r, first_name||'', last_name||'', funktion||'', telefon||'', email||'', (language||'').trim() || 'de', dienststelle||'', cleanAreas(use), cleanAreas(manage), !!use_paperless, !!use_metacom, !!excel_write, !!suspended, !!pending_approval]);
   return rows[0].id;
 }
 
-async function update(id, { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, language, dienststelle, use_paperless, use_metacom, pending_approval }) {
+async function update(id, { role, use, manage, suspended, first_name, last_name, funktion, telefon, email, language, dienststelle, use_paperless, use_metacom, excel_write, pending_approval }) {
   const r = VALID_ROLES.includes(role) ? role : 'default';
   const fields = ['role=$2','use_areas=$3','manage_areas=$4','first_name=$5','last_name=$6','funktion=$7','telefon=$8','email=$9','language=$10','updated_at=now()'];
   const vals = [id, r, cleanAreas(use), cleanAreas(manage), first_name||'', last_name||'', funktion||'', telefon||'', email||'', (language||'').trim() || 'de'];
   if (suspended !== undefined) { fields.push(`suspended=$${vals.length+1}`); vals.push(!!suspended); }
   if (use_paperless !== undefined) { fields.push(`use_paperless=$${vals.length+1}`); vals.push(!!use_paperless); }
   if (use_metacom !== undefined) { fields.push(`use_metacom=$${vals.length+1}`); vals.push(!!use_metacom); }
+  if (excel_write !== undefined) { fields.push(`excel_write=$${vals.length+1}`); vals.push(!!excel_write); }
   if (pending_approval !== undefined) { fields.push(`pending_approval=$${vals.length+1}`); vals.push(!!pending_approval); }
   if (dienststelle !== undefined) { fields.push(`dienststelle=$${vals.length+1}`); vals.push(dienststelle||''); }
   const { rowCount } = await pool.query(`UPDATE freiki_users SET ${fields.join(',')} WHERE id=$1`, vals);
@@ -273,7 +282,7 @@ const isValidUsername = (s) => typeof s === 'string' && s.trim().length >= 3 && 
 const isValidEmail    = (s) => typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 module.exports = {
-  VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById,
+  VALID_ROLES, ensureSchema, findByUsername, findById, findProfileById, findLiveAreasById, findLiveLanguageById, findExcelWriteById,
   findByEmailForReset, findByNameAny,
   listAll, listPending, create, update, updatePasswordHash, updateLanguage, updateEnterToSend, remove, listAdminEmails,
   generateUniqueUsername,

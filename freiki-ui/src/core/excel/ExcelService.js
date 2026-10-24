@@ -19,10 +19,12 @@ const ALLOWED_TOOLS = new Set([
   'excel_describe_sheets', 'excel_read_sheet', 'excel_write_to_sheet',
   'excel_create_table', 'excel_copy_sheet', 'excel_format_range'
 ]);
+// Diese Werkzeuge verändern die Datei; sie gibt es nur für Konten mit der Freigabe "EXCEL schreiben" (freiki_users.excel_write).
+const WRITE_TOOLS = new Set(['excel_write_to_sheet', 'excel_create_table', 'excel_copy_sheet', 'excel_format_range']);
 let activeRuns = 0;
 
-function mcpToolsToOpenAI(mcpTools) {
-  return mcpTools.filter(t => ALLOWED_TOOLS.has(t.name)).map(t => {
+function mcpToolsToOpenAI(mcpTools, { canWrite = false } = {}) {
+  return mcpTools.filter(t => ALLOWED_TOOLS.has(t.name) && (canWrite || !WRITE_TOOLS.has(t.name))).map(t => {
     const schema = t.inputSchema || { type: 'object', properties: {} };
     const properties = { ...(schema.properties || {}) };
     delete properties.fileAbsolutePath; // wird immer serverseitig erzwungen, Modell soll ihn nicht raten müssen
@@ -48,14 +50,14 @@ async function llmError(res) {
   return new Error(`LLM Fehler: ${res.status} – ${body}`);
 }
 
-async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmApiKey, fetchWithTimeout }, deadline) {
+async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmApiKey, fetchWithTimeout, canWrite = false }, deadline) {
   const transport = new StdioClientTransport({ command: 'node', args: [EXCEL_MCP_LAUNCHER] });
   const client = new Client({ name: 'freiki-excel-test', version: '0.1.0' }, { capabilities: {} });
 
   try {
     await client.connect(transport);
     const { tools: mcpTools } = await client.listTools();
-    const openAiTools = [...mcpToolsToOpenAI(mcpTools), ...calcToolsForLlm()];
+    const openAiTools = [...mcpToolsToOpenAI(mcpTools, { canWrite }), ...calcToolsForLlm()];
 
     let convo = [...messages];
     let finalText = '';
@@ -94,6 +96,7 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
               toolResultText = JSON.stringify(await runCalcTool(tc.function.name, filePath, args));
             } else {
               if (!ALLOWED_TOOLS.has(tc.function.name)) throw new Error('Werkzeug nicht erlaubt');
+              if (WRITE_TOOLS.has(tc.function.name) && !canWrite) throw new Error('Änderungen an Dateien sind für dieses Konto nicht freigeschaltet.');
               if (tc.function.name === 'excel_write_to_sheet') args.values = normalizeFormulaValues(args.values);
               const result = await client.callTool({ name: tc.function.name, arguments: args }, undefined, { timeout: TOOL_TIMEOUT_MS });
               toolResultText = JSON.stringify(result.content ?? result);
