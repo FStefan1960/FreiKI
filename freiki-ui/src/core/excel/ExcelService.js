@@ -1,6 +1,8 @@
 const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
 const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
 
+const { runCalcTool, calcToolsForLlm, CALC_TOOL_NAMES, normalizeFormulaValues } = require('./ExcelCalc');
+
 const EXCEL_MCP_LAUNCHER = require.resolve('@negokaz/excel-mcp-server/dist/launcher.js');
 const MAX_TOOL_ITERATIONS = 10;
 const MAX_TOOL_RESULT_CHARS = 12000;
@@ -53,7 +55,7 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
   try {
     await client.connect(transport);
     const { tools: mcpTools } = await client.listTools();
-    const openAiTools = mcpToolsToOpenAI(mcpTools);
+    const openAiTools = [...mcpToolsToOpenAI(mcpTools), ...calcToolsForLlm()];
 
     let convo = [...messages];
     let finalText = '';
@@ -87,9 +89,15 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
           args.fileAbsolutePath = filePath; // nie dem Modell vertrauen, immer serverseitig erzwingen
           let toolResultText;
           try {
-            if (!ALLOWED_TOOLS.has(tc.function.name)) throw new Error('Werkzeug nicht erlaubt');
-            const result = await client.callTool({ name: tc.function.name, arguments: args }, undefined, { timeout: TOOL_TIMEOUT_MS });
-            toolResultText = JSON.stringify(result.content ?? result);
+            if (CALC_TOOL_NAMES.has(tc.function.name)) {
+              // Rechenwerkzeuge laufen im Server (nur lesend), nicht über den MCP-Server.
+              toolResultText = JSON.stringify(await runCalcTool(tc.function.name, filePath, args));
+            } else {
+              if (!ALLOWED_TOOLS.has(tc.function.name)) throw new Error('Werkzeug nicht erlaubt');
+              if (tc.function.name === 'excel_write_to_sheet') args.values = normalizeFormulaValues(args.values);
+              const result = await client.callTool({ name: tc.function.name, arguments: args }, undefined, { timeout: TOOL_TIMEOUT_MS });
+              toolResultText = JSON.stringify(result.content ?? result);
+            }
             const remaining = MAX_TOOL_TOTAL_CHARS - toolCharsUsed;
             const allowed = Math.min(MAX_TOOL_RESULT_CHARS, remaining);
             if (allowed < MIN_USEFUL_RESULT_CHARS) {
