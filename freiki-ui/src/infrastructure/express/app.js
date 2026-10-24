@@ -11,6 +11,7 @@ const pool = require('../database/postgres/pool');
 const chatRepo = require('../../core/chat/ChatRepository');
 const auditLog = require('../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../core/audit/SensitiveQueryLog');
+const excelLog = require('../../core/audit/ExcelUsageLog');
 const users = require('../../core/auth/UserRepository');
 const webauthnCreds = require('../../core/auth/WebauthnCredentialRepository');
 const formTemplates = require('../../core/forms/FormTemplateRepository');
@@ -74,6 +75,7 @@ async function start() {
   await chatRepo.ensureSchema();
   await auditLog.ensureSchema();
   await sensitiveLog.ensureSchema();
+  await excelLog.ensureSchema();
   await users.ensureSchema();
   await webauthnCreds.ensureSchema();
   await formTemplates.ensureSchema();
@@ -85,6 +87,7 @@ async function start() {
   startUploadCleanupSchedule();
   sensitiveLog.startDailyReportSchedule();
   sensitiveLog.startRetentionPurgeSchedule();
+  excelLog.startRetentionPurgeSchedule();
   auditLog.startRetentionPurgeSchedule();
   formSessions.startFormSessionPurgeSchedule();
   startJobs();

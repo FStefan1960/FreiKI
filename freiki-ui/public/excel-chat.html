@@ -149,6 +149,15 @@
       color: #1E3A8A;
     }
 
+    .file-bar .dl-link {
+      display: none;
+      color: #1e40af;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: underline;
+      margin-left: auto;
+    }
+    .file-bar .dl-link.visible { display: inline; }
     .file-bar button {
       background: none;
       border: none;
@@ -260,6 +269,7 @@
   <div class="chat-view" id="chat-view">
     <div class="file-bar">
       <span>📄 <span id="file-name"></span></span>
+      <a class="dl-link" id="download-link" href="#" title="Die vom Chat geänderte Datei speichern">⬇ Geänderte Datei herunterladen</a>
       <button type="button" id="reset-btn">Neue Datei</button>
     </div>
     <div class="thread" id="thread"></div>
@@ -288,6 +298,7 @@
   const status = document.getElementById('status');
   const chatView = document.getElementById('chat-view');
   const fileNameEl = document.getElementById('file-name');
+  const downloadLink = document.getElementById('download-link');
   const thread = document.getElementById('thread');
   const chatInput = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
@@ -321,6 +332,7 @@
       const data = await res.json();
       if (res.ok && data.ok) {
         fileId = data.fileId;
+        downloadLink.classList.remove('visible');
         history = [];
         thread.innerHTML = '';
         fileNameEl.textContent = data.filename;
@@ -366,6 +378,10 @@
       pending.remove();
       if (res.ok && data.ok) {
         addMessage('assistant', data.reply);
+        if (data.modified && data.canWrite) {
+          downloadLink.href = '/api/excel-download/' + encodeURIComponent(fileId);
+          downloadLink.classList.add('visible');
+        }
         history.push({ role: 'user', content: text });
         history.push({ role: 'assistant', content: data.reply });
       } else {
@@ -384,6 +400,7 @@
 
   resetBtn.addEventListener('click', () => {
     fileId = null;
+    downloadLink.classList.remove('visible');
     history = [];
     thread.innerHTML = '';
     chatView.classList.remove('visible');

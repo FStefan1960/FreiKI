@@ -5,6 +5,7 @@ const { getBrandConfig } = require('../../../../shared/config/BrandConfig');
 const chatRepo = require('../../../../core/chat/ChatRepository');
 const auditLog = require('../../../../core/audit/AdminAuditRepository');
 const sensitiveLog = require('../../../../core/audit/SensitiveQueryLog');
+const excelLog = require('../../../../core/audit/ExcelUsageLog');
 const usageStatsReport = require('../../../../jobs/usageStatsReport');
 const feedbackReport = require('../../../../jobs/feedbackReport');
 const gpuMetricsReport = require('../../../../jobs/gpuMetricsReport');
@@ -155,6 +156,12 @@ router.get('/api/admin/daily-report-preview', (req, res) => {
     res.status(500).send('Vorschau konnte nicht erzeugt werden: ' + e.message);
   }
 });
+
+router.get('/api/admin/excel-usage-log', asyncHandler(async (req, res) => {
+  try {
+    res.json({ entries: await excelLog.list() });
+  } catch (e) { console.error('admin/excel-usage-log:', e.message); res.status(500).json({ error: 'Datenbankfehler' }); }
+}));
 
 // Vorher: Weiterleitung an einen n8n-Webhook. Jetzt drei unabhängige native Flows direkt
 // aufgerufen (siehe jobs/feedbackReport.js, usageStatsReport.js, gpuMetricsReport.js) -
