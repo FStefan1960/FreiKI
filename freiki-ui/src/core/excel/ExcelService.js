@@ -2,7 +2,8 @@ const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
 const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio.js');
 
 const EXCEL_MCP_LAUNCHER = require.resolve('@negokaz/excel-mcp-server/dist/launcher.js');
-const MAX_TOOL_ITERATIONS = 5;
+const MAX_TOOL_ITERATIONS = 10;
+const MAX_TOOL_RESULT_CHARS = 30000;
 const TOOL_TIMEOUT_MS = 60 * 1000;
 const TOTAL_TIMEOUT_MS = 3 * 60 * 1000;
 const MAX_CONCURRENT = 3;
@@ -72,6 +73,9 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
             if (!ALLOWED_TOOLS.has(tc.function.name)) throw new Error('Werkzeug nicht erlaubt');
             const result = await client.callTool({ name: tc.function.name, arguments: args }, undefined, { timeout: TOOL_TIMEOUT_MS });
             toolResultText = JSON.stringify(result.content ?? result);
+            if (toolResultText.length > MAX_TOOL_RESULT_CHARS) {
+              toolResultText = toolResultText.slice(0, MAX_TOOL_RESULT_CHARS) + ' …[gekürzt – kleineren Bereich (range) anfragen]';
+            }
           } catch (toolErr) {
             toolResultText = JSON.stringify({ error: toolErr.message });
           }
@@ -84,6 +88,24 @@ async function runExcelChatInner(filePath, messages, { vllmUrl, vllmModel, vllmA
       break;
     }
 
+    if (!finalText) {
+      // Werkzeug-Schritte aufgebraucht: einmal ohne Werkzeuge nach einer Antwort aus den bisher gelesenen Daten fragen.
+      if (Date.now() > deadline) throw new Error('Zeitlimit überschritten');
+      const res = await fetchWithTimeout(`${vllmUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${vllmApiKey}` },
+        body: JSON.stringify({
+          model: vllmModel,
+          messages: [...convo, { role: 'user', content: 'Antworte jetzt auf Basis der bisher gelesenen Daten. Wenn etwas fehlt, sage kurz, was noch fehlt.' }],
+          max_tokens: 4096,
+          temperature: 0.2
+        })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        finalText = (json.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      }
+    }
     if (!finalText) finalText = 'Ich konnte innerhalb der erlaubten Schritte keine abschließende Antwort erzeugen. Bitte die Frage präzisieren.';
     return finalText;
   } finally {
