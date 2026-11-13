@@ -1,4 +1,18 @@
 const jwt = require('jsonwebtoken');
+
+/**
+ * @typedef {object} Session
+ * @property {number} uid
+ * @property {string} [username]
+ * @property {string} [name]
+ * @property {string} [email]
+ * @property {string} [role]
+ * @property {string[]} [use]
+ * @property {string[]} [manage]
+ * @property {boolean} [totpEnabled]
+ * @property {boolean} [pending2fa]
+ */
+
 const { config } = require('../../shared/config');
 const { secondsUntilMidnightBerlin } = require('../../shared/utils/text');
 
@@ -23,19 +37,21 @@ function signPendingToken(u) {
 // authRoutes.js). Der Authorization-Header bleibt als Fallback fuer serverseitige Automation
 // (n8n-Workflows, Skripte), die keinen Cookie-Jar zwischen Requests teilen - kein XSS-Risiko,
 // da dort kein Browser/JS im Spiel ist.
+/** @returns {Session|null} */
 function getSession(req) {
   const t = (req.cookies && req.cookies.freiki_session)
     || ((req.headers && req.headers['authorization']) || '').replace('Bearer ', '').trim();
   if (!t || !config.JWT_SECRET) return null;
-  try { return jwt.verify(t, config.JWT_SECRET); } catch { return null; }
+  try { return /** @type {Session} */ (jwt.verify(t, config.JWT_SECRET)); } catch { return null; }
 }
 
 // Nimmt den rohen Token-String entgegen (nicht req), damit AuthService.verifyTwoFactor()
 // ihn direkt aus dem Request-Body prüfen kann, ohne einen Express-req vorzutäuschen.
+/** @returns {Session|null} */
 function verifyPendingToken(token) {
   if (!token || !config.JWT_SECRET) return null;
   try {
-    const s = jwt.verify(token, config.JWT_SECRET);
+    const s = /** @type {Session} */ (jwt.verify(token, config.JWT_SECRET));
     return s && s.pending2fa ? s : null;
   } catch { return null; }
 }
@@ -44,6 +60,7 @@ function getPendingSession(req) {
   return verifyPendingToken((req.headers['authorization'] || '').replace('Bearer ', '').trim());
 }
 
+/** @returns {Session|null} */
 function adminSession(req) {
   const s = getSession(req);
   return (s && s.role === 'admin') ? s : null;

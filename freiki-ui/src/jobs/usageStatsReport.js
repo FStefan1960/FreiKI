@@ -40,18 +40,24 @@ function saveState(state) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(state));
 }
 
+// Wird an vielen Stellen ohne await aufgerufen (fire-and-forget) - ein Schreibfehler (z. B. Platte
+// voll) darf deshalb nie als unbehandelte Rejection enden, sondern wird nur geloggt.
 async function recordChatEvent(payload) {
-  const state = loadState();
-  const entry = {
-    user: payload.user || 'unknown',
-    mode: payload.mode || 'unknown',
-    title: payload.title || payload.mode || 'unknown',
-    hasFile: !!payload.hasFile,
-    timestamp: payload.timestamp || new Date().toISOString(),
-  };
-  state.chats.push(entry);
-  state.chatsGesamt.push(entry);
-  saveState(state);
+  try {
+    const state = loadState();
+    const entry = {
+      user: payload.user || 'unknown',
+      mode: payload.mode || 'unknown',
+      title: payload.title || payload.mode || 'unknown',
+      hasFile: !!payload.hasFile,
+      timestamp: payload.timestamp || new Date().toISOString(),
+    };
+    state.chats.push(entry);
+    state.chatsGesamt.push(entry);
+    saveState(state);
+  } catch (e) {
+    console.error('recordChatEvent fehlgeschlagen:', e.message);
+  }
 }
 
 function buildMatrixHtml(userWorkspace) {

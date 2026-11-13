@@ -3,7 +3,9 @@
   "version": "0.9.1",
   "main": "server.js",
   "scripts": {
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/**/*.test.js",
+    "typecheck": "tsc -p .",
+    "lint": "eslint server.js \"src/**/*.js\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -30,6 +32,20 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "supertest": "^7.2.2"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^20.19.43",
+    "@types/node-fetch": "^2.6.13",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "@types/qrcode": "^1.5.6",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^9.39.5",
+    "supertest": "^7.2.2",
+    "typescript": "5.9",
+    "typescript-eslint": "^8.72.2"
   }
 }

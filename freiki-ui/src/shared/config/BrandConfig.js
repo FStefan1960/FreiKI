@@ -26,7 +26,8 @@ const BRAND_DEFAULTS = {
 // Laufzeit-Zustand + Setter statt Export des rohen Objekts: Module, die getBrandConfig()
 // aufrufen, sehen so nach jedem loadBrandConfig()/updateBrandConfig() den aktuellen Stand,
 // statt eine veraltete Objekt-Referenz von vor dem Reload zu behalten.
-let brandConfig = { ...BRAND_DEFAULTS };
+/** @type {typeof BRAND_DEFAULTS & {breakingNewsText: string, breakingNewsVersion: number}} */
+let brandConfig = { breakingNewsText: '', breakingNewsVersion: 0, ...BRAND_DEFAULTS };
 
 function getBrandConfig() {
   return brandConfig;
