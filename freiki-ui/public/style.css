@@ -441,9 +441,16 @@ body {
 body.sidebar-resizing { cursor: col-resize; user-select: none; }
 
 .sidebar-logo {
-  padding: 20px 18px 14px;
+  padding: 20px 16px 14px;
 }
-.sidebar-logo img { width: 150px; max-width: 100%; }
+/* Bild (800x200) hat transparenten Rand: per negativem Margin beschneiden, damit die
+   sichtbare Logo-Kante buendig mit den Tabs/Kacheln steht (sichtbar ca. 140 x 38 px). */
+.sidebar-logo img {
+  display: block;
+  width: 243px;
+  max-width: none;
+  margin: -12px 0 -10px -25px;
+}
 
 /* Segmented tabs */
 .sidebar-tabs {

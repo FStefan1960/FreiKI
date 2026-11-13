@@ -32,7 +32,7 @@ JOBS = [
         "runtime": REPO / "freiki-ui" / "FreiKI_Benutzerhandbuch.pdf",
         "alias": ROOT / "Benutzerhandbuch.pdf",
         "subtitle": "Benutzerhandbuch",
-        "cover_note": "Stand Version 0.8.12 · Oktober 2026",
+        "cover_note": "Stand Version 0.9.1 · November 2026",
     },
 ]
 # KorKI hatte hier früher einen zweiten Job (Quelle KorKI-Benutzerhandbuch.md) - dieser Job

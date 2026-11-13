@@ -109,6 +109,8 @@ Ein Werkzeug für alle Richtungen: Standard ist **ins Deutsche**. Eine andere Zi
 
 Eigene Einträge im Tab **Wissen** (siehe Kapitel 5). Eine Frage wird standardmäßig nur im gerade angeklickten Bereich beantwortet. Steht die Antwort dort nicht, erscheint unter der Antwort der Button **„Auch andere Bereiche durchsuchen“** – damit weiten Sie die Suche gezielt auf alle für Sie freigegebenen Bereiche aus.
 
+**Paragraphen direkt abrufen:** Fragen Sie z. B. „§ 16“ oder „Paragraph 16 StVO“, lädt FreiKI den Paragraphen samt Folgeabschnitten direkt aus dem gewählten Bereich (sinnvoll bei Gesetzen und Verordnungen). Umgangssprachliche Begriffe wie „hupen“ werden auf die Fachbegriffe im Text abgebildet.
+
 ### 4.5 Berichte & Dokumente
 
 Erstellt professionelle Texte auf Basis Ihrer Angaben, z. B. Berichte, Stellungnahmen, Protokolle, Anschreiben. FreiKI fragt nach, wenn Angaben fehlen. Eine Vorlage oder Rohnotizen können Sie als Datei hochladen. Die fertige Antwort lässt sich als Word oder PowerPoint speichern.
@@ -147,9 +149,55 @@ Erzeugt ein Bild aus einer Textbeschreibung (z. B. Clipart, Illustration). Je ge
 
 Je nach Instanz kann dafür ein **externer Bilddienst** genutzt werden. Keine Fotos von Personen und keine vertraulichen Inhalte als Prompt verwenden.
 
+**Aufbewahrung:** Erzeugte Bilder werden auf dem Server nach **15 Minuten** automatisch gelöscht. Bitte speichern Sie ein Bild sofort nach der Erzeugung.
+
 ### 4.11 QR-Code erstellen
 
 Macht aus Text oder einer URL einen herunterladbaren QR-Code. Geeignet für Links, WLAN-Zugangsdaten, Kontaktdaten (vCard) oder interne `APPDOC:`-Verweise auf Archivdokumente.
+
+### 4.12 Bildserie / Comic
+
+Erzeugt mehrere Bilder mit **derselben Figur** – z. B. für eine Bildgeschichte oder Unterrichtsmaterial.
+
+1. **Figur beschreiben**, am besten ganzkörper (z. B. „eine junge Frau mit roten Locken, grüner Brille und gelbem Regenmantel, Comic-Stil“). Diese erste Nachricht legt die Figur fest.
+2. **Jede Szene einzeln beschreiben** („Sie sitzt in einem Café und trinkt Kaffee“). FreiKI zeichnet dieselbe Figur in der neuen Szene.
+3. **„Neue Figur: …“** startet mit einer anderen Figur neu.
+4. Statt einer Beschreibung können Sie ein **eigenes Referenzbild** anhängen (Büroklammer oder Einfügen). Es ersetzt die Figur; ohne Text wird es nur übernommen, mit Text gleich als erste Szene genutzt.
+
+**Grenzen:** Bei Fotos von Personen können Details wie Bart oder Gesichtszüge von Bild zu Bild leicht abweichen. Sprechblasen und kleine Schrift sollte die KI nicht zeichnen (sie werden verstümmelt) – fügen Sie Text nachträglich selbst ein. Die Figur wird nach 15 Minuten ohne Benutzung vergessen; jede neue Szene verlängert die Frist.
+
+**Aufbewahrung und Kennzeichnung:** Alle Bilder werden nach **15 Minuten** gelöscht – bitte vorher herunterladen. Sie tragen die Pille „AI GENERATED“ wie alle erzeugten Bilder. Die Bilderzeugung nutzt einen **externen Bilddienst** (siehe Kapitel 11).
+
+### 4.13 Excel-Chat
+
+Excel-Datei hochladen und per Chat lesen oder ändern. Das Werkzeug steht unter **Werkzeuge**.
+
+- Datei (XLSX oder XLSM, bis 25 MB) auf die Fläche ziehen oder anklicken.
+- **Lesen und auswerten:** Blätter und Spalten anzeigen, einzelne Zellen nachschlagen, Summe, Durchschnitt, Minimum, Maximum und Anzahl bilden, Summen je Gruppe (z. B. je Kostenstelle), die 10 größten Werte nennen oder zwei Blätter (z. B. Plan und Ist) vergleichen. Diese Rechnungen führt FreiKI mit festen Rechenwerkzeugen exakt aus, auch bei Tabellen mit hunderten Zeilen und mehreren Blättern.
+- **Spalten benennen:** Nennen Sie Spalten mit Buchstabe *oder* Überschrift („Spalte E“ bzw. „Spalte Betrag“) und geben Sie das Blatt an.
+- **Beispielfragen** stehen auf der Startseite und als Schaltflächen über dem Eingabefeld. Ein Klick übernimmt den Text; Platzhalter in [eckigen Klammern] überschreiben Sie einfach.
+- **Spracheingabe:** Der Mikrofon-Knopf wandelt gesprochene Fragen in Text um. Der Text wird nicht automatisch gesendet – Zellbezüge vor dem Senden prüfen.
+
+**Ändern und Herunterladen:** Zellen schreiben, Formeln eintragen, neue Blätter anlegen oder formatieren geht nur mit der Freigabe **„EXCEL schreiben“**, die die Administration einzelnen Konten erteilt. Ohne sie arbeitet der Excel-Chat nur lesend. Nach einer Änderung laden Sie über **„Geänderte Datei herunterladen“** die bearbeitete Kopie (`<Originalname>_bearbeitet.xlsx`). Ihre Originaldatei bleibt unverändert.
+
+⚠️ Hochgeladene Dateien werden nach spätestens **zwei Stunden** vom Server gelöscht. Sehr große Anfragen kann FreiKI nicht in einem Schritt auswerten – dann gezielter fragen (je Blatt oder Spalte). Ergebnisse und geänderte Dateien bitte stichprobenartig prüfen.
+
+### 4.14 Mail-Assistent (return@)
+
+Ohne Anmeldung in der App: Sie senden oder leiten eine E-Mail an **return@freiki.com** weiter und erhalten kurz darauf eine KI-Auswertung zurück. Praktisch für fremdsprachige Mails, lange Mitteilungen oder Mails mit vielen Aufgaben und Terminen.
+
+- **Zusammenfassung** des Mail-Textes und jedes Anhangs
+- **ToDos und Fristen:** konkrete Aufgaben aus Mail und Anhängen, nach Frist sortiert; relative Angaben wie „bis Freitag“ werden anhand des Maildatums aufgelöst
+- **Termine:** erkannte Termine hängen als Kalenderdatei (.ics) an; ein Klick übernimmt den Termin in Ihren Kalender
+- **Übersetzung ins Deutsche:** Ist der Mail-Text oder ein Anhang nicht auf Deutsch, kommt zusätzlich die vollständige Übersetzung
+- **Anhänge:** Text-Anhänge und Dokumente (z. B. PDF, Word) werden mit ausgewertet. Gescannte Dokumente und Bilder ohne Text können nicht gelesen werden
+
+**So geht es:** Mail senden oder weiterleiten und warten. Die Antwort kommt mit dem Betreff „KI-Auswertung: …“ **nur an Sie als Absender**, meist nach ein bis zwei Minuten, bei langen Übersetzungen nach bis zu etwa vier Minuten. Nicht erneut senden, solange die Antwort aussteht.
+
+- Nutzbar nur mit Absenderadressen, die die Administration freigeschaltet hat; Mails anderer Absender werden nicht beantwortet
+- Pro Absender sind etwa 15 Mails pro Stunde möglich
+- Die Original-Mail wird nach dem Versand der Antwort sofort gelöscht. Inhalte, Betreffs und Dateinamen werden nicht gespeichert
+- Anweisungen, die im Mail-Text stehen, werden nicht ausgeführt – die Mail wird nur inhaltlich ausgewertet
 
 ---
 
@@ -251,12 +299,12 @@ Administratoren sehen zusätzlich Kennzahlen und ein Dashboard (Nutzung, Prompt-
 
 | Rolle | Typische Rechte |
 |---|---|
-| **Standard** | Chat und freigegebene Werkzeuge / Wissensbereiche / Archiv |
+| **Standard** | Chat und freigegebene Werkzeuge / Wissensbereiche / Archiv; der Excel-Chat nur lesend |
 | **Manager** | wie Standard, plus Dokumente in freigegebene Wissensbereiche laden und Formular-Vorlagen pflegen |
 | **BGT** (Berufsgeheimnisträger) | wie Standard, plus Pflicht-2FA; sensible Stichworte werden kategorisiert protokolliert (ohne Inhalt, siehe Kapitel 11) |
 | **Admin** | Vollzugriff: Benutzer, Bereiche, Branding, Prompts, alle Werkzeuge |
 
-Welche Wissensbereiche und das Archiv Sie sehen, legt Ihr Konto fest. Die Sitzung endet um Mitternacht.
+Zusätzlich gibt es die Konto-Freigabe **„EXCEL schreiben“**: Nur damit darf der Excel-Chat Dateien ändern und die geänderte Datei zum Download bereitstellen. Welche Wissensbereiche und das Archiv Sie sehen, legt Ihr Konto fest. Die Sitzung endet um Mitternacht.
 
 ---
 
@@ -289,6 +337,8 @@ Zweck ist die Rechenschaft nach DSGVO und interner Dienstanweisung, **nicht** Le
 | Medizin-Literatursuche | Suchbegriff geht direkt aus dem Browser an PubMed/Europe PMC/ClinicalTrials.gov u. a. |
 | Piktogramme | Abfrage der ARASAAC-Bibliothek, Anzeige über FreiKI |
 | Bilder generieren | je nach Instanz eigener oder externer Bilddienst |
+| Bildserie / Comic | externer Bilddienst; Bilder und Referenzfigur nach 15 Minuten gelöscht |
+| Excel-Chat | eigene Infrastruktur wie der Chat; Dateien nach spätestens 2 Stunden gelöscht |
 | Bild verbessern | nur Ihr Browser, nichts wird übertragen |
 | Bild mit KI bearbeiten | Instanz mit GPU: eigener Server, kein externer KI-Dienst; hier (Testserver): nicht verfügbar |
 | Diagramm in draw.io | nur nach Ihrer Bestätigung an diagrams.net |
@@ -320,6 +370,15 @@ Die Anmeldung ist bewusst auf den Kalendertag begrenzt.
 
 **Ich habe den Authenticator verloren.**  
 Backup-Codes aus dem 2FA-Setup verwenden oder die Administration um ein Zurücksetzen bitten (erneute Einrichtung nach Passwortbestätigung).
+
+**Ich habe an return@ geschrieben, aber keine Antwort bekommen.**  
+Nur freigeschaltete Absenderadressen werden beantwortet; Mails anderer Absender werden verworfen. Bei langen Übersetzungen kann es bis zu fünf Minuten dauern. Kommt dann nichts, die Administration fragen.
+
+**Warum kann der Excel-Chat meine Datei nicht ändern?**  
+Ändern ist eine Zusatzfreigabe („EXCEL schreiben“). Ohne sie ist der Excel-Chat nur lesend. Bei Bedarf die Administration fragen.
+
+**Mein erzeugtes Bild ist weg.**  
+Erzeugte Bilder werden nach 15 Minuten gelöscht. Direkt nach der Erzeugung herunterladen.
 
 **Ich habe mein Passwort vergessen.**  
 Link „Passwort vergessen" auf der Anmeldeseite nutzen. Der Reset-Link per E-Mail ist eine Stunde gültig. Ohne hinterlegte E-Mail-Adresse hilft nur die Administration.
