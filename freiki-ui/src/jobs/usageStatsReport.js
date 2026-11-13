@@ -10,6 +10,7 @@ const { sendReportMail } = require('../core/integrations/EmailService');
 const { getBrandConfig } = require('../shared/config/BrandConfig');
 
 const STATE_PATH = path.join(config.APP_ROOT, 'usage-state.json');
+const RETURN_STATS_PATH = path.join(config.APP_ROOT, 'return-mail-stats', 'stats.json');
 const SYSTEM_USERS = ['n8n', 'system', 'webhook', 'test', 'unknown', 'healthcheck'];
 function isSystemUser(name) {
   return SYSTEM_USERS.includes((name || '').toLowerCase());
@@ -163,6 +164,7 @@ function buildReportHtml(chatsHeute, chatsGesamt) {
   <div style="background:#fff;padding:24px 28px;border:1px solid #e5e7eb;border-top:none;">
     ${h2('Heute – Benutzer &amp; Werkzeug')}
     ${buildMatrixHtml(buildUserWorkspace(chatsHeute))}
+    ${buildReturnMailSection(h2)}
     ${h2('Gesamt – Benutzer &amp; Werkzeug')}
     <div id="matrix-gesamt">${buildMatrixHtml(buildUserWorkspace(chatsGesamt))}</div>
   </div>
@@ -170,6 +172,47 @@ function buildReportHtml(chatsHeute, chatsGesamt) {
 </div>`;
 
   return { html, subject: `${appName} Nutzungs-Statistik – ${datum}` };
+}
+
+// Abschnitt "Mail-Assistent (return@)": Zähler je Absender aus dem Return-Mail-Dienst (nur Anzahl
+// beantworteter Mails, keine Inhalte). Erscheint nur, wenn der Dienst auf der Instanz läuft
+// (Statistikdatei vorhanden) - auf FreiKI entfällt der Abschnitt komplett.
+function buildReturnMailSection(h2) {
+  const berlinYmd = off => new Date(Date.now() + off * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+  let st;
+  try { st = JSON.parse(fs.readFileSync(RETURN_STATS_PATH, 'utf8')); } catch { return ''; }
+  const days = st.days || {};
+  const heute = berlinYmd(0), gestern = berlinYmd(-1), ab30 = berlinYmd(-29);
+  const per = {};
+  for (const [day, byUser] of Object.entries(days)) {
+    for (const [addr, n] of Object.entries(byUser)) {
+      const r = per[addr] || (per[addr] = { heute: 0, gestern: 0, d30: 0 });
+      if (day === heute) r.heute += n;
+      if (day === gestern) r.gestern += n;
+      if (day >= ab30) r.d30 += n;
+    }
+  }
+  const rowsData = Object.entries(per).filter(([, r]) => r.d30 > 0)
+    .sort((a, b) => (b[1].heute + b[1].gestern) - (a[1].heute + a[1].gestern) || b[1].d30 - a[1].d30);
+  // Nur der individuelle Teil der Adresse (vor dem @) - auch Nutzer ohne KorKI-Konto sind dabei.
+  // Nur bei gleichem Namensteil mit verschiedenen Domains bleibt die Domain zur Unterscheidung dran.
+  const localCount = {};
+  rowsData.forEach(([addr]) => { const l = addr.split('@')[0]; localCount[l] = (localCount[l] || 0) + 1; });
+  const label = addr => { const l = addr.split('@')[0]; return localCount[l] > 1 ? addr : l; };
+  const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const th = (t, a = 'right') => `<th style="padding:8px 12px;background:#1E3A8A;color:#fff;font-size:12px;font-weight:600;text-align:${a};">${t}</th>`;
+  const td = (t, bg, extra = '') => `<td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #e5e7eb;background:${bg};${extra}">${t}</td>`;
+  const num = v => v > 0 ? `<strong>${v}</strong>` : '–';
+  const sum = k => rowsData.reduce((s, [, r]) => s + r[k], 0);
+  const R = 'text-align:right;color:#1E3A8A;';
+  const title = h2('✉️ Mail-Assistent (return@) – Mails je Nutzer');
+  if (!rowsData.length) return `${title}<p style="color:#6b7280;font-size:13px;margin:8px 0;">In den letzten 30 Tagen wurden keine Mails ausgewertet.</p>`;
+  const body = rowsData.map(([addr, r], i) => {
+    const bg = i % 2 === 0 ? '#fff' : '#f8fafc';
+    return `<tr>${td(`<strong>${esc(label(addr))}</strong>`, bg)}${td(num(r.gestern), bg, R)}${td(num(r.heute), bg, R)}${td(num(r.d30), bg, R)}</tr>`;
+  }).join('');
+  const tot = `<tr>${td('<strong>Gesamt</strong>', '#eef2ff')}${td(`<strong>${sum('gestern')}</strong>`, '#eef2ff', R)}${td(`<strong>${sum('heute')}</strong>`, '#eef2ff', R)}${td(`<strong>${sum('d30')}</strong>`, '#dbeafe', R)}</tr>`;
+  return `${title}<table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);"><thead><tr>${th('Absender (Namensteil der Adresse)', 'left')}${th('Gestern')}${th('Heute')}${th('Letzte 30 Tage')}</tr></thead><tbody>${body}${tot}</tbody></table><p style="color:#9ca3af;font-size:11px;margin:6px 0 0;">Es wird nur die Anzahl beantworteter Mails je Absender gezählt (60 Tage Aufbewahrung), keine Inhalte.</p>`;
 }
 
 function splitTodayBuffers(state) {
