@@ -1,0 +1,24 @@
+/* FreiKI im Stil von Würde & Wandel: Serifen-Überschriften, ruhiges Blau, goldener Akzent */
+:root {
+  --ww-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --ww-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ww-gold: #b5833a;
+  --ww-accent-soft: #e4ecf6;
+}
+body { font-family: var(--ww-sans) !important; background-color: #f8f9fb; }
+h1, h2, h3, nav.top .brand, .brand {
+  font-family: var(--ww-serif) !important;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+h1 { font-weight: 700; }
+nav.top .brand, .brand { font-weight: 700; }
+::selection { background: var(--ww-accent-soft); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--ww-gold); outline-offset: 3px; border-radius: 4px; }
+.cta, .btn { border-radius: 999px !important; box-shadow: none !important; }
+.cta:hover, .btn:hover { filter: brightness(1.08); transform: none !important; }
+.badge { border-radius: 999px; }
+.hero-cta-box { border-radius: 14px !important; box-shadow: 0 1px 2px rgba(27,42,58,.06), 0 8px 24px rgba(27,42,58,.06); }
+.demo-note { border-radius: 10px !important; background: #fff8e6; border-color: #e6cf94; }
+h1 .h1-sub, .eyebrow, .kicker { font-family: var(--ww-sans) !important; font-weight: 600; letter-spacing: .08em; }
+nav.top .brand .ki { margin-left: -10px; }

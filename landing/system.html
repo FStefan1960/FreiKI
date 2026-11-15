@@ -98,17 +98,17 @@
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
   }
   :root {
-    --fk-primary: #1E3A8A;
-    --fk-primary-hover: #17306F;
-    --fk-navy: #101E42;
-    --fk-ink: #0F172A;
-    --fk-text-muted: #475569;
-    --fk-canvas: #F8FAFC;
-    --fk-line: #E2E8F0;
-    --fk-green-bg: #ECFDF5;
-    --fk-green-border: #A7F3D0;
-    --fk-green-text: #047857;
-    --fk-green-accent: #10B981;
+    --fk-primary: #1d4a7a;
+    --fk-primary-hover: #163a62;
+    --fk-navy: #12293f;
+    --fk-ink: #1b2a3a;
+    --fk-text-muted: #55616f;
+    --fk-canvas: #f8f9fb;
+    --fk-line: #dde3ea;
+    --fk-green-bg: #e4ecf6;
+    --fk-green-border: #c9d8ea;
+    --fk-green-text: #1d4a7a;
+    --fk-green-accent: #b5833a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
@@ -160,7 +160,7 @@
     display: none; flex-direction: column; padding: 10px 24px 16px;
     border-top: 1px solid var(--fk-line); background: #fff;
     position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
-    box-shadow: 0 8px 16px rgba(15,23,42,0.08);
+    box-shadow: 0 8px 16px rgba(27,42,58,0.08);
   }
   .mobile-menu a {
     padding: 10px 0; font-size: 14.5px; font-weight: 600; color: var(--fk-ink);
@@ -243,10 +243,10 @@
     letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--fk-primary); margin-bottom: 10px;
   }
-  section.dark .eyebrow { color: #8FB1F2; }
+  section.dark .eyebrow { color: #8fb9e6; }
   h2.title { font-size: clamp(24px, 3.4vw, 32px); font-weight: 800; margin-bottom: 14px; letter-spacing: -0.01em; }
   p.intro { color: var(--fk-text-muted); max-width: 680px; margin-bottom: 36px; font-size: 16px; }
-  section.dark p.intro { color: #C3D1EE; }
+  section.dark p.intro { color: #c9d8ea; }
 
   /* Grid cards */
   .grid { display: grid; gap: 18px; }
@@ -263,7 +263,7 @@
   section.tint .card { background: #fff; }
   .card .icon {
     width: 40px; height: 40px; border-radius: 10px;
-    background: #EAF0FE; color: var(--fk-primary);
+    background: #e4ecf6; color: var(--fk-primary);
     display: flex; align-items: center; justify-content: center;
     font-size: 20px; margin-bottom: 14px;
   }
@@ -278,10 +278,10 @@
   }
   .bento .tile.large { grid-column: span 2; }
   .bento .tile.small { grid-column: span 1; align-items: flex-start; }
-  .bento .tile:hover { border-color: var(--fk-primary); box-shadow: 0 6px 18px rgba(30,58,138,0.08); }
+  .bento .tile:hover { border-color: var(--fk-primary); box-shadow: 0 6px 18px rgba(29,74,122,0.08); }
   .bento .tile .icon {
     width: 42px; height: 42px; border-radius: 10px;
-    background: #EAF0FE; color: var(--fk-primary);
+    background: #e4ecf6; color: var(--fk-primary);
     display: flex; align-items: center; justify-content: center;
     font-size: 21px; margin-bottom: 14px; transition: transform 0.15s;
   }
@@ -298,7 +298,7 @@
   .bento .tile.large .demo .src {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
     font-size: 12px; font-weight: 700; color: var(--fk-primary);
-    background: #EAF0FE; border-radius: 8px; padding: 4px 10px;
+    background: #e4ecf6; border-radius: 8px; padding: 4px 10px;
   }
   @media (max-width: 760px) {
     .bento { grid-template-columns: 1fr; }
@@ -391,19 +391,20 @@
   /* Closing CTA */
   .closing { text-align: center; padding: 80px 0; }
   .closing h2 { font-size: clamp(26px, 4vw, 36px); font-weight: 800; max-width: 700px; margin: 0 auto 18px; letter-spacing: -0.01em; }
-  .closing p.sub { color: #C3D1EE; margin-bottom: 30px; }
+  .closing p.sub { color: #c9d8ea; margin-bottom: 30px; }
   .cta {
     display: inline-block; background: var(--fk-primary); color: #fff;
     text-decoration: none; font-weight: 700; font-size: 16px;
     padding: 14px 32px; border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(30,58,138,0.3);
+    box-shadow: 0 4px 10px rgba(29,74,122,0.3);
     transition: background 0.15s, transform 0.15s;
   }
   .cta:hover { background: var(--fk-primary-hover); transform: translateY(-1px); }
-  .closing .tags { margin-top: 24px; font-size: 13px; color: #8FB1F2; }
+  .closing .tags { margin-top: 24px; font-size: 13px; color: #8fb9e6; }
 
   footer.site { text-align: center; padding: 28px 0; font-size: 12px; color: #93A1B5; }
 </style>
+<link rel="stylesheet" href="/wuerde-theme.css">
 </head>
 <body>
 
