@@ -40,9 +40,14 @@ const config = {
   PPTX_TEMPLATE_PATH: process.env.PPTX_TEMPLATE_PATH || path.join(APP_ROOT, 'assets', 'pptx-templates', 'DiakonieKorkBasis.pptx'),
 
   SEARXNG_URL: process.env.SEARXNG_URL || 'http://searxng:8080',
+  // Interner Trigger-Endpunkt des egress-summary-Containers (siehe jobs/egressReport.js) -
+  // nur auf Instanzen mit eigenem Egress-Watch gesetzt.
+  EGRESS_SUMMARY_URL: process.env.EGRESS_SUMMARY_URL || '',
   N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || '',
   N8N_DAILY_REPORT_WEBHOOK_URL: process.env.N8N_DAILY_REPORT_WEBHOOK_URL || '',
   WHISPER_URL: process.env.WHISPER_URL || 'http://whisper:9000',
+  // Optional: WhisperX mit Sprechertrennung (Wahloption in audio-extrahieren.html). Leer = Option nicht sichtbar.
+  WHISPERX_URL: process.env.WHISPERX_URL || '',
   PIPER_URL: process.env.PIPER_URL || 'http://piper:8000',
   TTS_MODEL: process.env.TTS_MODEL || 'speaches-ai/piper-de_DE-thorsten-high',
   TTS_VOICE: process.env.TTS_VOICE || 'thorsten',

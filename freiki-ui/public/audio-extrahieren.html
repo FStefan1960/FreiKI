@@ -337,6 +337,11 @@
 
     <div class="hint">Die Tonspur wird per ffmpeg extrahiert (ohne KI). „Extrahieren, Transkribieren &amp; Formatieren" nutzt zusätzlich das Sprachmodell, um Themen, Termine und ToDos herauszuarbeiten.</div>
 
+    <label class="hint" id="diarize-label" style="display:none;gap:8px;align-items:flex-start;cursor:pointer">
+      <input type="checkbox" id="diarize-opt" style="margin-top:3px">
+      <span><strong>Sprecher trennen (Beta)</strong> – für Gespräche mit mehreren Personen. Die Redebeiträge werden maschinell „Sprecher 1/2/3" zugeordnet, bei ähnlichen Stimmen sind Fehler möglich – bitte prüfen. Gilt nur für die Transkriptions-Buttons, dauert etwas länger.</span>
+    </label>
+
     <div class="progress-wrap" id="progress-wrap">
       <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
       <div class="progress-label" id="progress-label"></div>
@@ -370,6 +375,8 @@
     try {
       const r = await fetch('/api/me', { cache: 'no-store' });
       if (!r.ok) throw new Error('not logged in');
+      const me = await r.json().catch(() => ({}));
+      if (me.diarizeAvailable) document.getElementById('diarize-label').style.display = 'flex';
     } catch (e) {
       if (window.top !== window && window.parent.closeToolPanel) { window.parent.closeToolPanel(); } else { window.location.href = '/'; }
     }
@@ -456,6 +463,7 @@
     formData.append('video', file);
     if (mode === 'transcribe' || mode === 'format') formData.append('transcribe', '1');
     if (mode === 'format') formData.append('format', '1');
+    if ((mode === 'transcribe' || mode === 'format') && document.getElementById('diarize-opt').checked) formData.append('diarize', '1');
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/extract-audio');

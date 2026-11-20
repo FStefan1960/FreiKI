@@ -106,15 +106,17 @@ router.post('/api/extract-audio', uploadVideo.single('video'), asyncHandler(asyn
 
     // Dritter Button "Extrahieren, Transkribieren & Formatieren" schickt zusätzlich format=1 -
     // eigener recordChatEvent-Modus, damit der Tagesbericht die beiden Varianten unterscheidet.
+    // Wahloption "Sprecher trennen" (WhisperX, nur wirksam wenn WHISPERX_URL gesetzt ist).
+    const diarize = req.body.diarize === '1' || req.body.diarize === 'true';
     const wantsFormat = req.body.format === '1' || req.body.format === 'true';
     if (wantsFormat) {
       recordChatEvent({ user: s.username, mode: 'transkription-formatiert', title: 'Transkription (formatiert)', hasFile: true });
       res.json({ ok: true, message: 'Datei empfangen. Audio wird extrahiert, Transkript und formatiertes Word-Dokument werden per E-Mail gesendet.' });
-      transcribeStructureAndEmail({ path: mp3Path, originalname: downloadName }, email); // fire-and-forget
+      transcribeStructureAndEmail({ path: mp3Path, originalname: downloadName }, email, { diarize }); // fire-and-forget
     } else {
       recordChatEvent({ user: s.username, mode: 'transkription', title: 'Transkription', hasFile: true });
       res.json({ ok: true, message: 'Datei empfangen. Audio wird extrahiert, das Transkript per E-Mail gesendet.' });
-      transcribeAndEmail({ path: mp3Path, originalname: downloadName }, email); // fire-and-forget
+      transcribeAndEmail({ path: mp3Path, originalname: downloadName }, email, { diarize }); // fire-and-forget
     }
     return;
   }

@@ -18,7 +18,7 @@ async function formatTranscript(transcript) {
       body: JSON.stringify({
         model: config.VLLM_MODEL,
         messages: [
-          { role: 'system', content: 'Du bereinigst automatisch transkribierte Sprachtexte. Füge fehlende Satzzeichen ein, korrigiere offensichtliche Erkennungsfehler. Gliedere den Text zwingend in Absätze: Beginne einen neuen Absatz (Leerzeile dazwischen), sobald das Thema wechselt, ein neuer Gedanke beginnt oder eine deutliche Sprechpause erkennbar ist. Bei einem längeren Transkript sind mehrere Absätze Pflicht – ein einziger durchgehender Textblock ist nicht akzeptabel. Behalte den gesamten Inhalt bei – erfinde nichts, kürze nichts weg. Gib NUR den formatierten Text zurück, ohne Kommentar oder Erklärung. /no_think' },
+          { role: 'system', content: 'Du bereinigst automatisch transkribierte Sprachtexte. Füge fehlende Satzzeichen ein, korrigiere offensichtliche Erkennungsfehler. Gliedere den Text zwingend in Absätze: Beginne einen neuen Absatz (Leerzeile dazwischen), sobald das Thema wechselt, ein neuer Gedanke beginnt oder eine deutliche Sprechpause erkennbar ist. Bei einem längeren Transkript sind mehrere Absätze Pflicht – ein einziger durchgehender Textblock ist nicht akzeptabel. Behalte den gesamten Inhalt bei – erfinde nichts, kürze nichts weg. Beginnen Zeilen mit einem Sprecherlabel wie "Sprecher 1:", behalte diese Labels unverändert am Zeilenanfang bei und vermische die Redebeiträge verschiedener Sprecher nicht. Gib NUR den formatierten Text zurück, ohne Kommentar oder Erklärung. /no_think' },
           { role: 'user', content: `Bitte formatiere dieses Transkript:\n\n${transcript}` }
         ],
         max_tokens: 8192,
@@ -50,7 +50,7 @@ async function structureTranscript(formattedTranscript) {
     body: JSON.stringify({
       model: config.VLLM_MODEL,
       messages: [
-        { role: 'system', content: 'Du strukturierst ein transkribiertes Gespräch oder eine Aufnahme für ein Protokoll. Arbeite AUSSCHLIESSLICH mit dem Inhalt des Transkripts - erfinde, ergänze oder interpretiere nichts, das nicht wörtlich oder sinngemäß darin vorkommt. Gib das Ergebnis als Markdown zurück, exakt in dieser Struktur:\n\n# Protokoll\n\n## Termine\nStichpunkte mit allen im Transkript genannten Terminen, Fristen oder Zeitangaben (Datum/Uhrzeit + Anlass). Wird kein Termin genannt, schreibe genau: "Keine Termine erkannt."\n\n## ToDos\nStichpunkte mit allen im Transkript genannten Aufgaben, Zusagen oder offenen Punkten (wer macht was, falls erkennbar). Wird kein ToDo genannt, schreibe genau: "Keine ToDos erkannt."\n\n## Inhalt\nGliedere den restlichen Inhalt in thematische Abschnitte mit ##-Überschriften, ein Abschnitt pro Thema bzw. Sinneinheit. Sind im Text mehrere Sprecher im klaren Wechsel erkennbar (z.B. Frage/Antwort, deutlich wechselnde Perspektiven), kennzeichne die Redebeiträge zusätzlich mit **Sprecher A:**/**Sprecher B:** usw. - nutze NUR diese generischen Bezeichnungen, rate keine echten Namen. Ist keine Sprechertrennung erkennbar, gliedere ausschließlich nach Thema.\n\nGib NUR das Markdown zurück, ohne Einleitung, Kommentar oder Codeblock-Umrandung. /no_think' },
+        { role: 'system', content: 'Du strukturierst ein transkribiertes Gespräch oder eine Aufnahme für ein Protokoll. Arbeite AUSSCHLIESSLICH mit dem Inhalt des Transkripts - erfinde, ergänze oder interpretiere nichts, das nicht wörtlich oder sinngemäß darin vorkommt. Gib das Ergebnis als Markdown zurück, exakt in dieser Struktur:\n\n# Protokoll\n\n## Termine\nStichpunkte mit allen im Transkript genannten Terminen, Fristen oder Zeitangaben (Datum/Uhrzeit + Anlass). Wird kein Termin genannt, schreibe genau: "Keine Termine erkannt."\n\n## ToDos\nStichpunkte mit allen im Transkript genannten Aufgaben, Zusagen oder offenen Punkten (wer macht was, falls erkennbar). Wird kein ToDo genannt, schreibe genau: "Keine ToDos erkannt."\n\n## Inhalt\nGliedere den restlichen Inhalt in thematische Abschnitte mit ##-Überschriften, ein Abschnitt pro Thema bzw. Sinneinheit. Beginnen Zeilen bereits mit Labels wie **Sprecher 1:**/Sprecher 1:, übernimm diese Labels exakt als **Sprecher 1:** usw. und ordne die Beiträge nach Thema, ohne Beiträge verschiedener Sprecher zu vermischen. Sind sonst im Text mehrere Sprecher im klaren Wechsel erkennbar (z.B. Frage/Antwort, deutlich wechselnde Perspektiven), kennzeichne die Redebeiträge zusätzlich mit **Sprecher A:**/**Sprecher B:** usw. - nutze NUR diese generischen Bezeichnungen, rate keine echten Namen. Ist keine Sprechertrennung erkennbar, gliedere ausschließlich nach Thema.\n\nGib NUR das Markdown zurück, ohne Einleitung, Kommentar oder Codeblock-Umrandung. /no_think' },
         { role: 'user', content: `Bitte strukturiere dieses Transkript:\n\n${formattedTranscript}` }
       ],
       max_tokens: 8192,
@@ -75,14 +75,62 @@ function isTranscribing() {
   return activeTranscriptions > 0;
 }
 
+
+// Ruft WhisperX (Transkription + pyannote-Diarisierung) auf und baut daraus Text mit
+// "Sprecher N:"-Zeilen (nach Reihenfolge des ersten Auftretens nummeriert, aufeinanderfolgende
+// Segmente desselben Sprechers zusammengefasst). Die Zuordnung ist maschinell und kann bei
+// ähnlichen Stimmen irren - echte Namen werden bewusst nicht vergeben.
+async function transcribeWithSpeakers(wavPath) {
+  const form = new FormData();
+  form.append('audio_file', fs.createReadStream(wavPath), { filename: 'audio.wav', contentType: 'audio/wav' });
+  form.append('language', 'de');
+  const res = await fetch(`${config.WHISPERX_URL}/asr`, {
+    method: 'POST', body: form, headers: form.getHeaders(), timeout: 7200000
+  });
+  if (!res.ok) throw new Error(`WhisperX Fehler: ${res.status} – ${(await res.text()).slice(0, 300)}`);
+  const json = await res.json();
+  const segs = (json.segments || []).filter(s => s.text && s.text.trim());
+  if (!segs.length) throw new Error('WhisperX hat kein Transkript zurückgegeben');
+  const order = new Map();
+  const lines = [];
+  for (const s of segs) {
+    const id = s.speaker || 'UNBEKANNT';
+    if (!order.has(id)) order.set(id, order.size + 1);
+    const label = `Sprecher ${order.get(id)}`;
+    const last = lines[lines.length - 1];
+    if (last && last.label === label) last.text += ' ' + s.text.trim();
+    else lines.push({ label, text: s.text.trim() });
+  }
+  return lines.map(l => `${l.label}: ${l.text}`).join('\n');
+}
+
 // Konvertiert eine Audiodatei zu 16kHz-Mono-WAV und transkribiert sie per Whisper. Wirft bei
 // Fehlern (kein try/catch) - Aufrufer entscheiden selbst, wie sie damit umgehen (E-Mail-Fehler-
 // Benachrichtigung vs. HTTP-Fehlerantwort). Geteilt zwischen der E-Mail-Transkription (lange
 // Dateien) und dem kurzen Chat-Diktat, damit die Whisper-Anbindung nicht doppelt existiert.
-async function transcribeAudio(filePath) {
+async function transcribeAudio(filePath, opts = {}) {
   const wavPath = filePath + '.wav';
   try {
     await execFileAsync('ffmpeg', ['-y', '-i', filePath, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', wavPath]);
+
+    // Wahloption "Sprecher trennen": WhisperX liefert Segmente mit Sprecher-ID. Fällt der Dienst aus
+    // oder ist nicht konfiguriert, läuft die normale Transkription weiter (mit Hinweis im Text).
+    let diarizeNote = '';
+    if (opts.diarize) {
+      if (!config.WHISPERX_URL) {
+        diarizeNote = '[Hinweis: Sprechertrennung ist auf dieser Instanz nicht eingerichtet - normales Transkript.]\n\n';
+      } else {
+        activeTranscriptions++;
+        try {
+          return await transcribeWithSpeakers(wavPath);
+        } catch (e) {
+          console.warn('Sprechertrennung fehlgeschlagen, weiche auf normales Whisper aus:', e.message);
+          diarizeNote = '[Hinweis: Sprechertrennung war nicht verfügbar - normales Transkript ohne Sprecher.]\n\n';
+        } finally {
+          activeTranscriptions--;
+        }
+      }
+    }
 
     const form = new FormData();
     form.append('audio_file', fs.createReadStream(wavPath), { filename: 'audio.wav', contentType: 'audio/wav' });
@@ -107,7 +155,7 @@ async function transcribeAudio(filePath) {
     const whisperJson = await whisperRes.json();
     const transcript = (whisperJson.text || '').trim();
     if (!transcript) throw new Error('Whisper hat kein Transkript zurückgegeben (leeres Ergebnis)');
-    return transcript;
+    return diarizeNote + transcript;
   } finally {
     fs.unlink(wavPath, () => {});
   }
@@ -118,10 +166,10 @@ async function transcribeAudio(filePath) {
 // Die Originaldatei wird nur bei erfolgreichem Mailversand sofort gelöscht - schlägt
 // irgendein Schritt fehl, bleibt sie liegen (z.B. für einen manuellen Retry) und wird
 // spätestens nach 24h vom generischen Upload-Cleanup (FileStorage.cleanupUploads) entsorgt.
-async function transcribeAndEmail(file, email) {
+async function transcribeAndEmail(file, email, opts = {}) {
   try {
     console.log(`Transkription gestartet: ${file.originalname}`);
-    const transcript = await transcribeAudio(file.path);
+    const transcript = await transcribeAudio(file.path, opts);
     console.log(`Whisper Antwort: ${transcript.length} Zeichen`);
 
     console.log('Formatiere Transkript mit vLLM...');
@@ -147,11 +195,11 @@ async function transcribeAndEmail(file, email) {
 // scheitert nur der Zusatzschritt, ist das Rohtranskript trotzdem schon sicher beim Nutzer -
 // eine generische "Transkription fehlgeschlagen"-Mail wäre dann irreführend, stattdessen eine
 // eigene, sanftere Fehlermeldung für den Formatierungsschritt.
-async function transcribeStructureAndEmail(file, email) {
+async function transcribeStructureAndEmail(file, email, opts = {}) {
   let formatted;
   try {
     console.log(`Transkription (mit Formatierung) gestartet: ${file.originalname}`);
-    const transcript = await transcribeAudio(file.path);
+    const transcript = await transcribeAudio(file.path, opts);
     console.log(`Whisper Antwort: ${transcript.length} Zeichen`);
 
     console.log('Formatiere Transkript mit vLLM...');

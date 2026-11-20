@@ -297,7 +297,8 @@ router.get('/api/me', asyncHandler(async (req, res) => {
   try {
     const profile = await users.findProfileById(s.uid);
     if (!profile) return res.status(404).json({ error: 'Unbekannt' });
-    res.json(profile);
+    // diarizeAvailable: Wahloption "Sprecher trennen" (audio-extrahieren.html) nur anzeigen, wenn WhisperX konfiguriert ist
+    res.json({ ...profile, diarizeAvailable: !!config.WHISPERX_URL });
   } catch (e) { console.error('api/me:', e.message); res.status(500).json({ error: 'Fehler' }); }
 }));
 
